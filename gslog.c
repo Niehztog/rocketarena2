@@ -1,33 +1,23 @@
 #include "g_local.h"
-
-#include <errno.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#include "net_compat.h"
 
 
 extern cvar_t	*logfile;
 extern cvar_t	*netlog;
 
 FILE		*StdLogFile;
+
 static fd_set	global_fds;
 
 
-/*
-=================
-net_name_to_address
-=================
-*/
-struct sockaddr_in *net_name_to_address (struct sockaddr_in *addr, char *name)
+/* gamex86.dll 0x2001b120-0x2001b230 (shape-matched(ratio=0.59)+size-corrected) */
+/* gamei386.so 0x00054144-0x00054248 */
+struct sockaddr_in net_name_to_address (char *name)
 {
 	struct sockaddr_in	sin;
 	struct hostent		*hp;
 	char			*s, *portstr;
 	unsigned long		a;
-	unsigned short		port;
 
 	memset (&sin, 0, sizeof(sin));
 
@@ -37,40 +27,42 @@ struct sockaddr_in *net_name_to_address (struct sockaddr_in *addr, char *name)
 
 	if (portstr)
 	{
-		port = (unsigned short)strtol (portstr, NULL, 10);
-		if (!port)
+		sin.sin_port = atoi (portstr);
+		if (sin.sin_port <= 0 || sin.sin_port >= 65536)
 		{
 			fprintf (stderr, "net_name_to_address: %s: invalid port number\n", portstr);
 			exit (1);
 		}
 	}
 	else
-		port = 0;
+		sin.sin_port = 0;
 
 	a = inet_addr (s);
 	if (a == INADDR_NONE)
 	{
-		if (!(hp = gethostbyname (s)))
+		hp = gethostbyname (s);
+		if (hp)
+			sin.sin_addr.s_addr = *(unsigned long *)hp->h_addr_list[0];
+		else
 		{
-			fprintf (stderr, "%s: %s\n", "net_name_to_addr", s);
+#ifdef _WIN32
+			fprintf (stderr, "%s: %d", s, WSAGetLastError ());
+#else
+			fprintf (stderr, "%s: %s", s, "net_name_to_addr");
+#endif
 			exit (1);
 		}
-		sin.sin_addr.s_addr = *(unsigned long *)hp->h_addr_list[0];
 	}
 
 	sin.sin_family = AF_INET;
-	sin.sin_port = htons (port);
+	sin.sin_port = htons (sin.sin_port);
 	free (s);
 
-	*addr = sin;
-	return addr;
+	return sin;
 }
 
-/*
-=================
-net_send
-=================
-*/
+/* gamex86.dll 0x2001b230-0x2001b270 (manual-confirmed) */
+/* gamei386.so 0x00054248-0x00054286 */
 void net_send (int sock, char *buf, int len)
 {
 	int	r;
@@ -84,11 +76,8 @@ void net_send (int sock, char *buf, int len)
 	}
 }
 
-/*
-=================
-net_open_socket
-=================
-*/
+/* gamex86.dll 0x2001b270-0x2001b2c0 (manual-confirmed) */
+/* gamei386.so 0x00054288-0x000542c5 */
 int net_open_socket (void)
 {
 	int	sock;
@@ -96,7 +85,11 @@ int net_open_socket (void)
 	sock = socket (AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0)
 	{
+#ifdef _WIN32
+		printf ("WSA %d\n", WSAGetLastError ());
+#else
 		perror ("socket");
+#endif
 		exit (1);
 	}
 
@@ -105,11 +98,8 @@ int net_open_socket (void)
 	return sock;
 }
 
-/*
-=================
-net_close_socket
-=================
-*/
+/* gamex86.dll 0x2001b2c0-0x2001b340 (padded) */
+/* gamei386.so 0x000542c8-0x00054304 */
 void net_close_socket (int sock)
 {
 	if (sock)
@@ -124,11 +114,8 @@ void net_close_socket (int sock)
 	FD_CLR (sock, &global_fds);
 }
 
-/*
-=================
-net_connect_socket
-=================
-*/
+/* gamex86.dll 0x2001b340-0x2001b380 (padded) */
+/* gamei386.so 0x00054304-0x00054343 */
 void net_connect_socket (int sock, struct sockaddr_in *addr, unsigned short port)
 {
 	addr->sin_port = htons (port);
@@ -140,144 +127,97 @@ void net_connect_socket (int sock, struct sockaddr_in *addr, unsigned short port
 	}
 }
 
-/*
-=================
-GSSendLine
-=================
-*/
+/* gamex86.dll 0x2001b380-0x2001b400 (bracketed) */
+/* gamei386.so 0x00054344-0x0005445a */
 void GSSendLine (char *line)
 {
 	struct sockaddr_in	addr;
 	int			sock;
 	unsigned short		port;
 
-	net_name_to_address (&addr, netlog->string);
+	addr = net_name_to_address (netlog->string);
 	port = ntohs (addr.sin_port);
 
 	sock = net_open_socket ();
 	net_connect_socket (sock, &addr, port);
-	net_send (sock, line, strlen (line));
+	net_send (sock, line, strlen (line) + 1);
 	net_close_socket (sock);
 }
 
-/*
-=================
-GSOpenLog
-=================
-*/
+/* gamex86.dll 0x2001b400-0x2001b4d0 (padded+majority+collision-resolved) */
+/* gamei386.so 0x0005445c-0x000544ca */
 void GSOpenLog (void)
 {
 	cvar_t	*gamedir, *logname;
-	char	path[MAX_OSPATH];
+	char	path[80];
 
 	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
 	logname = gi.cvar ("logname", "stdlog.log", 0);
 
 	strcpy (path, gamedir->string);
+#ifdef _WIN32
+	strcat (path, "\\");
+#else
 	strcat (path, "/");
+#endif
 	strcat (path, logname->string);
 
 	StdLogFile = fopen (path, "a+t");
 }
 
-/*
-=================
-GSCloseLog
-=================
-*/
+/* gamex86.dll 0x2001b4d0-0x2001b4e0 (bracketed) */
+/* gamei386.so 0x000544cc-0x000544db */
 void GSCloseLog (void)
 {
 	fclose (StdLogFile);
 }
 
-/*
-=================
-GSLogShutdown
-=================
-*/
+/* gamex86.dll 0x2001b4e0-0x2001b520 (bracketed) */
+/* gamei386.so 0x000544dc-0x000545ab */
 void GSLogShutdown (void)
 {
-	cvar_t	*gamedir, *logname;
-	char	path[MAX_OSPATH];
-
 	if (logfile->value != 2)
 		return;
 
-	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
-	logname = gi.cvar ("logname", "stdlog.log", 0);
-
-	strcpy (path, gamedir->string);
-	strcat (path, "/");
-	strcat (path, logname->string);
-
-	StdLogFile = fopen (path, "a+t");
+	GSOpenLog ();
 
 	fprintf (StdLogFile, "\t\tGameEnd\t\t\t%d\n", (int)level.time);
 
-	fclose (StdLogFile);
+	GSCloseLog ();
 }
 
-/*
-=================
-GSLogStartup
-=================
-*/
+/* gamex86.dll 0x2001b520-0x2001b570 (bracketed) */
+/* gamei386.so 0x000545ac-0x00054669 */
 void GSLogStartup (void)
 {
-	cvar_t	*gamedir, *logname;
-	char	path[MAX_OSPATH];
-
 	if (logfile->value != 2)
 		return;
 
-	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
-	logname = gi.cvar ("logname", "stdlog.log", 0);
-
-	strcpy (path, gamedir->string);
-	strcat (path, "/");
-	strcat (path, logname->string);
-
-	StdLogFile = fopen (path, "a+t");
+	GSOpenLog ();
 
 	fprintf (StdLogFile, "\t\tStdLog\t1.22\n");
 	fprintf (StdLogFile, "\t\tPatchName\tRocket Arena 2 %s\n", "v2.25");
 
-	fclose (StdLogFile);
+	GSCloseLog ();
 }
 
-/*
-=================
-GSLogNewmap
-=================
-*/
+/* gamex86.dll 0x2001b570-0x2001b5c0 (bracketed) */
+/* gamei386.so 0x0005466c-0x0005474d */
 void GSLogNewmap (void)
 {
-	cvar_t	*gamedir, *logname;
-	char	path[MAX_OSPATH];
-
 	if (logfile->value != 2)
 		return;
 
-	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
-	logname = gi.cvar ("logname", "stdlog.log", 0);
-
-	strcpy (path, gamedir->string);
-	strcat (path, "/");
-	strcat (path, logname->string);
-
-	StdLogFile = fopen (path, "a+t");
+	GSOpenLog ();
 
 	fprintf (StdLogFile, "\t\tMAP\t%s\n", level.level_name);
 	fprintf (StdLogFile, "\t\tGameStart\t\t\t%d\n", (int)level.time);
 
-	fclose (StdLogFile);
+	GSCloseLog ();
 }
 
-/*
-=================
-GSdodeathlog
-=================
-*/
+/* gamex86.dll 0x2001b5c0-0x2001b5f0 (bracketed) */
+/* gamei386.so 0x00054750-0x0005477c */
 void GSdodeathlog (char *line)
 {
 	fprintf (StdLogFile, line);
@@ -286,15 +226,10 @@ void GSdodeathlog (char *line)
 		GSSendLine (line);
 }
 
-/*
-=================
-GSLogDeath
-=================
-*/
+/* gamex86.dll 0x2001b5f0-0x2001b890 (padded+size) */
+/* gamei386.so 0x0005477c-0x000549d8 */
 void GSLogDeath (edict_t *self, edict_t *inflictor, edict_t *attacker)
 {
-	cvar_t	*gamedir, *logname;
-	char	path[MAX_OSPATH];
 	char	line[1000];
 	gitem_t	*weap;
 	char	*weapname;
@@ -302,35 +237,39 @@ void GSLogDeath (edict_t *self, edict_t *inflictor, edict_t *attacker)
 	if (logfile->value != 2)
 		return;
 
-	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
-	logname = gi.cvar ("logname", "stdlog.log", 0);
-
-	strcpy (path, gamedir->string);
-	strcat (path, "/");
-	strcat (path, logname->string);
-
-	StdLogFile = fopen (path, "a+t");
+	GSOpenLog ();
 
 	if (attacker == self)
 	{
-		weap = self->client->pers.weapon;
+		if (attacker->client->pers.weapon)
+		{
+			if (!strcmp (self->client->pers.weapon->classname, "weapon_grenadelauncher") ||
+			    !strcmp (self->client->pers.weapon->classname, "weapon_rocketlauncher") ||
+			    !strcmp (self->client->pers.weapon->classname, "weapon_bfg"))
+			{
+				Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t%s\t-1\t%d\t%d\n",
+					self->client->pers.netname, self->client->pers.weapon->pickup_name,
+					(int)level.time, self->client->ping);
+				GSdodeathlog (line);
+				GSCloseLog ();
+				return;
+			}
 
-		if (weap &&
-		    (!strcmp (weap->classname, "weapon_grenadelauncher") ||
-		     !strcmp (weap->classname, "weapon_rocketlauncher") ||
-		     !strcmp (weap->classname, "weapon_bfg")))
-		{
-			Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t%s\t-1\t%d\t%d\n",
-				self->client->pers.netname, weap->pickup_name,
-				(int)level.time, self->client->ping);
-		}
-		else
-		{
 			Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t\t-1\t%d\t%d\n",
 				self->client->pers.netname, (int)level.time, self->client->ping);
+			GSdodeathlog (line);
+			GSCloseLog ();
+			return;
 		}
+
+		Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t\t-1\t%d\t%d\n",
+			self->client->pers.netname, (int)level.time, self->client->ping);
+		GSdodeathlog (line);
+		GSCloseLog ();
+		return;
 	}
-	else if (attacker && attacker->client)
+
+	if (attacker && attacker->client)
 	{
 		weap = attacker->client->pers.weapon;
 		weapname = weap ? weap->pickup_name : "BFG10K";
@@ -338,70 +277,43 @@ void GSLogDeath (edict_t *self, edict_t *inflictor, edict_t *attacker)
 		Com_sprintf (line, sizeof(line), "%s\t%s\tKill\t%s\t1\t%d\t%d\n",
 			attacker->client->pers.netname, self->client->pers.netname,
 			weapname, (int)level.time, attacker->client->ping);
-	}
-	else
-	{
-		Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t\t-1\t%d\t%d\n",
-			self->client->pers.netname, (int)level.time, self->client->ping);
+		GSdodeathlog (line);
+		GSCloseLog ();
+		return;
 	}
 
+	Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t\t-1\t%d\t%d\n",
+		self->client->pers.netname, (int)level.time, self->client->ping);
 	GSdodeathlog (line);
-
-	fclose (StdLogFile);
+	GSCloseLog ();
 }
 
-/*
-=================
-GSLogEnter
-=================
-*/
+/* gamex86.dll 0x2001b890-0x2001b8e0 (call-propagated) */
+/* gamei386.so 0x000549d8-0x00054ab6 */
 void GSLogEnter (edict_t *ent)
 {
-	cvar_t	*gamedir, *logname;
-	char	path[MAX_OSPATH];
-
 	if (logfile->value != 2)
 		return;
 
-	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
-	logname = gi.cvar ("logname", "stdlog.log", 0);
-
-	strcpy (path, gamedir->string);
-	strcat (path, "/");
-	strcat (path, logname->string);
-
-	StdLogFile = fopen (path, "a+t");
+	GSOpenLog ();
 
 	fprintf (StdLogFile, "\t\tPlayerConnect\t%s\t\t%d\n",
 		ent->client->pers.netname, (int)level.time);
 
-	fclose (StdLogFile);
+	GSCloseLog ();
 }
 
-/*
-=================
-GSLogExit
-=================
-*/
+/* gamex86.dll 0x2001b8e0-0x2001b930 (call-propagated) */
+/* gamei386.so 0x00054ab8-0x00054b96 */
 void GSLogExit (edict_t *ent)
 {
-	cvar_t	*gamedir, *logname;
-	char	path[MAX_OSPATH];
-
 	if (logfile->value != 2)
 		return;
 
-	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
-	logname = gi.cvar ("logname", "stdlog.log", 0);
-
-	strcpy (path, gamedir->string);
-	strcat (path, "/");
-	strcat (path, logname->string);
-
-	StdLogFile = fopen (path, "a+t");
+	GSOpenLog ();
 
 	fprintf (StdLogFile, "\t\tPlayerLeft\t%s\t\t%d\n",
 		ent->client->pers.netname, (int)level.time);
 
-	fclose (StdLogFile);
+	GSCloseLog ();
 }

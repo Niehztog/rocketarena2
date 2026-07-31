@@ -2,6 +2,8 @@
 #include "arena.h"
 
 
+/* gamex86.dll 0x20016780-0x200167e0 (bracketed-cross-object) */
+/* gamei386.so 0x00038e84-0x00038ee2 */
 void InitTrigger (edict_t *self)
 {
 	if (!VectorCompare (self->s.angles, vec3_origin))
@@ -15,6 +17,8 @@ void InitTrigger (edict_t *self)
 
 
 // the wait time has passed, so set back up for another activation
+/* gamex86.dll 0x200167e0-0x200167f0 (bracketed-cross-object) */
+/* gamei386.so 0x00038ee4-0x00038ef3 */
 void multi_wait (edict_t *ent)
 {
 	ent->nextthink = 0;
@@ -24,6 +28,8 @@ void multi_wait (edict_t *ent)
 // the trigger was just activated
 // ent->activator should be set to the activator so it can be held through a delay
 // so wait for the delay time before firing
+/* gamex86.dll 0x200167f0-0x200168e0 (padded) */
+/* gamei386.so 0x00038ef4-0x00038fdf */
 void multi_trigger (edict_t *ent)
 {
 	if (ent->nextthink)
@@ -53,12 +59,16 @@ void multi_trigger (edict_t *ent)
 	}
 }
 
+/* gamex86.dll 0x200168e0-0x20016900 (bracketed) */
+/* gamei386.so 0x00038fe0-0x000390d3 */
 void Use_Multi (edict_t *ent, edict_t *other, edict_t *activator)
 {
 	ent->activator = activator;
 	multi_trigger (ent);
 }
 
+/* gamex86.dll 0x20016900-0x20016990 (bracketed) */
+/* gamei386.so 0x000390d4-0x00039242 */
 void Touch_Multi (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if(other->client)
@@ -98,6 +108,8 @@ sounds
 4)
 set "message" to text string
 */
+/* gamex86.dll 0x20016990-0x200169c0 (bracketed) */
+/* gamei386.so 0x00039244-0x00039268 */
 void trigger_enable (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->solid = SOLID_TRIGGER;
@@ -105,6 +117,8 @@ void trigger_enable (edict_t *self, edict_t *other, edict_t *activator)
 	gi.linkentity (self);
 }
 
+/* gamex86.dll 0x200169c0-0x20016ab0 (padded+majority) */
+/* gamei386.so 0x00039268-0x00039356 */
 void SP_trigger_multiple (edict_t *ent)
 {
 	if (ent->sounds == 1)
@@ -155,6 +169,8 @@ sounds
 "message"	string to be displayed when triggered
 */
 
+/* gamex86.dll 0x20016ab0-0x20016b30 (padded) */
+/* gamei386.so 0x00039358-0x000393cd */
 void SP_trigger_once(edict_t *ent)
 {
 	// make old maps work because I messed up on flag assignments here
@@ -176,11 +192,15 @@ void SP_trigger_once(edict_t *ent)
 /*QUAKED trigger_relay (.5 .5 .5) (-8 -8 -8) (8 8 8)
 This fixed size trigger cannot be touched, it can only be fired by other events.
 */
+/* gamex86.dll 0x20016b30-0x20016b50 (bracketed) */
+/* gamei386.so 0x000393d0-0x000393e3 */
 void trigger_relay_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	G_UseTargets (self, activator);
 }
 
+/* gamex86.dll 0x20016b50-0x20016b60 (bracketed) */
+/* gamei386.so 0x000393e4-0x000393f3 */
 void SP_trigger_relay (edict_t *self)
 {
 	self->use = trigger_relay_use;
@@ -199,6 +219,8 @@ trigger_key
 A relay trigger that only fires it's targets if player has the proper key.
 Use "item" to specify the required key, for example "key_data_cd"
 */
+/* gamex86.dll 0x20016b60-0x20016dd0 (padded+majority) */
+/* gamei386.so 0x000393f4-0x0003964a */
 void trigger_key_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	int			index;
@@ -269,6 +291,8 @@ void trigger_key_use (edict_t *self, edict_t *other, edict_t *activator)
 	self->use = NULL;
 }
 
+/* gamex86.dll 0x20016dd0-0x20016e80 (unpadded-prologue+majority) */
+/* gamei386.so 0x0003964c-0x000396f7 */
 void SP_trigger_key (edict_t *self)
 {
 	if (!st.item)
@@ -313,6 +337,8 @@ If nomessage is not set, t will print "1 more.. " etc when triggered and "sequen
 After the counter has been triggered "count" times (default 2), it will fire all of it's targets and remove itself.
 */
 
+/* gamex86.dll 0x20016e80-0x20016f40 (unpadded-prologue+majority) */
+/* gamei386.so 0x000396f8-0x00039894 */
 void trigger_counter_use(edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (self->count == 0)
@@ -339,6 +365,8 @@ void trigger_counter_use(edict_t *self, edict_t *other, edict_t *activator)
 	multi_trigger (self);
 }
 
+/* gamex86.dll 0x20016f40-0x20016f70 (bracketed) */
+/* gamei386.so 0x00039894-0x000398c0 */
 void SP_trigger_counter (edict_t *self)
 {
 	self->wait = -1;
@@ -360,6 +388,8 @@ trigger_always
 /*QUAKED trigger_always (.5 .5 .5) (-8 -8 -8) (8 8 8)
 This trigger will always fire.  It is activated by the world.
 */
+/* gamex86.dll 0x20016f70-0x20016fa0 (bracketed) */
+/* gamei386.so 0x000398c0-0x000398f1 */
 void SP_trigger_always (edict_t *ent)
 {
 	// we must have some delay to make sure our use targets are present
@@ -381,6 +411,8 @@ trigger_push
 
 static int windsound;
 
+/* gamex86.dll 0x20016fa0-0x200170d0 (padded+size) */
+/* gamei386.so 0x000398f4-0x00039a14 */
 void trigger_push_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (strcmp(other->classname, "grenade") == 0)
@@ -411,6 +443,8 @@ void trigger_push_touch (edict_t *self, edict_t *other, cplane_t *plane, csurfac
 Pushes the player
 "speed"		defaults to 1000
 */
+/* gamex86.dll 0x200170d0-0x20017130 (padded) */
+/* gamei386.so 0x00039a14-0x00039ab9 */
 void SP_trigger_push (edict_t *self)
 {
 	InitTrigger (self);
@@ -442,6 +476,8 @@ NO_PROTECTION	*nothing* stops the damage
 "dmg"			default 5 (whole numbers only)
 
 */
+/* gamex86.dll 0x20017130-0x20017170 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00039abc-0x00039b02 */
 void hurt_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (self->solid == SOLID_NOT)
@@ -455,6 +491,8 @@ void hurt_use (edict_t *self, edict_t *other, edict_t *activator)
 }
 
 
+/* gamex86.dll 0x20017170-0x20017230 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00039b04-0x00039bdc */
 void hurt_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	int		dflags;
@@ -483,6 +521,8 @@ void hurt_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *sur
 	T_Damage (other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, self->dmg, dflags, MOD_TRIGGER_HURT);
 }
 
+/* gamex86.dll 0x20017230-0x200172b0 (unpadded-prologue) */
+/* gamei386.so 0x00039bdc-0x00039cab */
 void SP_trigger_hurt (edict_t *self)
 {
 	InitTrigger (self);
@@ -519,11 +559,15 @@ the value of "gravity".  1.0 is standard
 gravity for the level.
 */
 
+/* gamex86.dll 0x200172b0-0x200172d0 (bracketed) */
+/* gamei386.so 0x00039cac-0x00039cc1 */
 void trigger_gravity_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	other->gravity = self->gravity;
 }
 
+/* gamex86.dll 0x200172d0-0x2001732d (unpadded-prologue) */
+/* gamei386.so 0x00039cc4-0x00039d7b */
 void SP_trigger_gravity (edict_t *self)
 {
 	if (st.gravity == 0)
@@ -553,6 +597,8 @@ Walking monsters that touch this will jump in the direction of the trigger's ang
 "height" default to 200, the speed thrown upwards
 */
 
+/* gamex86.dll 0x20017330-0x200173a0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00039d7c-0x00039ddf */
 void trigger_monsterjump_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (other->flags & (FL_FLY | FL_SWIM) )
@@ -573,6 +619,8 @@ void trigger_monsterjump_touch (edict_t *self, edict_t *other, cplane_t *plane, 
 	other->velocity[2] = self->movedir[2];
 }
 
+/* gamex86.dll 0x200173a0-0x20017410 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00039de0-0x00039e9d */
 void SP_trigger_monsterjump (edict_t *self)
 {
 	if (!self->speed)

@@ -28,6 +28,8 @@ will be null.
 In coop games, sight_client will cycle between the clients.
 =================
 */
+/* gamex86.dll 0x20005b40-0x20005bd0 (shape-matched(ratio=0.67)) */
+/* gamei386.so 0x0001ddf8-0x0001de8a */
 void AI_SetSightClient (void)
 {
 	edict_t	*ent;
@@ -70,6 +72,8 @@ Move the specified distance at current facing.
 This replaces the QC functions: ai_forward, ai_back, ai_pain, and ai_painforward
 ==============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001de8c-0x0001de8d */
 void ai_move (edict_t *self, float dist)
 {
 }
@@ -83,6 +87,8 @@ Used for standing around and looking for players
 Distance is for slight position adjustments needed by the animations
 ==============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001de90-0x0001de91 */
 void ai_stand (edict_t *self, float dist)
 {
 }
@@ -95,6 +101,8 @@ ai_walk
 The monster is walking it's beat
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001de94-0x0001de95 */
 void ai_walk (edict_t *self, float dist)
 {
 }
@@ -108,6 +116,8 @@ Turns towards target and advances
 Use this call with a distnace of 0 to replace ai_face
 ==============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001de98-0x0001de99 */
 void ai_charge (edict_t *self, float dist)
 {
 }
@@ -121,6 +131,8 @@ don't move, but turn towards ideal_yaw
 Distance is for slight position adjustments needed by the animations
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001de9c-0x0001de9d */
 void ai_turn (edict_t *self, float dist)
 {
 }
@@ -163,6 +175,8 @@ returns the range catagorization of an entity reletive to self
 3	only triggered by damage
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001dea0-0x0001df31 */
 int range (edict_t *self, edict_t *other)
 {
 	vec3_t	v;
@@ -186,6 +200,8 @@ visible
 returns 1 if the entity is visible to self, even if not infront ()
 =============
 */
+/* gamex86.dll 0x20005bd0-0x20005c70 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0001df34-0x0001dfcd */
 qboolean visible (edict_t *self, edict_t *other)
 {
 	vec3_t	spot1;
@@ -211,6 +227,8 @@ infront
 returns 1 if the entity is in front (in sight) of self
 =============
 */
+/* gamex86.dll 0x20005c70-0x20005d00 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0001dfd0-0x0001e05f */
 qboolean infront (edict_t *self, edict_t *other)
 {
 	vec3_t	vec;
@@ -230,6 +248,8 @@ qboolean infront (edict_t *self, edict_t *other)
 
 //============================================================================
 
+/* gamex86.dll 0x20005d00-0x20005d90 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0001e060-0x0001e0f3 */
 void HuntTarget (edict_t *self)
 {
 	vec3_t	vec;
@@ -246,6 +266,8 @@ void HuntTarget (edict_t *self)
 		AttackFinished (self, 1);
 }
 
+/* gamex86.dll 0x20005d90-0x20005eb0 (padded) */
+/* gamei386.so 0x0001e0f4-0x0001e353 */
 void FoundTarget (edict_t *self)
 {
 	// let other monsters see this monster for a while
@@ -306,6 +328,8 @@ checked each frame.  This means multi player games will have slightly
 slower noticing monsters.
 ============
 */
+/* gamex86.dll 0x20005eb0-0x20005ec0 (call-propagated) */
+/* gamei386.so 0x0001e354-0x0001e35a */
 qboolean FindTarget (edict_t *self)
 {
 	return true;
@@ -320,6 +344,8 @@ FacingIdeal
 
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001e35c-0x0001e3a8 */
 qboolean FacingIdeal(edict_t *self)
 {
 	float	delta;
@@ -333,6 +359,8 @@ qboolean FacingIdeal(edict_t *self)
 
 //=============================================================================
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001e3a8-0x0001e601 */
 qboolean M_CheckAttack (edict_t *self)
 {
 	vec3_t	spot1, spot2;
@@ -429,6 +457,8 @@ ai_run_melee
 Turn and close until within an angle to launch a melee attack
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001e604-0x0001e605 */
 void ai_run_melee(edict_t *self)
 {
 }
@@ -441,6 +471,8 @@ ai_run_missile
 Turn in place until within an angle to launch a missile attack
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001e608-0x0001e609 */
 void ai_run_missile(edict_t *self)
 {
 }
@@ -453,6 +485,8 @@ ai_run_slide
 Strafe sideways, but stay at aproximately the same range
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001e60c-0x0001e60d */
 void ai_run_slide(edict_t *self, float distance)
 {
 }
@@ -466,6 +500,8 @@ Decides if we're going to attack or do something else
 used by ai_run and ai_stand
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001e610-0x0001eacd */
 qboolean ai_checkattack (edict_t *self, float dist)
 {
 	vec3_t		temp;
@@ -609,6 +645,8 @@ ai_run
 The monster has an enemy it is trying to kill
 =============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001ead0-0x0001ead1 */
 void ai_run (edict_t *self, float dist)
 {
 }

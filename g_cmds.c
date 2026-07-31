@@ -4,17 +4,20 @@
 extern	cvar_t	*admincode;
 
 void	stuffcmd (edict_t *ent, char *s);
-void	send_sound_to_arena (int arenanum, int soundindex);
+void	show_string (int level, char *s, int context);
+void	send_sound_to_arena (char *soundpath, int arenanum);
 void	list_keys (edict_t *ent);
 void	print_map_loop (edict_t *ent);
 char	*get_next_map (char *current);
 
 void	Cmd_admin_f (edict_t *ent);
-void	Cmd_arenaadmin_f (edict_t *ent, int mode);
+void	Cmd_arenaadmin_f (edict_t *ent, unsigned mode);
 void	Cmd_menuhelp_f (edict_t *ent);
 
 cvar_t	*allowgetadmin;
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000229c8-0x00022a54 */
 char *ClientTeam (edict_t *ent)
 {
 	char		*p;
@@ -40,36 +43,35 @@ char *ClientTeam (edict_t *ent)
 	return ++p;
 }
 
+/* gamex86.dll 0x20005ec0-0x20005f00 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00022a54-0x00022a84 */
 qboolean OnSameTeam (edict_t *ent1, edict_t *ent2)
 {
-	char	ent1Team [512];
-	char	ent2Team [512];
-
-	if (!((int)(dmflags->value) & (DF_MODELTEAMS | DF_SKINTEAMS)))
+	if (!ent1->client || !ent2->client)
 		return false;
 
-	strcpy (ent1Team, ClientTeam (ent1));
-	strcpy (ent2Team, ClientTeam (ent2));
-
-	if (strcmp(ent1Team, ent2Team) == 0)
+	if (ent1->client->resp.teamnum == ent2->client->resp.teamnum)
 		return true;
+
 	return false;
 }
 
 
+/* gamex86.dll 0x20005f00-0x20005f90 (aligned) */
+/* gamei386.so 0x00022a84-0x00022b4c */
 void SelectNextItem (edict_t *ent, int itflags)
 {
 	gclient_t	*cl;
 	int			i, index;
 	gitem_t		*it;
 
-	cl = ent->client;
-
-	if (cl->showmenu)
+	if (ent->client->showmenu)
 	{
 		MenuNext (ent);
 		return;
 	}
+
+	cl = ent->client;
 
 	// scan  for the next valid one
 	for (i=1 ; i<=MAX_ITEMS ; i++)
@@ -90,19 +92,21 @@ void SelectNextItem (edict_t *ent, int itflags)
 	cl->pers.selected_item = -1;
 }
 
+/* gamex86.dll 0x20005f90-0x20006030 (aligned) */
+/* gamei386.so 0x00022b4c-0x00022c21 */
 void SelectPrevItem (edict_t *ent, int itflags)
 {
 	gclient_t	*cl;
 	int			i, index;
 	gitem_t		*it;
 
-	cl = ent->client;
-
-	if (cl->showmenu)
+	if (ent->client->showmenu)
 	{
 		MenuPrev (ent);
 		return;
 	}
+
+	cl = ent->client;
 
 	// scan  for the next valid one
 	for (i=1 ; i<=MAX_ITEMS ; i++)
@@ -123,6 +127,8 @@ void SelectPrevItem (edict_t *ent, int itflags)
 	cl->pers.selected_item = -1;
 }
 
+/* gamex86.dll 0x20006030-0x20006060 (call-propagated+collision-resolved) */
+/* gamei386.so 0x00022c24-0x00022cf9 */
 void ValidateSelectedItem (edict_t *ent)
 {
 	gclient_t	*cl;
@@ -145,6 +151,8 @@ Cmd_Give_f
 Give items to a client
 ==================
 */
+/* gamex86.dll 0x20006060-0x2000641e (unpadded-prologue+majority) */
+/* gamei386.so 0x00022cfc-0x0002318b */
 void Cmd_Give_f (edict_t *ent)
 {
 	char		*name;
@@ -301,6 +309,8 @@ Sets client to godmode
 argv(0) god
 ==================
 */
+/* gamex86.dll 0x20006420-0x200064a0 (padded+majority) */
+/* gamei386.so 0x0002318c-0x000231f1 */
 void Cmd_God_f (edict_t *ent)
 {
 	char	*msg;
@@ -330,6 +340,8 @@ Sets client to notarget
 argv(0) notarget
 ==================
 */
+/* gamex86.dll 0x200064a0-0x20006520 (padded+majority) */
+/* gamei386.so 0x000231f4-0x00023259 */
 void Cmd_Notarget_f (edict_t *ent)
 {
 	char	*msg;
@@ -357,6 +369,8 @@ Cmd_Noclip_f
 argv(0) noclip
 ==================
 */
+/* gamex86.dll 0x20006520-0x200065b0 (padded+majority) */
+/* gamei386.so 0x0002325c-0x000232ce */
 void Cmd_Noclip_f (edict_t *ent)
 {
 	char	*msg;
@@ -389,6 +403,8 @@ Cmd_Use_f
 Use an inventory item
 ==================
 */
+/* gamex86.dll 0x200065b0-0x20006652 (unpadded-prologue+majority) */
+/* gamei386.so 0x000232d0-0x0002336b */
 void Cmd_Use_f (edict_t *ent)
 {
 	int			index;
@@ -425,6 +441,8 @@ Cmd_Drop_f
 Drop an inventory item
 ==================
 */
+/* gamex86.dll 0x2001fe80-0x2001fe90 (manual-confirmed) */
+/* gamei386.so 0x0002336c-0x0002336d */
 void Cmd_Drop_f (edict_t *ent)
 {
 }
@@ -435,6 +453,8 @@ void Cmd_Drop_f (edict_t *ent)
 Cmd_Inven_f
 =================
 */
+/* gamex86.dll 0x20006660-0x200066a0 (manual-confirmed) */
+/* gamei386.so 0x00023370-0x000233b0 */
 void Cmd_Inven_f (edict_t *ent)
 {
 	gclient_t	*cl;
@@ -444,7 +464,7 @@ void Cmd_Inven_f (edict_t *ent)
 	if (cl->showmenu)
 		cl->showmenu = false;
 	else
-		cl->showmenu = (cl->menu != NULL);
+		cl->showmenu = (cl->curmenulink != NULL);
 
 	DisplayMenu (ent);
 }
@@ -454,14 +474,15 @@ void Cmd_Inven_f (edict_t *ent)
 Cmd_InvUse_f
 =================
 */
+/* gamex86.dll 0x200066a0-0x20006730 (manual-confirmed) */
+/* gamei386.so 0x000233b0-0x00023503 */
 void Cmd_InvUse_f (edict_t *ent)
 {
 	gitem_t		*it;
 
-	if (ent->client->showmenu)
+	if (ent->client->showmenu && !level.intermissiontime)
 	{
-		if (!level.intermissiontime)
-			UseMenu (ent, 1);
+		UseMenu (ent, 1);
 		return;
 	}
 
@@ -487,6 +508,8 @@ void Cmd_InvUse_f (edict_t *ent)
 Cmd_WeapPrev_f
 =================
 */
+/* gamex86.dll 0x20006730-0x200067d0 (manual-confirmed) */
+/* gamei386.so 0x00023504-0x000235ed */
 void Cmd_WeapPrev_f (edict_t *ent)
 {
 	gclient_t	*cl;
@@ -523,6 +546,8 @@ void Cmd_WeapPrev_f (edict_t *ent)
 Cmd_WeapNext_f
 =================
 */
+/* gamex86.dll 0x200067d0-0x20006870 (manual-confirmed) */
+/* gamei386.so 0x000235f0-0x000236e2 */
 void Cmd_WeapNext_f (edict_t *ent)
 {
 	gclient_t	*cl;
@@ -559,6 +584,8 @@ void Cmd_WeapNext_f (edict_t *ent)
 Cmd_WeapLast_f
 =================
 */
+/* gamex86.dll 0x20006870-0x200068e0 (manual-confirmed) */
+/* gamei386.so 0x000236e4-0x0002374a */
 void Cmd_WeapLast_f (edict_t *ent)
 {
 	gclient_t	*cl;
@@ -586,6 +613,8 @@ void Cmd_WeapLast_f (edict_t *ent)
 Cmd_InvDrop_f
 =================
 */
+/* gamex86.dll 0x200068e0-0x20006900 (manual-confirmed) */
+/* gamei386.so 0x0002374c-0x00023768 */
 void Cmd_InvDrop_f (edict_t *ent)
 {
 	if (!ent->client->showmenu)
@@ -599,6 +628,8 @@ void Cmd_InvDrop_f (edict_t *ent)
 Cmd_Kill_f
 =================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00023768-0x000237bb */
 void Cmd_Kill_f (edict_t *ent)
 {
 	if((level.time - ent->client->respawn_time) < 5)
@@ -614,14 +645,18 @@ void Cmd_Kill_f (edict_t *ent)
 Cmd_PutAway_f
 =================
 */
+/* gamex86.dll 0x20006900-0x20006930 (manual-confirmed) */
+/* gamei386.so 0x000237bc-0x000237e8 */
 void Cmd_PutAway_f (edict_t *ent)
 {
-	ent->client->showscores = false;
+	ent->client->scoremode = 0;
 	ent->client->showhelp = false;
 	ent->client->showinventory = false;
 }
 
 
+/* gamex86.dll 0x20006930-0x20006990 (bracketed) */
+/* gamei386.so 0x000237e8-0x00023843 */
 int PlayerSort (void const *a, void const *b)
 {
 	int		anum, bnum;
@@ -644,6 +679,8 @@ int PlayerSort (void const *a, void const *b)
 Cmd_Players_f
 =================
 */
+/* gamex86.dll 0x20006990-0x20006b20 (padded) */
+/* gamei386.so 0x00023844-0x00023b00 */
 void Cmd_Players_f (edict_t *ent)
 {
 	int		i;
@@ -687,6 +724,8 @@ void Cmd_Players_f (edict_t *ent)
 Cmd_Wave_f
 =================
 */
+/* gamex86.dll 0x20006b20-0x20006c40 (manual-confirmed) */
+/* gamei386.so 0x00023b00-0x00023c30 */
 void Cmd_Wave_f (edict_t *ent)
 {
 	int		i;
@@ -738,38 +777,37 @@ void Cmd_Wave_f (edict_t *ent)
 Cmd_Say_f
 ==================
 */
+/* gamex86.dll 0x20006c40-0x20006f91 (manual-confirmed) */
+/* gamei386.so 0x00023c30-0x00023f30 */
 void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0, qboolean bcast)
 {
 	int		j;
 	edict_t	*other;
 	char	*p;
 	char	text[2048];
-	gclient_t *cl;
 
 	if (gi.argc () < 2 && !arg0)
 		return;
 
-	cl = ent->client;
-
-	if (cl->spamcount == -1)
+	if (ent->client->spamcount == -1)
 		return;
 
-	if (level.time > cl->spamtime + 2.0)
+	if (level.time < ent->client->spamtime + 2.0)
 	{
-		cl->spamcount = 1;
-	}
-	else
-	{
-		cl->spamcount++;
-		if (cl->spamcount > 5)
+		ent->client->spamcount++;
+		if (ent->client->spamcount > 5)
 		{
-			cl->spamcount = -1;
-			gi.bprintf (PRINT_CHAT, "%s: Sorry guys, I talk too much\n", cl->pers.netname);
+			ent->client->spamcount = -1;
+			gi.bprintf (PRINT_CHAT, "%s: Sorry guys, I talk too much\n", ent->client->pers.netname);
 			stuffcmd (ent, "disconnect\n");
 			return;
 		}
 	}
-	cl->spamtime = level.time;
+	else
+	{
+		ent->client->spamcount = 1;
+	}
+	ent->client->spamtime = level.time;
 
 	if (team)
 		Com_sprintf (text, sizeof(text), "(%s): ", ent->client->pers.netname);
@@ -780,6 +818,9 @@ void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0, qboolean bcast)
 
 	if (arg0)
 	{
+		if (gi.argv(0)[0] == '/')
+			gi.cprintf (ent, PRINT_MEDIUM, "Unknown command %s\n", gi.argv(0));
+
 		strcat (text, gi.argv(0));
 		strcat (text, " ");
 		strcat (text, gi.args());
@@ -797,15 +838,14 @@ void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0, qboolean bcast)
 	}
 
 	// don't let text be too long for malicious reasons
-	if (strlen(text) > 150)
-		text[150] = 0;
+	text[150] = 0;
 
 	strcat(text, "\n");
 
 	if (dedicated->value)
 		gi.cprintf(NULL, PRINT_CHAT, "%s", text);
 
-	if (team || bcast)
+	if (bcast || team)
 	{
 		for (j = 1; j <= game.maxclients; j++)
 		{
@@ -818,27 +858,18 @@ void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0, qboolean bcast)
 			{
 				if (!OnSameTeam(ent, other))
 					continue;
+				if (other->client->resp.fightstate != ent->client->resp.fightstate)
+					continue;
 			}
 			gi.cprintf(other, PRINT_CHAT, "%s", text);
 		}
-		return;
 	}
-
-	// plain "say" with no modifiers is scoped to the talker's own arena
-	for (j = 1; j <= game.maxclients; j++)
-	{
-		other = &g_edicts[j];
-		if (!other->inuse)
-			continue;
-		if (!other->client)
-			continue;
-		if (other->client->arenanum != ent->client->arenanum)
-			continue;
-
-		gi.cprintf (other, PRINT_MEDIUM, "%s", HiPrint (text));
-	}
+	else
+		show_string (1, HiPrint (text), ent->client->resp.context);
 }
 
+/* gamex86.dll 0x20006fa0-0x20007140 (padded) */
+/* gamei386.so 0x00023f30-0x000240df */
 void Cmd_PlayerList_f(edict_t *ent)
 {
 	int i;
@@ -875,6 +906,8 @@ void Cmd_PlayerList_f(edict_t *ent)
 ClientCommand
 =================
 */
+/* gamex86.dll 0x20007140-0x200077b0 (manual-confirmed) */
+/* gamei386.so 0x000240e0-0x00024fe9 */
 void ClientCommand (edict_t *ent)
 {
 	char	*cmd;
@@ -891,10 +924,10 @@ void ClientCommand (edict_t *ent)
 	}
 	if (Q_stricmp (cmd, "say") == 0)
 	{
-		if (ent->client->arenanum)
-			Cmd_Say_f (ent, false, false, false);
-		else
+		if (!ent->client->resp.context)
 			Cmd_Say_f (ent, false, false, true);
+		else
+			Cmd_Say_f (ent, false, false, false);
 		return;
 	}
 	if (Q_stricmp (cmd, "say_team") == 0)
@@ -958,7 +991,7 @@ void ClientCommand (edict_t *ent)
 	else if (Q_stricmp (cmd, "weaplast") == 0)
 		Cmd_WeapLast_f (ent);
 	else if (Q_stricmp (cmd, "kill") == 0)
-		Cmd_Kill_f (ent);
+		;
 	else if (Q_stricmp (cmd, "putaway") == 0)
 		Cmd_PutAway_f (ent);
 	else if (Q_stricmp (cmd, "wave") == 0)

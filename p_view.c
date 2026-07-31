@@ -21,6 +21,8 @@ SV_CalcRoll
 
 ===============
 */
+/* gamex86.dll 0x20024430-0x200244b0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000410d8-0x0004114a */
 float SV_CalcRoll (vec3_t angles, vec3_t velocity)
 {
 	float	sign;
@@ -50,6 +52,8 @@ P_DamageFeedback
 Handles color blends and view kicks
 ===============
 */
+/* gamex86.dll 0x200244b0-0x20024910 (padded) */
+/* gamei386.so 0x0004114c-0x000415f9 */
 void P_DamageFeedback (edict_t *player)
 {
 	gclient_t	*client;
@@ -201,6 +205,8 @@ Auto pitching on slopes?
 
 ===============
 */
+/* gamex86.dll 0x20024910-0x20024c00 (bracketed) */
+/* gamei386.so 0x000415fc-0x0004196d */
 void SV_CalcViewOffset (edict_t *ent)
 {
 	float		*angles;
@@ -324,6 +330,8 @@ void SV_CalcViewOffset (edict_t *ent)
 SV_CalcGunOffset
 ==============
 */
+/* gamex86.dll 0x20024c00-0x20024d80 (bracketed) */
+/* gamei386.so 0x00041970-0x00041c6b */
 void SV_CalcGunOffset (edict_t *ent)
 {
 	int		i;
@@ -376,6 +384,8 @@ void SV_CalcGunOffset (edict_t *ent)
 SV_AddBlend
 =============
 */
+/* gamex86.dll 0x20024d80-0x20024df0 (bracketed) */
+/* gamei386.so 0x00041c6c-0x00041ccf */
 void SV_AddBlend (float r, float g, float b, float a, float *v_blend)
 {
 	float	a2, a3;
@@ -397,6 +407,8 @@ void SV_AddBlend (float r, float g, float b, float a, float *v_blend)
 SV_CalcBlend
 =============
 */
+/* gamex86.dll 0x20024df0-0x20025190 (padded) */
+/* gamei386.so 0x00041cd0-0x000422b0 */
 void SV_CalcBlend (edict_t *ent)
 {
 	int		contents;
@@ -480,13 +492,15 @@ void SV_CalcBlend (edict_t *ent)
 P_FallingDamage
 =================
 */
+/* gamex86.dll 0x20025190-0x200253e0 (shape-matched(ratio=0.95)) */
+/* gamei386.so 0x000422b0-0x0004252f */
 void P_FallingDamage (edict_t *ent)
 {
 	float	delta;
 	int		damage;
 	vec3_t	dir;
 
-	if (ent->client && !ent->client->inarena)
+	if (ent->client && ent->client->resp.fightstate != FIGHT_ALIVE)
 		return;
 
 	if (ent->s.modelindex != 255)
@@ -506,6 +520,12 @@ void P_FallingDamage (edict_t *ent)
 		delta = ent->velocity[2] - ent->client->oldvelocity[2];
 	}
 	delta = delta*delta * 0.0001;
+
+	// never take damage if just release grapple or on grapple
+	if (level.time - ent->client->ctf_grapplereleasetime <= FRAMETIME * 2 ||
+		(ent->client->ctf_grapple &&
+		ent->client->ctf_grapplestate > CTF_GRAPPLE_STATE_FLY))
+		return;
 
 	// never take falling damage if completely underwater
 	if (ent->waterlevel == 3)
@@ -544,7 +564,7 @@ void P_FallingDamage (edict_t *ent)
 			damage = 1;
 		VectorSet (dir, 0, 0, 1);
 
-		if (arenas[ent->client->arenanum].fallingdamage)
+		if (arenas[ent->client->resp.context].fallingdamage)
 			T_Damage (ent, world, world, dir, ent->s.origin, vec3_origin, damage, 0, 0, MOD_FALLING);
 	}
 	else
@@ -561,6 +581,8 @@ void P_FallingDamage (edict_t *ent)
 P_WorldEffects
 =============
 */
+/* gamex86.dll 0x200253e0-0x20025a00 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00042530-0x00042b06 */
 void P_WorldEffects (void)
 {
 	qboolean	breather;
@@ -727,6 +749,8 @@ void P_WorldEffects (void)
 G_SetClientEffects
 ===============
 */
+/* gamex86.dll 0x20025a00-0x20025b10 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00042b08-0x00042c48 */
 void G_SetClientEffects (edict_t *ent)
 {
 	int		pa_type;
@@ -780,12 +804,14 @@ void G_SetClientEffects (edict_t *ent)
 G_SetClientEvent
 ===============
 */
+/* gamex86.dll 0x20025b10-0x20025b70 (shape-matched(ratio=0.91)) */
+/* gamei386.so 0x00042c48-0x00042cc0 */
 void G_SetClientEvent (edict_t *ent)
 {
 	if (ent->s.event)
 		return;
 
-	if (ent->client && !ent->client->inarena)
+	if (!ent->client || ent->client->resp.fightstate != FIGHT_ALIVE)
 		return;
 
 	if ( ent->groundentity && xyspeed > 225)
@@ -800,6 +826,8 @@ void G_SetClientEvent (edict_t *ent)
 G_SetClientSound
 ===============
 */
+/* gamex86.dll 0x20025b70-0x20025cd0 (unpadded-prologue+majority) */
+/* gamei386.so 0x00042cc0-0x00042dcf */
 void G_SetClientSound (edict_t *ent)
 {
 	char	*weap;
@@ -840,6 +868,8 @@ void G_SetClientSound (edict_t *ent)
 G_SetClientFrame
 ===============
 */
+/* gamex86.dll 0x20025cd0-0x20025e60 (bracketed-cross-object) */
+/* gamei386.so 0x00042dd0-0x00042f64 */
 void G_SetClientFrame (edict_t *ent)
 {
 	gclient_t	*client;
@@ -901,10 +931,18 @@ newanim:
 
 	if (!ent->groundentity)
 	{
-		client->anim_priority = ANIM_JUMP;
-		if (ent->s.frame != FRAME_jump2)
-			ent->s.frame = FRAME_jump1;
-		client->anim_end = FRAME_jump2;
+		if (client->ctf_grapple)
+		{
+			ent->s.frame = FRAME_stand01;
+			client->anim_end = FRAME_stand40;
+		}
+		else
+		{
+			client->anim_priority = ANIM_JUMP;
+			if (ent->s.frame != FRAME_jump2)
+				ent->s.frame = FRAME_jump1;
+			client->anim_end = FRAME_jump2;
+		}
 	}
 	else if (run)
 	{	// running
@@ -942,7 +980,10 @@ ClientEndServerFrame
 Called for each player at the end of the server frame
 and right after spawning
 =================
+
 */
+/* gamex86.dll 0x20025e60-0x200261a0 (bracketed-cross-object) */
+/* gamei386.so 0x00042f64-0x00043476 */
 void ClientEndServerFrame (edict_t *ent)
 {
 	float	bobtime;
@@ -959,7 +1000,7 @@ void ClientEndServerFrame (edict_t *ent)
 	// If it wasn't updated here, the view position would lag a frame
 	// behind the body position when pushed -- "sinking into plats"
 	//
-	if (!current_client->track_target || current_client->inarena)
+	if (!ent->client->resp.track_target || ent->client->resp.fightstate)
 	{
 		for (i=0 ; i<3 ; i++)
 		{
@@ -1044,7 +1085,7 @@ void ClientEndServerFrame (edict_t *ent)
 	// accurately determined
 	// FIXME: with client prediction, the contents
 	// should be determined by the client
-	if (ent->client->track_target && !ent->client->inarena)
+	if (ent->client->resp.track_target && !ent->client->resp.fightstate)
 	{
 		ent->client->ps.blend[0] = ent->client->ps.blend[1] =
 			ent->client->ps.blend[2] = ent->client->ps.blend[3] = 0;
@@ -1076,7 +1117,7 @@ void ClientEndServerFrame (edict_t *ent)
 		return;
 
 	// if the scoreboard is up, update it
-	if (ent->client->showscores && !(level.framenum & 31) )
+	if (ent->client->scoremode && !(level.framenum & 31) )
 	{
 		DeathmatchScoreboardMessage (ent, ent->enemy);
 		gi.unicast (ent, false);

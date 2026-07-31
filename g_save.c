@@ -133,6 +133,8 @@ only happens when a new game is started or a save game
 is loaded.
 ============
 */
+/* gamex86.dll 0x20013020-0x20013520 (padded+majority) */
+/* gamei386.so 0x00035388-0x000358d7 */
 void InitGame (void)
 {
 	cvar_t	*public;
@@ -161,7 +163,6 @@ void InitGame (void)
 	maxclients = gi.cvar ("maxclients", "4", CVAR_SERVERINFO | CVAR_LATCH);
 	maxspectators = gi.cvar ("maxspectators", "4", CVAR_SERVERINFO);
 
-	// arena play is always deathmatch, and it can't be turned off
 	gi.cvar_forceset ("deathmatch", "1");
 	deathmatch = gi.cvar ("deathmatch", "1", CVAR_SERVERINFO|CVAR_NOSET);
 
@@ -185,7 +186,6 @@ void InitGame (void)
 
 	logfile = gi.cvar ("logfile", "0", CVAR_SERVERINFO);
 
-	// netlog forwards kill lines to a remote log collector -- private servers don't
 	public = gi.cvar ("public", "1", 0);
 	netlog = gi.cvar ("netlog", "", CVAR_SERVERINFO);
 	if (public->value == 0)
@@ -228,14 +228,21 @@ void InitGame (void)
 	{
 		InitClientPersistant (&game.clients[i]);
 		InitClientResp (&game.clients[i]);
-		game.clients[i].showhelp = false;
+		game.clients[i].resp.entered = false;
 	}
 
 	globals.num_edicts = game.maxclients+1;
+
+#ifdef _WIN32
+	if (!NetShutdown (1))
+		gi.cvar_set ("netlog", "");
+#endif
 }
 
 //=========================================================
 
+/* gamex86.dll 0x20013520-0x20013650 (unpadded-prologue+size-corrected) */
+/* gamei386.so 0x000358d8-0x000359ee */
 void WriteField1 (FILE *f, field_t *field, byte *base)
 {
 	void		*p;
@@ -309,6 +316,8 @@ void WriteField1 (FILE *f, field_t *field, byte *base)
 }
 
 
+/* gamex86.dll 0x20013650-0x20013690 (manual-confirmed) */
+/* gamei386.so 0x000359f0-0x00035a33 */
 void WriteField2 (FILE *f, field_t *field, byte *base)
 {
 	int			len;
@@ -330,6 +339,8 @@ void WriteField2 (FILE *f, field_t *field, byte *base)
 	}
 }
 
+/* gamex86.dll 0x20013690-0x200137e0 (unpadded-prologue+size-corrected) */
+/* gamei386.so 0x00035a34-0x00035b6b */
 void ReadField (FILE *f, field_t *field, byte *base)
 {
 	void		*p;
@@ -413,6 +424,8 @@ WriteClient
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
+/* gamex86.dll 0x200137e0-0x20013880 (manual-confirmed) */
+/* gamei386.so 0x00035b6c-0x00035c34 */
 void WriteClient (FILE *f, gclient_t *client)
 {
 	field_t		*field;
@@ -444,6 +457,8 @@ ReadClient
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
+/* gamex86.dll 0x20013880-0x200138d0 (aligned) */
+/* gamei386.so 0x00035c34-0x00035c77 */
 void ReadClient (FILE *f, gclient_t *client)
 {
 	field_t		*field;
@@ -470,6 +485,8 @@ A single player death will automatically restore from the
 last save position.
 ============
 */
+/* gamex86.dll 0x200138d0-0x200139b0 (shape-matched(ratio=0.97)) */
+/* gamei386.so 0x00035c78-0x00035e2e */
 void WriteGame (char *filename, qboolean autosave)
 {
 	FILE	*f;
@@ -497,6 +514,8 @@ void WriteGame (char *filename, qboolean autosave)
 	fclose (f);
 }
 
+/* gamex86.dll 0x200139b0-0x20013b00 (padded+majority) */
+/* gamei386.so 0x00035e30-0x00035fa3 */
 void ReadGame (char *filename)
 {
 	FILE	*f;
@@ -537,6 +556,8 @@ WriteEdict
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
+/* gamex86.dll 0x20013b00-0x20013b90 (bracketed) */
+/* gamei386.so 0x00035fa4-0x0003606c */
 void WriteEdict (FILE *f, edict_t *ent)
 {
 	field_t		*field;
@@ -569,6 +590,8 @@ WriteLevelLocals
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
+/* gamex86.dll 0x20013b90-0x20013c20 (bracketed) */
+/* gamei386.so 0x0003606c-0x0003612d */
 void WriteLevelLocals (FILE *f)
 {
 	field_t		*field;
@@ -601,6 +624,8 @@ ReadEdict
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
+/* gamex86.dll 0x20013c20-0x20013c70 (bracketed) */
+/* gamei386.so 0x00036130-0x00036173 */
 void ReadEdict (FILE *f, edict_t *ent)
 {
 	field_t		*field;
@@ -620,6 +645,8 @@ ReadLevelLocals
 All pointer variables (except function pointers) must be handled specially.
 ==============
 */
+/* gamex86.dll 0x20013c70-0x20013cc0 (bracketed) */
+/* gamei386.so 0x00036174-0x000361ba */
 void ReadLevelLocals (FILE *f)
 {
 	field_t		*field;
@@ -638,6 +665,8 @@ WriteLevel
 
 =================
 */
+/* gamex86.dll 0x20013cc0-0x20013db0 (bracketed) */
+/* gamei386.so 0x000361bc-0x0003643b */
 void WriteLevel (char *filename)
 {
 	int		i;
@@ -692,6 +721,8 @@ calling ReadLevel.
 No clients are connected yet.
 =================
 */
+/* gamex86.dll 0x20013db0-0x20014040 (padded+majority) */
+/* gamei386.so 0x0003643c-0x000366fd */
 void ReadLevel (char *filename)
 {
 	int		entnum;

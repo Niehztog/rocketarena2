@@ -1,5 +1,8 @@
 
 #include "g_local.h"
+#include "arena.h"
+
+char	*get_next_map (char *current);		// maploop.c
 
 game_locals_t	game;
 level_locals_t	level;
@@ -80,6 +83,8 @@ void GSLogShutdown (void);
 //===================================================================
 
 
+/* gamex86.dll 0x2000d940-0x2000d980 (padded) */
+/* gamei386.so 0x0002d3f8-0x0002d425 */
 void ShutdownGame (void)
 {
 	gi.dprintf ("==== ShutdownGame ====\n");
@@ -88,6 +93,9 @@ void ShutdownGame (void)
 
 	gi.FreeTags (TAG_LEVEL);
 	gi.FreeTags (TAG_GAME);
+#ifdef _WIN32
+	NetShutdown (0);
+#endif
 }
 
 
@@ -99,6 +107,8 @@ Returns a pointer to the structure with all entry points
 and global variables
 =================
 */
+/* gamex86.dll 0x2000d980-0x2000da50 (shape-matched(ratio=0.96)) */
+/* gamei386.so 0x0002d428-0x0002d4ed */
 game_export_t *GetGameAPI (game_import_t *import)
 {
 	gi = *import;
@@ -131,6 +141,8 @@ game_export_t *GetGameAPI (game_import_t *import)
 
 #ifndef GAME_HARD_LINKED
 // this is only here so the functions in q_shared.c and q_shwin.c can link
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0002d4f0-0x0002d52b */
 void Sys_Error (char *error, ...)
 {
 	va_list		argptr;
@@ -143,6 +155,8 @@ void Sys_Error (char *error, ...)
 	gi.error (ERR_FATAL, "%s", text);
 }
 
+/* gamex86.dll 0x2000da50-0x2000da90 (call-propagated+collision-resolved) */
+/* gamei386.so 0x0002d52c-0x0002d565 */
 void Com_Printf (char *msg, ...)
 {
 	va_list		argptr;
@@ -165,6 +179,8 @@ void Com_Printf (char *msg, ...)
 ClientEndServerFrames
 =================
 */
+/* gamex86.dll 0x2000da90-0x2000db00 (shape-matched(ratio=0.94)) */
+/* gamei386.so 0x0002d568-0x0002d5c0 */
 void ClientEndServerFrames (void)
 {
 	int		i;
@@ -189,6 +205,8 @@ CreateTargetChangeLevel
 Returns the created target changelevel
 =================
 */
+/* gamex86.dll 0x2000db00-0x2000db40 (padded+size) */
+/* gamei386.so 0x0002d5c0-0x0002d5fb */
 edict_t *CreateTargetChangeLevel(char *map)
 {
 	edict_t *ent;
@@ -207,16 +225,25 @@ EndDMLevel
 The timelimit or fraglimit has been exceeded
 =================
 */
+/* gamex86.dll 0x2000db40-0x2000dc90 (bracketed) */
+/* gamei386.so 0x0002d5fc-0x0002d7ea */
 void EndDMLevel (void)
 {
 	edict_t		*ent;
-	char *s, *t, *f;
+	char *s, *t, *f, *n;
 	static const char *seps = " ,\n\r";
 
 	// stay on same level flag
 	if ((int)dmflags->value & DF_SAME_LEVEL)
 	{
 		BeginIntermission (CreateTargetChangeLevel (level.mapname) );
+		return;
+	}
+
+	n = get_next_map (level.mapname);
+	if (n)
+	{
+		BeginIntermission (CreateTargetChangeLevel (n) );
 		return;
 	}
 
@@ -266,6 +293,8 @@ void EndDMLevel (void)
 CheckNeedPass
 =================
 */
+/* gamex86.dll 0x2000dc90-0x2000dd30 (padded+majority) */
+/* gamei386.so 0x0002d7ec-0x0002d877 */
 void CheckNeedPass (void)
 {
 	int need;
@@ -292,6 +321,8 @@ void CheckNeedPass (void)
 CheckDMRules
 =================
 */
+/* gamex86.dll 0x2000dd30-0x2000de30 (padded) */
+/* gamei386.so 0x0002d878-0x0002d984 */
 void CheckDMRules (void)
 {
 	int			i;
@@ -337,6 +368,8 @@ void CheckDMRules (void)
 ExitLevel
 =============
 */
+/* gamex86.dll 0x2000de30-0x2000df10 (padded) */
+/* gamei386.so 0x0002d984-0x0002da9a */
 void ExitLevel (void)
 {
 	int		i;
@@ -370,6 +403,8 @@ G_RunFrame
 Advances the world by 0.1 seconds
 ================
 */
+/* gamex86.dll 0x2000df10-0x2000e010 (bracketed-cross-object) */
+/* gamei386.so 0x0002da9c-0x0002dc88 */
 void G_RunFrame (void)
 {
 	int		i;
@@ -425,10 +460,10 @@ void G_RunFrame (void)
 	// see if it is time to end a deathmatch
 	CheckDMRules ();
 
-	multi_arena_think ();
-
 	// see if needpass needs updated
 	CheckNeedPass ();
+
+	multi_arena_think ();
 
 	// build the playerstate_t structures for all players
 	ClientEndServerFrames ();

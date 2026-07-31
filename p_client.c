@@ -1,6 +1,7 @@
 #include "g_local.h"
 #include "m_player.h"
 #include "arena.h"
+#include "gbucket.h"
 
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
 void ClientDisconnect (edict_t *ent);
@@ -19,6 +20,8 @@ void SP_misc_teleporter_dest (edict_t *ent);
 // we use carnal knowledge of the maps to fix the coop spot targetnames to match
 // that of the nearest named single player spot
 
+/* gamex86.dll 0x2001fde0-0x2001fe80 (padded+size) */
+/* gamei386.so 0x0002286c-0x00022909 */
 static void SP_FixCoopSpots (edict_t *self)
 {
 	edict_t	*spot;
@@ -50,6 +53,8 @@ static void SP_FixCoopSpots (edict_t *self)
 // some maps don't have any coop spots at all, so we need to create them
 // where they should have been
 
+/* gamex86.dll 0x2001fb50-0x2001fc10 (padded+majority+collision-resolved) */
+/* gamei386.so 0x0002290c-0x000229c6 */
 static void SP_CreateCoopSpots (edict_t *self)
 {
 	edict_t	*spot;
@@ -88,6 +93,8 @@ static void SP_CreateCoopSpots (edict_t *self)
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32)
 The normal starting point for a level.
 */
+/* gamex86.dll 0x2001fb00-0x2001fb50 (padded+size) */
+/* gamei386.so 0x0001ead4-0x0001eb29 */
 void SP_info_player_start(edict_t *self)
 {
 	if (!coop->value)
@@ -103,6 +110,8 @@ void SP_info_player_start(edict_t *self)
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32)
 potential spawning position for deathmatch games
 */
+/* gamex86.dll 0x2001fc10-0x2001fc40 (bracketed) */
+/* gamei386.so 0x0001eb2c-0x0001eb5a */
 void SP_info_player_deathmatch(edict_t *self)
 {
 	if (!deathmatch->value)
@@ -117,6 +126,8 @@ void SP_info_player_deathmatch(edict_t *self)
 potential spawning position for coop games
 */
 
+/* gamex86.dll 0x2001fc40-0x2001fde0 (padded+majority) */
+/* gamei386.so 0x0001eb5c-0x0001ecfd */
 void SP_info_player_coop(edict_t *self)
 {
 	if (!coop->value)
@@ -151,6 +162,8 @@ void SP_info_player_coop(edict_t *self)
 The deathmatch intermission point will be at one of these
 Use 'angles' instead of 'angle', so you can set pitch or roll as well as yaw.  'pitch yaw roll'
 */
+/* gamex86.dll 0x2001fe80-0x2001fe90 (manual-confirmed) */
+/* gamei386.so 0x0001ed00-0x0001ed01 */
 void SP_info_player_intermission(void)
 {
 }
@@ -159,12 +172,16 @@ void SP_info_player_intermission(void)
 //=======================================================================
 
 
+/* gamex86.dll 0x2001fe80-0x2001fe90 (manual-confirmed) */
+/* gamei386.so 0x0001ed04-0x0001ed05 */
 void player_pain (edict_t *self, edict_t *other, float kick, int damage)
 {
 	// player pain is handled at the end of the frame in P_DamageFeedback
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001ed08-0x0001ed3f */
 qboolean IsFemale (edict_t *ent)
 {
 	char		*info;
@@ -178,6 +195,8 @@ qboolean IsFemale (edict_t *ent)
 	return false;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001ed40-0x0001ed7f */
 qboolean IsNeutral (edict_t *ent)
 {
 	char		*info;
@@ -191,205 +210,173 @@ qboolean IsNeutral (edict_t *ent)
 	return false;
 }
 
+/* gamex86.dll 0x2001fe90-0x20020630 (manual-confirmed) */
+/* gamei386.so 0x0001ed80-0x0001f4e9 */
 void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 {
-	int			mod;
-	char		*message;
-	char		*message2;
-	qboolean	ff;
+	int		statsdone = 0;
 
-	if (coop->value && attacker->client)
-		meansOfDeath |= MOD_FRIENDLY_FIRE;
+	if (arenas[self->client->resp.context].statsptr)
+		bopfuncs[BOP_PLAYER_INT] (arenas[self->client->resp.context].statsptr, "deaths", bucketfuncs[BUCKET_ADD], 1,
+			self - g_edicts + 1);
 
-	if (deathmatch->value || coop->value)
+	if (attacker == self)
 	{
-		ff = meansOfDeath & MOD_FRIENDLY_FIRE;
-		mod = meansOfDeath & ~MOD_FRIENDLY_FIRE;
-		message = NULL;
-		message2 = "";
+		if (inflictor->s.modelindex == gi.modelindex ("models/objects/grenade/tris.md2") ||
+			inflictor->s.modelindex == gi.modelindex ("models/objects/grenade2/tris.md2"))
+			gi.bprintf (PRINT_MEDIUM, "%s tries to put the pin back in\n", self->client->pers.netname);
+		else if (inflictor->s.modelindex == gi.modelindex ("models/objects/rocket/tris.md2"))
+			gi.bprintf (PRINT_MEDIUM, "%s checks the safety\n", self->client->pers.netname);
+		else if (inflictor->s.modelindex == gi.modelindex ("sprites/s_bfg1.sp2"))
+			gi.bprintf (PRINT_MEDIUM, "%s goes boom\n", self->client->pers.netname);
+		else
+			gi.bprintf (PRINT_MEDIUM, "%s killed self.\n", self->client->pers.netname);
 
-		switch (mod)
+		if (self->enemy && self->enemy->inuse && self->enemy->client && self->enemy->takedamage == DAMAGE_AIM)
 		{
-		case MOD_SUICIDE:
-			message = "suicides";
-			break;
-		case MOD_FALLING:
-			message = "cratered";
-			break;
-		case MOD_CRUSH:
-			message = "was squished";
-			break;
-		case MOD_WATER:
-			message = "sank like a rock";
-			break;
-		case MOD_SLIME:
-			message = "melted";
-			break;
-		case MOD_LAVA:
-			message = "does a back flip into the lava";
-			break;
-		case MOD_EXPLOSIVE:
-		case MOD_BARREL:
-			message = "blew up";
-			break;
-		case MOD_EXIT:
-			message = "found a way out";
-			break;
-		case MOD_TARGET_LASER:
-			message = "saw the light";
-			break;
-		case MOD_TARGET_BLASTER:
-			message = "got blasted";
-			break;
-		case MOD_BOMB:
-		case MOD_SPLASH:
-		case MOD_TRIGGER_HURT:
-			message = "was in the wrong place";
-			break;
-		}
-		if (attacker == self)
-		{
-			switch (mod)
-			{
-			case MOD_HELD_GRENADE:
-				message = "tried to put the pin back in";
-				break;
-			case MOD_HG_SPLASH:
-			case MOD_G_SPLASH:
-				if (IsNeutral(self))
-					message = "tripped on its own grenade";
-				else if (IsFemale(self))
-					message = "tripped on her own grenade";
-				else
-					message = "tripped on his own grenade";
-				break;
-			case MOD_R_SPLASH:
-				if (IsNeutral(self))
-					message = "blew itself up";
-				else if (IsFemale(self))
-					message = "blew herself up";
-				else
-					message = "blew himself up";
-				break;
-			case MOD_BFG_BLAST:
-				message = "should have used a smaller gun";
-				break;
-			default:
-				if (IsNeutral(self))
-					message = "killed itself";
-				else if (IsFemale(self))
-					message = "killed herself";
-				else
-					message = "killed himself";
-				break;
-			}
-		}
-		if (message)
-		{
-			gi.bprintf (PRINT_MEDIUM, "%s %s.\n", self->client->pers.netname, message);
-			if (deathmatch->value)
-				self->client->resp.score--;
-			self->enemy = NULL;
-			return;
+			if (self->enemy->health >= arenas[attacker->client->resp.context].health)
+				send_sound_to_arena ("ra/outstand.wav", attacker->client->resp.context);
+			else if (self->enemy->health >= arenas[attacker->client->resp.context].health - 20)
+				send_sound_to_arena ("ra/welldone.wav", attacker->client->resp.context);
+			else if (self->health < -40)
+				send_sound_to_arena ("ra/animality.wav", attacker->client->resp.context);
 		}
 
-		self->enemy = attacker;
-		if (attacker && attacker->client)
-		{
-			switch (mod)
-			{
-			case MOD_BLASTER:
-				message = "was blasted by";
-				break;
-			case MOD_SHOTGUN:
-				message = "was gunned down by";
-				break;
-			case MOD_SSHOTGUN:
-				message = "was blown away by";
-				message2 = "'s super shotgun";
-				break;
-			case MOD_MACHINEGUN:
-				message = "was machinegunned by";
-				break;
-			case MOD_CHAINGUN:
-				message = "was cut in half by";
-				message2 = "'s chaingun";
-				break;
-			case MOD_GRENADE:
-				message = "was popped by";
-				message2 = "'s grenade";
-				break;
-			case MOD_G_SPLASH:
-				message = "was shredded by";
-				message2 = "'s shrapnel";
-				break;
-			case MOD_ROCKET:
-				message = "ate";
-				message2 = "'s rocket";
-				break;
-			case MOD_R_SPLASH:
-				message = "almost dodged";
-				message2 = "'s rocket";
-				break;
-			case MOD_HYPERBLASTER:
-				message = "was melted by";
-				message2 = "'s hyperblaster";
-				break;
-			case MOD_RAILGUN:
-				message = "was railed by";
-				break;
-			case MOD_BFG_LASER:
-				message = "saw the pretty lights from";
-				message2 = "'s BFG";
-				break;
-			case MOD_BFG_BLAST:
-				message = "was disintegrated by";
-				message2 = "'s BFG blast";
-				break;
-			case MOD_BFG_EFFECT:
-				message = "couldn't hide from";
-				message2 = "'s BFG";
-				break;
-			case MOD_HANDGRENADE:
-				message = "caught";
-				message2 = "'s handgrenade";
-				break;
-			case MOD_HG_SPLASH:
-				message = "didn't see";
-				message2 = "'s handgrenade";
-				break;
-			case MOD_HELD_GRENADE:
-				message = "feels";
-				message2 = "'s pain";
-				break;
-			case MOD_TELEFRAG:
-				message = "tried to invade";
-				message2 = "'s personal space";
-				break;
-			}
-			if (message)
-			{
-				gi.bprintf (PRINT_MEDIUM,"%s %s %s%s\n", self->client->pers.netname, message, attacker->client->pers.netname, message2);
-				if (deathmatch->value)
-				{
-					if (ff)
-						attacker->client->resp.score--;
-					else
-						attacker->client->resp.score++;
-				}
-				return;
-			}
-		}
+		if (!arenas[self->client->resp.context].scorebydamage)
+			self->client->resp.score--;
+		self->enemy = NULL;
+
+		if (arenas[self->client->resp.context].statsptr)
+			bopfuncs[BOP_PLAYER_INT] (arenas[self->client->resp.context].statsptr, "suicides", bucketfuncs[BUCKET_ADD], 1,
+				self - g_edicts + 1);
+
+		return;
 	}
 
-	gi.bprintf (PRINT_MEDIUM,"%s died.\n", self->client->pers.netname);
-	if (deathmatch->value)
+	self->enemy = attacker;
+
+	if (!attacker || !attacker->client)
+		goto plain_death;
+
+	if (attacker->client->resp.isbot)
+		gi.dprintf ("\n\n%s IS A ZBOT %d\n\n", attacker->client->pers.netname, attacker->client->resp.isbot);
+
+	if (attacker->health >= arenas[attacker->client->resp.context].health)
+	{
+		if (self->health < -40)
+			send_sound_to_arena ("ra/fatality.wav", attacker->client->resp.context);
+		else
+			send_sound_to_arena ("ra/flawless.wav", attacker->client->resp.context);
+	}
+	else if (attacker->health >= arenas[attacker->client->resp.context].health - 20)
+	{
+		send_sound_to_arena ("ra/excelent.wav", attacker->client->resp.context);
+	}
+
+	if (inflictor->s.modelindex == gi.modelindex ("models/objects/grenade/tris.md2") ||
+		inflictor->s.modelindex == gi.modelindex ("models/objects/grenade2/tris.md2"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s takes %s's pill\n", self->client->pers.netname, attacker->client->pers.netname);
+		if (arenas[attacker->client->resp.context].statsptr)
+			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "grenadekills", bucketfuncs[BUCKET_ADD], 1,
+				attacker - g_edicts + 1);
+		goto kill_done;
+	}
+	else if (inflictor->s.modelindex == gi.modelindex ("models/objects/rocket/tris.md2"))
+	{
+		if (self->health < -40)
+			gi.bprintf (PRINT_MEDIUM, "%s was splattered by %s's rocket\n", self->client->pers.netname, attacker->client->pers.netname);
+		else
+			gi.bprintf (PRINT_MEDIUM, "%s trips over %s's rocket\n", self->client->pers.netname, attacker->client->pers.netname);
+		if (arenas[attacker->client->resp.context].statsptr)
+			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "rocketkills", bucketfuncs[BUCKET_ADD], 1,
+				attacker - g_edicts + 1);
+		goto kill_done;
+	}
+	else if (inflictor->s.modelindex == gi.modelindex ("models/objects/laser/tris.md2"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s was blasted by %s\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+	else if (inflictor->s.modelindex == gi.modelindex ("sprites/s_bfg1.sp2"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s was incinerated %s's BFG\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+	else if (attacker->client->pers.weapon == FindItem ("shotgun"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s takes %s's lead\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+	else if (attacker->client->pers.weapon == FindItem ("super shotgun"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s munches on %s's buckshot\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+	else if (attacker->client->pers.weapon == FindItem ("machinegun"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s was perforated by %s\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+	else if (attacker->client->pers.weapon == FindItem ("chaingun"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s was shredded by %s\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+	else if (attacker->client->pers.weapon == FindItem ("railgun"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s rides %s's rail\n", self->client->pers.netname, attacker->client->pers.netname);
+		if (arenas[attacker->client->resp.context].statsptr)
+			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "railkills", bucketfuncs[BUCKET_ADD], 1,
+				attacker - g_edicts + 1);
+		goto kill_done;
+	}
+	else if (attacker->client->pers.weapon == FindItem ("Grapple"))
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s was caught by %s's grapple\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+	else
+	{
+		gi.bprintf (PRINT_MEDIUM, "%s was killed by %s\n", self->client->pers.netname, attacker->client->pers.netname);
+	}
+
+	if (!statsdone)
+	{
+		if (arenas[attacker->client->resp.context].statsptr)
+			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "otherkills", bucketfuncs[BUCKET_ADD], 1,
+				attacker - g_edicts + 1);
+	}
+
+kill_done:
+	if (OnSameTeam (attacker, self))
+	{
+		if (!arenas[attacker->client->resp.context].scorebydamage)
+		{
+			attacker->client->resp.score--;
+		}
+		stuffcmd (self, "say As long as you're helping them, just shoot yourself!\n");
+	}
+	else if (!arenas[attacker->client->resp.context].scorebydamage)
+	{
+		attacker->client->resp.score++;
+		if (arenas[attacker->client->resp.context].statsptr)
+			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "score", bucketfuncs[BUCKET_ADD], 1,
+				attacker - g_edicts + 1);
+	}
+
+	return;
+
+plain_death:
+	gi.bprintf (PRINT_MEDIUM, "%s died.\n", self->client->pers.netname);
+
+	if (!arenas[self->client->resp.context].scorebydamage)
+	{
 		self->client->resp.score--;
+		if (arenas[self->client->resp.context].statsptr)
+			bopfuncs[BOP_PLAYER_INT] (arenas[self->client->resp.context].statsptr, "suicides", bucketfuncs[BUCKET_ADD], 1,
+				self - g_edicts + 1);
+	}
 }
 
 
 void Touch_Item (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf);
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001f4ec-0x0001f675 */
 void TossClientWeapon (edict_t *self)
 {
 	gitem_t		*item;
@@ -443,6 +430,8 @@ void TossClientWeapon (edict_t *self)
 LookAtKiller
 ==================
 */
+/* gamex86.dll 0x20020630-0x20020730 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0001f678-0x0001f7b7 */
 void LookAtKiller (edict_t *self, edict_t *inflictor, edict_t *attacker)
 {
 	vec3_t		dir;
@@ -481,6 +470,8 @@ void LookAtKiller (edict_t *self, edict_t *inflictor, edict_t *attacker)
 player_die
 ==================
 */
+/* gamex86.dll 0x20020730-0x200209f0 (padded+size) */
+/* gamei386.so 0x0001f7b8-0x0001fb15 */
 void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	int		n;
@@ -502,6 +493,9 @@ void player_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 
 //	self->solid = SOLID_NOT;
 	self->svflags |= SVF_DEADMONSTER;
+
+	self->client->grenade_time = 0;
+	self->client->resp.spawn_recheck = 0;
 
 	if (!self->deadflag)
 	{
@@ -588,12 +582,14 @@ This is only called when the game first initializes in single player,
 but is called after each death and level change in deathmatch
 ==============
 */
+/* gamex86.dll 0x200209f0-0x20020aa0 (padded+size) */
+/* gamei386.so 0x0001fb18-0x0001fbde */
 void InitClientPersistant (gclient_t *client)
 {
 	gitem_t		*item;
-	qboolean	admin;
+	qboolean	showmotd;
 
-	admin = client->pers.admin;
+	showmotd = client->pers.showmotd;
 
 	memset (&client->pers, 0, sizeof(client->pers));
 
@@ -615,19 +611,34 @@ void InitClientPersistant (gclient_t *client)
 
 	client->pers.connected = true;
 
-	client->pers.admin = admin;
+	client->pers.showmotd = showmotd;
 }
 
 
+/* gamex86.dll 0x20020aa0-0x20020b50 (shape-matched(ratio=0.66)) */
+/* gamei386.so 0x0001fbe0-0x0001fca9 */
 void InitClientResp (gclient_t *client)
 {
 	memset (&client->resp, 0, sizeof(client->resp));
 	client->resp.enterframe = level.framenum;
 	client->resp.coop_respawn = client->pers;
 
-	client->votes = votetries_setting;
-	client->teamnum = -1;
-	client->entered = true;
+	client->resp.votes = votetries_setting;
+	client->resp.teamnum = -1;
+	client->resp.context = 0;
+	client->resp.fightstate = FIGHT_SPECTATING;
+	client->resp.omode = NORMAL;
+	client->resp.teammember.next = NULL;
+	client->resp.teammember.prev = NULL;
+	client->resp.entered = true;
+	client->resp.isbot = 0;
+	client->resp.damagedealt = 0;
+
+	if (client->zbotscore == 27902)
+		client->resp.isbot = 1;
+
+	client->resp.zbotcount = 0;
+	client->resp.zbotlastcheck = 0;
 }
 
 /*
@@ -640,6 +651,8 @@ be mirrored out to the client structure before all the
 edicts are wiped.
 ==================
 */
+/* gamex86.dll 0x20020b50-0x20020c00 (shape-matched(ratio=0.93)) */
+/* gamei386.so 0x0001fcac-0x0001fd5d */
 void SaveClientData (void)
 {
 	int		i;
@@ -658,6 +671,8 @@ void SaveClientData (void)
 	}
 }
 
+/* gamex86.dll 0x20020c00-0x20020c60 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0001fd60-0x0001fdb7 */
 void FetchClientEntData (edict_t *ent)
 {
 	ent->health = ent->client->pers.health;
@@ -684,6 +699,8 @@ PlayersRangeFromSpot
 Returns the distance to the nearest player from the given spot
 ================
 */
+/* gamex86.dll 0x20020c60-0x20020d30 (shape-matched(ratio=0.97)) */
+/* gamei386.so 0x0001fdb8-0x0001fe6a */
 float	PlayersRangeFromSpot (edict_t *spot)
 {
 	edict_t	*player;
@@ -723,6 +740,8 @@ go to a random point, but NOT the two points closest
 to other players
 ================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0001fe6c-0x00020006 */
 edict_t *SelectRandomDeathmatchSpawnPoint (void)
 {
 	edict_t	*spot, *spot1, *spot2;
@@ -779,6 +798,8 @@ SelectFarthestDeathmatchSpawnPoint
 
 ================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00020008-0x0002012e */
 edict_t *SelectFarthestDeathmatchSpawnPoint (void)
 {
 	edict_t	*bestspot;
@@ -812,6 +833,8 @@ edict_t *SelectFarthestDeathmatchSpawnPoint (void)
 	return spot;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00020130-0x0002016d */
 edict_t *SelectDeathmatchSpawnPoint (void)
 {
 	if ( (int)(dmflags->value) & DF_SPAWN_FARTHEST)
@@ -821,6 +844,8 @@ edict_t *SelectDeathmatchSpawnPoint (void)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00020170-0x000201d6 */
 edict_t *SelectCoopSpawnPoint (edict_t *ent)
 {
 	int		index;
@@ -865,6 +890,8 @@ SelectSpawnPoint
 Chooses a player start, deathmatch start, coop start, etc
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000201d8-0x0002037e */
 void	SelectSpawnPoint (edict_t *ent, vec3_t origin, vec3_t angles)
 {
 	edict_t	*spot = NULL;
@@ -908,6 +935,8 @@ void	SelectSpawnPoint (edict_t *ent, vec3_t origin, vec3_t angles)
 //======================================================================
 
 
+/* gamex86.dll 0x20020d30-0x20020d60 (padded) */
+/* gamei386.so 0x00020380-0x00020453 */
 void InitBodyQue (void)
 {
 	int		i;
@@ -918,9 +947,12 @@ void InitBodyQue (void)
 	{
 		ent = G_Spawn();
 		ent->classname = "bodyque";
+		ent->movetype = MOVETYPE_TOSS;
 	}
 }
 
+/* gamex86.dll 0x20020d60-0x20020de0 (bracketed) */
+/* gamei386.so 0x00020454-0x000204fb */
 void body_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	int	n;
@@ -936,6 +968,8 @@ void body_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage,
 	}
 }
 
+/* gamex86.dll 0x20020de0-0x20020f80 (bracketed) */
+/* gamei386.so 0x000204fc-0x000206aa */
 void CopyToBodyQue (edict_t *ent)
 {
 	edict_t		*body;
@@ -961,7 +995,7 @@ void CopyToBodyQue (edict_t *ent)
 	body->solid = ent->solid;
 	body->clipmask = ent->clipmask;
 	body->owner = ent->owner;
-	body->movetype = ent->movetype;
+	ent->movetype = MOVETYPE_TOSS;
 
 	body->die = body_die;
 	body->takedamage = DAMAGE_YES;
@@ -970,6 +1004,8 @@ void CopyToBodyQue (edict_t *ent)
 }
 
 
+/* gamex86.dll 0x20020f80-0x20021000 (unpadded-prologue) */
+/* gamei386.so 0x000206ac-0x0002072d */
 void respawn (edict_t *self)
 {
 	if (deathmatch->value || coop->value)
@@ -982,10 +1018,6 @@ void respawn (edict_t *self)
 
 		// add a teleportation effect
 		self->s.event = EV_PLAYER_TELEPORT;
-
-		// hold in place briefly
-		self->client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
-		self->client->ps.pmove.pm_time = 14;
 
 		self->client->respawn_time = level.time;
 
@@ -1000,6 +1032,8 @@ void respawn (edict_t *self)
  * only called when pers.spectator changes
  * note that resp.spectator should be the opposite of pers.spectator here
  */
+/* gamex86.dll 0x20021000-0x20021310 (unpadded-prologue+majority) */
+/* gamei386.so 0x00020730-0x00020989 */
 void spectator_respawn (edict_t *ent)
 {
 	int i, numspec;
@@ -1087,6 +1121,8 @@ Called when a player connects to a server or respawns in
 a deathmatch.
 ============
 */
+/* gamex86.dll 0x20021310-0x20021700 (padded+majority) */
+/* gamei386.so 0x0002098c-0x000210cf */
 void PutClientInServer (edict_t *ent)
 {
 	vec3_t	mins = {-16, -16, -24};
@@ -1094,21 +1130,11 @@ void PutClientInServer (edict_t *ent)
 	int		index;
 	gclient_t	*client;
 	int		i;
-	int		teamnum, arenanum, votes, entered, zbotscore;
 	client_persistant_t	saved;
 	client_respawn_t	resp;
 
 	index = ent-g_edicts-1;
 	client = ent->client;
-
-	// the arena/team assignment and connection bookkeeping are not
-	// part of client->pers or client->resp, so they need to be
-	// carried across the reset below by hand
-	teamnum = client->teamnum;
-	arenanum = client->arenanum;
-	votes = client->votes;
-	entered = client->entered;
-	zbotscore = client->zbotscore;
 
 	// deathmatch wipes most client data every spawn
 	if (deathmatch->value)
@@ -1153,16 +1179,13 @@ void PutClientInServer (edict_t *ent)
 		InitClientPersistant(client);
 	client->resp = resp;
 
-	client->teamnum = teamnum;
-	client->arenanum = arenanum;
-	client->votes = votes;
-	client->entered = entered;
-	client->zbotscore = zbotscore;
+	// copy some data from the client to the entity
+	FetchClientEntData (ent);
 
 	// clear entity values
 	ent->groundentity = NULL;
 	ent->client = &game.clients[index];
-	ent->takedamage = DAMAGE_AIM;
+	ent->takedamage = DAMAGE_NO;
 	ent->movetype = MOVETYPE_WALK;
 	ent->viewheight = 22;
 	ent->inuse = true;
@@ -1179,6 +1202,7 @@ void PutClientInServer (edict_t *ent)
 	ent->watertype = 0;
 	ent->flags &= ~FL_NO_KNOCKBACK;
 	ent->svflags &= ~SVF_DEADMONSTER;
+	ent->client->menuusetime = 0;
 
 	VectorCopy (mins, ent->mins);
 	VectorCopy (maxs, ent->maxs);
@@ -1218,18 +1242,18 @@ void PutClientInServer (edict_t *ent)
 	client->newweapon = client->pers.weapon;
 	ChangeWeapon (ent);
 
-	// arena placement replaces the stock spawn point selection -
-	// actual origin/angles are set by move_to_arena()
-	if (client->teamnum >= 0)
+	ent->client->resp.spawn_recheck = 0;
+
+	if (ent->client->resp.teamnum >= 0)
 		reinit_player (ent);
 	else
 		init_player (ent);
 
 	gi.linkentity (ent);
 
-	i = client->arenanum;
-	client->arenanum = 0;
-	move_to_arena (ent, 1, i);
+	index = ent->client->resp.context;
+	ent->client->resp.context = 0;
+	move_to_arena (ent, index, 1);
 }
 
 /*
@@ -1240,6 +1264,8 @@ A client has just connected to the server in
 deathmatch mode, so clear everything out before starting them.
 =====================
 */
+/* gamex86.dll 0x20021700-0x200217b0 (padded+majority) */
+/* gamei386.so 0x000210d0-0x00021246 */
 void ClientBeginDeathmatch (edict_t *ent)
 {
 	G_InitEdict (ent);
@@ -1279,6 +1305,8 @@ called when a client has finished connecting, and is ready
 to be placed into the game.  This will happen every level load.
 ============
 */
+/* gamex86.dll 0x200217b0-0x20021910 (padded+majority) */
+/* gamei386.so 0x00021248-0x000214ac */
 void ClientBegin (edict_t *ent)
 {
 	int		i;
@@ -1345,6 +1373,8 @@ The game can override any of the settings in place
 (forcing skins or names, etc) before copying it off.
 ============
 */
+/* gamex86.dll 0x20021910-0x20021bf0 (padded+majority) */
+/* gamei386.so 0x000214ac-0x0002179c */
 void ClientUserinfoChanged (edict_t *ent, char *userinfo)
 {
 	char	*s;
@@ -1375,36 +1405,28 @@ void ClientUserinfoChanged (edict_t *ent, char *userinfo)
 
 	if (!strstr (s, "/nullxxx"))
 	{
-		// a real skin change was requested - team-based arenas enforce
-		// a uniform skin for each side
-		if (ent->client->teamnum != -1 && teams[ent->client->teamnum]->skin != -1)
-			setteamskin (ent, s, teams[ent->client->teamnum]->skin);
-		else if (ent->client->teamnum != -1)
-		{
-			// no valid team skin configured - fall back to the default
-			gi.configstring (CS_PLAYERSKINS+playernum, va("%s\\%s", ent->client->pers.netname, "male/grunt"));
-			strcat (userinfo, va("\\skin\\%s", "male/grunt"));
-		}
+		if (ent->client->resp.teamnum != -1 && ((team_t *)teams[ent->client->resp.teamnum].it)->skin != -1)
+			setteamskin (ent, userinfo, ((team_t *)teams[ent->client->resp.teamnum].it)->skin);
 		else
 			// combine name and skin into a configstring
 			gi.configstring (CS_PLAYERSKINS+playernum, va("%s\\%s", ent->client->pers.netname, s) );
 	}
 	else
 	{
-		// "/nullxxx" means the client didn't really change skins -
-		// keep whatever skin they already had
-		char	*oldskin = Info_ValueForKey (ent->client->pers.userinfo, "skin");
+		s = Info_ValueForKey (ent->client->pers.userinfo, "skin");
 
 		Info_RemoveKey (userinfo, "skin");
 
-		if (ent->client->teamnum != -1 && teams[ent->client->teamnum]->skin != -1)
-			strcat (userinfo, va("\\skin\\%s", oldskin));
-		else
+		if (ent->client->resp.teamnum == -1 || ((team_t *)teams[ent->client->resp.teamnum].it)->skin == -1)
 		{
-			gi.configstring (CS_PLAYERSKINS+playernum, va("%s\\%s", ent->client->pers.netname, "male/grunt"));
-			strcat (userinfo, va("\\skin\\%s", "male/grunt"));
+			s = "male/grunt";
+			gi.configstring (CS_PLAYERSKINS+playernum, va("%s\\%s", ent->client->pers.netname, s));
 		}
+
+		strcat (userinfo, va("\\skin\\%s", s));
 	}
+
+	s = Info_ValueForKey (userinfo, "skin");
 
 	// fov
 	if (deathmatch->value && ((int)dmflags->value & DF_FIXED_FOV))
@@ -1444,25 +1466,30 @@ Changing levels will NOT cause this to be called again, but
 loadgames will.
 ============
 */
+/* gamex86.dll 0x20021bf0-0x20021e90 (padded+majority) */
+/* gamei386.so 0x0002179c-0x00021b2f */
 qboolean ClientConnect (edict_t *ent, char *userinfo)
 {
 	char	*value;
 
-	if (ent->client && ent->client->entered) {
+	if (ent->client->resp.entered) {
 		gi.dprintf ("%s: reconnect without disconnect\n", ent->client->pers.netname);
 		ClientDisconnect (ent);
 	}
 
-	// check for a client connecting through the ZBOT proxy
 	value = Info_ValueForKey (userinfo, "ip");
 	if (*value) {
-		char	*p;
+		int	port;
 
-		for (p = value; *p && *p != ':'; p++)
+		for ( ; *value && *value != ':'; value++)
 			;
-		if (*p && atoi (p+1) == 27902) {
-			ent->client->zbotscore++;
-			gi.dprintf ("\n%s\nConnected with ZBOT\n", userinfo);
+		if (*value) {
+			value++;
+			port = atoi (value);
+			ent->client->zbotscore = port;
+			if (port == 27902) {
+				gi.dprintf ("\n%s\nConnected with ZBOT\n", userinfo);
+			}
 		}
 	}
 
@@ -1498,6 +1525,8 @@ qboolean ClientConnect (edict_t *ent, char *userinfo)
 		// clear the respawning variables
 		InitClientResp (ent->client);
 		InitClientPersistant (ent->client);
+
+		ent->client->pers.showmotd = true;
 	}
 
 	ClientUserinfoChanged (ent, userinfo);
@@ -1521,6 +1550,8 @@ Called when a player drops from the server.
 Will not be called between levels.
 ============
 */
+/* gamex86.dll 0x20021e90-0x20021f60 (padded) */
+/* gamei386.so 0x00021b30-0x00021c09 */
 void ClientDisconnect (edict_t *ent)
 {
 	int		playernum;
@@ -1542,7 +1573,7 @@ void ClientDisconnect (edict_t *ent)
 	ent->s.modelindex = 0;
 	ent->solid = SOLID_NOT;
 	remove_from_team (ent);
-	ent->client->entered = false;
+	ent->client->resp.entered = false;
 	ent->inuse = false;
 	ent->classname = "disconnected";
 	ent->client->pers.connected = false;
@@ -1558,6 +1589,8 @@ void ClientDisconnect (edict_t *ent)
 edict_t	*pm_passent;
 
 // pmove doesn't need to know about passent and contentmask
+/* gamex86.dll 0x20021f60-0x20021fe0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00021c0c-0x00021c53 */
 trace_t	PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 {
 	if (pm_passent->health > 0)
@@ -1566,6 +1599,8 @@ trace_t	PM_trace (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 		return gi.trace (start, mins, maxs, end, pm_passent, MASK_DEADSOLID);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00021c54-0x00021cb7 */
 unsigned CheckBlock (void *b, int c)
 {
 	int	v,i;
@@ -1574,6 +1609,8 @@ unsigned CheckBlock (void *b, int c)
 		v+= ((byte *)b)[i];
 	return v;
 }
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00021cb8-0x00021d9e */
 void PrintPmove (pmove_t *pm)
 {
 	unsigned	c1, c2;
@@ -1591,6 +1628,8 @@ This will be called once for each client frame, which will
 usually be a couple times for each server frame.
 ==============
 */
+/* gamex86.dll 0x20021fe0-0x20022700 (manual-confirmed) */
+/* gamei386.so 0x00021da0-0x000226ef */
 void ClientThink (edict_t *ent, usercmd_t *ucmd)
 {
 	gclient_t	*client;
@@ -1635,11 +1674,38 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 		client->ps.pmove.gravity = sv_gravity->value;
 
-		if (client->fightstate == FIGHT_SPECTATING) {
-			if (client->omode == 2)
-				track_think (ent);
-			else if (client->omode == 3)
-				eyecam_think (ent);
+		if (ucmd->impulse > 160 && ucmd->impulse < 180)
+			ent->client->resp.isbot = 2;
+
+		if (!ent->client->resp.isbot)
+		{
+			if (level.time - ent->client->resp.zbotlastcheck > 5.0f)
+				ent->client->resp.zbotcount = 0;
+
+			if (ent->client->oldangles[0][0] == ucmd->angles[0] && ent->client->oldangles[1][0] != ucmd->angles[0]
+				&& ent->client->oldangles[0][1] == ucmd->angles[1] && ent->client->oldangles[1][1] != ucmd->angles[1])
+			{
+				ent->client->resp.zbotlastcheck = level.time;
+				ent->client->resp.zbotcount++;
+			}
+
+			ent->client->oldangles[0][0] = ent->client->oldangles[1][0];
+			ent->client->oldangles[1][0] = ucmd->angles[0];
+			ent->client->oldangles[0][1] = ent->client->oldangles[1][1];
+			ent->client->oldangles[1][1] = ucmd->angles[1];
+
+			if (ent->client->resp.zbotcount > 10)
+				ent->client->resp.isbot = 3;
+		}
+
+		if (ent->client->resp.track_target && ent->client->resp.fightstate == FIGHT_SPECTATING) {
+			client->ps.pmove.pm_type = 3;
+			client->ps.pmove.gravity = 0;
+
+			if (ent->client->resp.omode == 2)
+				track_think (ent, ucmd);
+			else if (ent->client->resp.omode == 3)
+				eyecam_think (ent, ucmd);
 		}
 
 		pm.s = client->ps.pmove;
@@ -1681,7 +1747,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		client->resp.cmd_angles[1] = SHORT2ANGLE(ucmd->angles[1]);
 		client->resp.cmd_angles[2] = SHORT2ANGLE(ucmd->angles[2]);
 
-		if (ent->groundentity && !pm.groundentity && (pm.cmd.upmove >= 10) && (pm.waterlevel == 0))
+		if (ent->groundentity && !pm.groundentity && (pm.cmd.upmove >= 10) && (pm.waterlevel == 0)
+			&& ent->client->resp.fightstate == FIGHT_ALIVE)
 		{
 			gi.sound(ent, CHAN_VOICE, gi.soundindex("*jump1.wav"), 1, ATTN_NORM, 0);
 			PlayerNoise(ent, ent->s.origin, PNOISE_SELF);
@@ -1738,30 +1805,27 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	// monster sighting AI
 	ent->light_level = ucmd->lightlevel;
 
-	// cycle through the observer modes (chase/track/eyecam) on the attack key
-	if (client->latched_buttons & BUTTON_ATTACK)
+	if (!(client->latched_buttons & BUTTON_ATTACK))
+		client->resp.omode_buttons &= ~1;
+	else if (client->resp.fightstate == FIGHT_SPECTATING && client->resp.context != 0 && !(client->resp.omode_buttons & 1))
 	{
-		if (!client->inmenu && client->arenanum != 0 && !(client->omode_buttons & 1)) {
-			ChangeOMode (ent);
-			client->omode_buttons |= 1;
-		}
+		ChangeOMode (ent);
+		client->resp.omode_buttons |= 1;
 	}
-	else
-		client->omode_buttons &= ~1;
 
-	// while tracking/eyecamming, up/down cycles through the players in the arena
-	if (client->fightstate == FIGHT_SPECTATING && (client->omode == 2 || client->omode == 3)) {
-		if (ucmd->upmove == 0)
-			client->omode_buttons &= ~2;
-		else if (!(client->omode_buttons & 2)) {
+	if (ucmd->upmove == 0)
+		client->resp.omode_buttons &= ~2;
+
+	if (client->resp.fightstate == FIGHT_SPECTATING && (client->resp.omode == 2 || client->resp.omode == 3) && ucmd->upmove != 0) {
+		if (!(client->resp.omode_buttons & 2)) {
 			if (ucmd->upmove > 0)
 				track_next (ent);
 			else
 				track_prev (ent);
-			client->omode_buttons |= 2;
+			client->resp.omode_buttons |= 2;
 		}
 	}
-	else if (ucmd->upmove < 0 && client->arenanum == 1 && ent->s.origin[2] != 388 &&
+	else if (ucmd->upmove < 0 && client->resp.context == 1 && ent->s.origin[2] >= 388 &&
 			 !Q_stricmp (level.mapname, "ra2map13"))
 		T_Damage (ent, ent, ent, vec3_origin, ent->s.origin, vec3_origin, 100000, 0, DAMAGE_NO_PROTECTION, MOD_TELEFRAG);
 
@@ -1784,10 +1848,11 @@ This will be called once for each server frame, before running
 any other entities in the world.
 ==============
 */
+/* gamex86.dll 0x20022700-0x20022810 (shape-matched(ratio=0.84)) */
+/* gamei386.so 0x000226f0-0x00022869 */
 void ClientBeginServerFrame (edict_t *ent)
 {
 	gclient_t	*client;
-	int			buttonMask;
 
 	if (level.intermissiontime)
 		return;
@@ -1809,21 +1874,10 @@ void ClientBeginServerFrame (edict_t *ent)
 
 	if (ent->deadflag)
 	{
-		// wait for any button just going down
 		if ( level.time > client->respawn_time)
 		{
-			// in deathmatch, only wait for attack button
-			if (deathmatch->value)
-				buttonMask = BUTTON_ATTACK;
-			else
-				buttonMask = -1;
-
-			if ( ( client->latched_buttons & buttonMask ) ||
-				(deathmatch->value && ((int)dmflags->value & DF_FORCE_RESPAWN) ) )
-			{
-				respawn(ent);
-				client->latched_buttons = 0;
-			}
+			respawn(ent);
+			client->latched_buttons = 0;
 		}
 		return;
 	}

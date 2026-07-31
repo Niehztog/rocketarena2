@@ -9,6 +9,8 @@
 // and we can mess it up based on skill.  Spread should be for normal
 // and we can tighten or loosen based on skill.  We could muck with
 // the damages too, but I'm not sure that's such a good idea.
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031a18-0x00031a87 */
 void monster_fire_bullet (edict_t *self, vec3_t start, vec3_t dir, int damage, int kick, int hspread, int vspread, int flashtype)
 {
 	fire_bullet (self, start, dir, damage, kick, hspread, vspread, MOD_UNKNOWN);
@@ -19,6 +21,8 @@ void monster_fire_bullet (edict_t *self, vec3_t start, vec3_t dir, int damage, i
 	gi.multicast (start, MULTICAST_PVS);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031a88-0x00031b00 */
 void monster_fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int flashtype)
 {
 	fire_shotgun (self, start, aimdir, damage, kick, hspread, vspread, count, MOD_UNKNOWN);
@@ -29,6 +33,8 @@ void monster_fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damag
 	gi.multicast (start, MULTICAST_PVS);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031b00-0x00031b6a */
 void monster_fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype, int effect)
 {
 	fire_blaster (self, start, dir, damage, speed, effect, false);
@@ -39,6 +45,8 @@ void monster_fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, 
 	gi.multicast (start, MULTICAST_PVS);
 }	
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031b6c-0x00031be4 */
 void monster_fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, int flashtype)
 {
 	fire_grenade (self, start, aimdir, damage, speed, 2.5, damage+40);
@@ -49,6 +57,8 @@ void monster_fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damag
 	gi.multicast (start, MULTICAST_PVS);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031be4-0x00031c58 */
 void monster_fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype)
 {
 	fire_rocket (self, start, dir, damage, speed, damage+20, damage);
@@ -59,6 +69,8 @@ void monster_fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, i
 	gi.multicast (start, MULTICAST_PVS);
 }	
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031c58-0x00031cb9 */
 void monster_fire_railgun (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int flashtype)
 {
 	fire_rail (self, start, aimdir, damage, kick);
@@ -69,6 +81,8 @@ void monster_fire_railgun (edict_t *self, vec3_t start, vec3_t aimdir, int damag
 	gi.multicast (start, MULTICAST_PVS);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031cbc-0x00031d21 */
 void monster_fire_bfg (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, int kick, float damage_radius, int flashtype)
 {
 	fire_bfg (self, start, aimdir, damage, speed, damage_radius);
@@ -85,12 +99,16 @@ void monster_fire_bfg (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 // Monster utility functions
 //
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032f70-0x00032f83 */
 static void M_FliesOff (edict_t *self)
 {
 	self->s.effects &= ~EF_FLIES;
 	self->s.sound = 0;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032f28-0x00032f6d */
 static void M_FliesOn (edict_t *self)
 {
 	if (self->waterlevel)
@@ -101,6 +119,8 @@ static void M_FliesOn (edict_t *self)
 	self->nextthink = level.time + 60;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031d24-0x00031d92 */
 void M_FlyCheck (edict_t *self)
 {
 	if (self->waterlevel)
@@ -113,12 +133,16 @@ void M_FlyCheck (edict_t *self)
 	self->nextthink = level.time + 5 + 10 * random();
 }
 
+/* gamex86.dll 0x20011760-0x20011780 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00031d94-0x00031da9 */
 void AttackFinished (edict_t *self, float time)
 {
 	self->monsterinfo.attack_finished = level.time + time;
 }
 
 
+/* gamex86.dll 0x20011780-0x20011880 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00031dac-0x00031e95 */
 void M_CheckGround (edict_t *ent)
 {
 	vec3_t		point;
@@ -161,6 +185,8 @@ void M_CheckGround (edict_t *ent)
 }
 
 
+/* gamex86.dll 0x20011880-0x20011940 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00031e98-0x00031f54 */
 void M_CatagorizePosition (edict_t *ent)
 {
 	vec3_t		point;
@@ -196,6 +222,8 @@ void M_CatagorizePosition (edict_t *ent)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00031f54-0x00032233 */
 void M_WorldEffects (edict_t *ent)
 {
 	int		dmg;
@@ -288,6 +316,8 @@ void M_WorldEffects (edict_t *ent)
 }
 
 
+/* gamex86.dll 0x20011940-0x20011a00 (call-propagated-reverse+collision-resolved) */
+/* gamei386.so 0x00032234-0x0003247d */
 void M_droptofloor (edict_t *ent)
 {
 	vec3_t		end;
@@ -310,6 +340,8 @@ void M_droptofloor (edict_t *ent)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032480-0x000324ec */
 void M_SetEffects (edict_t *ent)
 {
 	ent->s.effects &= ~(EF_COLOR_SHELL|EF_POWERSCREEN);
@@ -339,6 +371,8 @@ void M_SetEffects (edict_t *ent)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000324ec-0x000325e4 */
 void M_MoveFrame (edict_t *self)
 {
 	mmove_t	*move;
@@ -397,6 +431,8 @@ void M_MoveFrame (edict_t *self)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000325e4-0x00032805 */
 void monster_think (edict_t *self)
 {
 	M_MoveFrame (self);
@@ -418,6 +454,8 @@ monster_use
 Using a monster makes it angry at the current activator
 ================
 */
+/* gamex86.dll 0x20011a00-0x20011a50 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00032808-0x0003284a */
 void monster_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (self->enemy)
@@ -438,6 +476,8 @@ void monster_use (edict_t *self, edict_t *other, edict_t *activator)
 void monster_start_go (edict_t *self);
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0003284c-0x000328d0 */
 void monster_triggered_spawn (edict_t *self)
 {
 	self->s.origin[2] += 1;
@@ -461,6 +501,8 @@ void monster_triggered_spawn (edict_t *self)
 	}
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000328d0-0x00032911 */
 void monster_triggered_spawn_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	// we have a one frame delay here so we don't telefrag the guy who activated us
@@ -471,6 +513,8 @@ void monster_triggered_spawn_use (edict_t *self, edict_t *other, edict_t *activa
 	self->use = monster_use;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032914-0x00032948 */
 void monster_triggered_start (edict_t *self)
 {
 	self->solid = SOLID_NOT;
@@ -489,6 +533,8 @@ When a monster dies, it fires all of its targets with the current
 enemy as activator.
 ================
 */
+/* gamex86.dll 0x20011a50-0x20011ac0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00032948-0x000329a7 */
 void monster_death_use (edict_t *self)
 {
 	self->flags &= ~(FL_FLY|FL_SWIM);
@@ -512,6 +558,8 @@ void monster_death_use (edict_t *self)
 
 //============================================================================
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000329a8-0x00032b26 */
 qboolean monster_start (edict_t *self)
 {
 	if (deathmatch->value)
@@ -561,6 +609,8 @@ qboolean monster_start (edict_t *self)
 	return true;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032b28-0x00032e56 */
 void monster_start_go (edict_t *self)
 {
 	vec3_t	v;
@@ -649,10 +699,14 @@ void monster_start_go (edict_t *self)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032e58-0x00032e59 */
 void walkmonster_start_go (edict_t *self)
 {
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032e5c-0x00032e74 */
 void walkmonster_start (edict_t *self)
 {
 	self->think = walkmonster_start_go;
@@ -660,11 +714,15 @@ void walkmonster_start (edict_t *self)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032e74-0x00032e75 */
 void flymonster_start_go (edict_t *self)
 {
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032e78-0x00032e97 */
 void flymonster_start (edict_t *self)
 {
 	self->flags |= FL_FLY;
@@ -673,6 +731,8 @@ void flymonster_start (edict_t *self)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032e98-0x00032f08 */
 void swimmonster_start_go (edict_t *self)
 {
 	if (!self->yaw_speed)
@@ -685,6 +745,8 @@ void swimmonster_start_go (edict_t *self)
 		monster_triggered_start (self);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00032f08-0x00032f27 */
 void swimmonster_start (edict_t *self)
 {
 	self->flags |= FL_SWIM;

@@ -1,5 +1,9 @@
 BUILD_DEBUG_DIR=debug
 BUILD_RELEASE_DIR=release
+BUILD_WIN32_DEBUG_DIR=debug-win32
+BUILD_WIN32_RELEASE_DIR=release-win32
+BUILD_WIN64_DEBUG_DIR=debug-win64
+BUILD_WIN64_RELEASE_DIR=release-win64
 
 # The real gamei386.so was a 32-bit build. Set M32=-m32 once a 32-bit
 # multilib toolchain (gcc-multilib/libc6-dev-i386 or equivalent) is
@@ -20,6 +24,34 @@ SHLIBEXT=so
 SHLIBCFLAGS=-fPIC
 SHLIBLDFLAGS=-shared
 
+# MinGW cross-compilers, producing gamex86.dll/gamex64.dll -- same
+# game$(ARCH).$(SHLIBEXT) naming as the native targets above, and
+# gamex86.dll matches the original Windows RA2 DLL's real filename.
+# No -fPIC (meaningless for PE), no -ldl (nothing dlopen's on Windows),
+# and stricmp is native to the Windows CRT so the strcasecmp remap
+# vanilla Linux needs is dropped too. -lws2_32 covers the Winsock calls
+# net_compat.h switches gslog.c/stats.c to under _WIN32.
+#
+# -DNDEBUG matches the real gamex86.dll, which was built with it: the Windows
+# build compiles out every assert() in darray.c/hashtable.c/gbucket.c/q_shared.c,
+# where the Linux build keeps them (gamei386.so carries all 31 sites).
+CC_WIN32?=i686-w64-mingw32-gcc
+CC_WIN64?=x86_64-w64-mingw32-gcc
+WIN_BASE_CFLAGS=-DNDEBUG
+WIN_RELEASE_CFLAGS=$(WIN_BASE_CFLAGS) -ffast-math -funroll-loops \
+	-fomit-frame-pointer -fexpensive-optimizations
+WIN_DEBUG_CFLAGS=$(WIN_BASE_CFLAGS) -g
+WIN_LDFLAGS=-lm -lws2_32
+WIN_SHLIBCFLAGS=
+
+# game.def restricts the DLL's export table to GetGameAPI (the only entry
+# point the engine actually looks up), matching the original Windows RA2
+# build. Without it, GNU ld's PE auto-export fallback exports every global
+# symbol instead -- harmless but needlessly leaky. Native ELF .so builds
+# don't use a .def file at all, hence this being empty by default.
+EXTRA_LINK_INPUTS?=
+WIN_EXTRA_LINK_INPUTS=game.def
+
 DO_CC=$(CC) $(CFLAGS) -o $@ -c $<
 DO_SHLIB_CC=$(CC) $(CFLAGS) $(SHLIBCFLAGS) -o $@ -c $<
 
@@ -33,16 +65,43 @@ build_release:
 	@-mkdir $(BUILD_RELEASE_DIR)
 	$(MAKE) targets BUILDDIR=$(BUILD_RELEASE_DIR) CFLAGS="$(RELEASE_CFLAGS)"
 
+build_win32_debug:
+	@-mkdir $(BUILD_WIN32_DEBUG_DIR)
+	$(MAKE) targets BUILDDIR=$(BUILD_WIN32_DEBUG_DIR) CFLAGS="$(WIN_DEBUG_CFLAGS)" \
+		CC=$(CC_WIN32) ARCH=x86 SHLIBEXT=dll SHLIBCFLAGS="$(WIN_SHLIBCFLAGS)" LDFLAGS="$(WIN_LDFLAGS)" \
+		EXTRA_LINK_INPUTS="$(WIN_EXTRA_LINK_INPUTS)"
+
+build_win32_release:
+	@-mkdir $(BUILD_WIN32_RELEASE_DIR)
+	$(MAKE) targets BUILDDIR=$(BUILD_WIN32_RELEASE_DIR) CFLAGS="$(WIN_RELEASE_CFLAGS)" \
+		CC=$(CC_WIN32) ARCH=x86 SHLIBEXT=dll SHLIBCFLAGS="$(WIN_SHLIBCFLAGS)" LDFLAGS="$(WIN_LDFLAGS)" \
+		EXTRA_LINK_INPUTS="$(WIN_EXTRA_LINK_INPUTS)"
+
+build_win64_debug:
+	@-mkdir $(BUILD_WIN64_DEBUG_DIR)
+	$(MAKE) targets BUILDDIR=$(BUILD_WIN64_DEBUG_DIR) CFLAGS="$(WIN_DEBUG_CFLAGS)" \
+		CC=$(CC_WIN64) ARCH=x64 SHLIBEXT=dll SHLIBCFLAGS="$(WIN_SHLIBCFLAGS)" LDFLAGS="$(WIN_LDFLAGS)" \
+		EXTRA_LINK_INPUTS="$(WIN_EXTRA_LINK_INPUTS)"
+
+build_win64_release:
+	@-mkdir $(BUILD_WIN64_RELEASE_DIR)
+	$(MAKE) targets BUILDDIR=$(BUILD_WIN64_RELEASE_DIR) CFLAGS="$(WIN_RELEASE_CFLAGS)" \
+		CC=$(CC_WIN64) ARCH=x64 SHLIBEXT=dll SHLIBCFLAGS="$(WIN_SHLIBCFLAGS)" LDFLAGS="$(WIN_LDFLAGS)" \
+		EXTRA_LINK_INPUTS="$(WIN_EXTRA_LINK_INPUTS)"
+
 all: build_debug build_release
+
+win32: build_win32_debug build_win32_release
+win64: build_win64_debug build_win64_release
+windows: win32 win64
 
 targets: $(TARGETS)
 
 GAME_OBJS = \
-	$(BUILDDIR)/q_shared.o \
+	$(BUILDDIR)/arena.o \
+	$(BUILDDIR)/darray.o \
 	$(BUILDDIR)/g_ai.o \
-	$(BUILDDIR)/p_client.o \
 	$(BUILDDIR)/g_cmds.o \
-	$(BUILDDIR)/g_svcmds.o \
 	$(BUILDDIR)/g_combat.o \
 	$(BUILDDIR)/g_func.o \
 	$(BUILDDIR)/g_items.o \
@@ -52,28 +111,30 @@ GAME_OBJS = \
 	$(BUILDDIR)/g_phys.o \
 	$(BUILDDIR)/g_save.o \
 	$(BUILDDIR)/g_spawn.o \
+	$(BUILDDIR)/g_svcmds.o \
 	$(BUILDDIR)/g_target.o \
 	$(BUILDDIR)/g_trigger.o \
 	$(BUILDDIR)/g_turret.o \
 	$(BUILDDIR)/g_utils.o \
 	$(BUILDDIR)/g_weapon.o \
+	$(BUILDDIR)/gbucket.o \
+	$(BUILDDIR)/gslog.o \
+	$(BUILDDIR)/gstats.o \
+	$(BUILDDIR)/hashtable.o \
+	$(BUILDDIR)/maploop.o \
+	$(BUILDDIR)/md5c.o \
+	$(BUILDDIR)/menu.o \
+	$(BUILDDIR)/nonport.o \
+	$(BUILDDIR)/p_client.o \
 	$(BUILDDIR)/p_hud.o \
 	$(BUILDDIR)/p_trail.o \
 	$(BUILDDIR)/p_view.o \
 	$(BUILDDIR)/p_weapon.o \
-	$(BUILDDIR)/arena.o \
-	$(BUILDDIR)/maploop.o \
-	$(BUILDDIR)/menu.o \
-	$(BUILDDIR)/ra2menus.o \
-	$(BUILDDIR)/gslog.o \
-	$(BUILDDIR)/darray.o \
-	$(BUILDDIR)/hashtable.o \
-	$(BUILDDIR)/gbucket.o \
-	$(BUILDDIR)/md5.o \
-	$(BUILDDIR)/stats.o
+	$(BUILDDIR)/q_shared.o \
+	$(BUILDDIR)/ra2menus.o
 
 $(BUILDDIR)/game$(ARCH).$(SHLIBEXT) : $(GAME_OBJS)
-	$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(GAME_OBJS)
+	$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(GAME_OBJS) $(EXTRA_LINK_INPUTS) $(LDFLAGS)
 
 $(BUILDDIR)/g_ai.o :        g_ai.c
 	$(DO_SHLIB_CC)
@@ -168,21 +229,32 @@ $(BUILDDIR)/hashtable.o :   hashtable.c
 $(BUILDDIR)/gbucket.o :     gbucket.c
 	$(DO_SHLIB_CC)
 
-$(BUILDDIR)/md5.o :         md5.c
+$(BUILDDIR)/nonport.o :     nonport.c
 	$(DO_SHLIB_CC)
 
-$(BUILDDIR)/stats.o :       stats.c
+$(BUILDDIR)/md5c.o :        md5c.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/gstats.o :      gstats.c
 	$(DO_SHLIB_CC)
 
 #####
 
-clean: clean-debug clean-release
+clean: clean-debug clean-release clean-win32 clean-win64
 
 clean-debug:
 	$(MAKE) clean2 BUILDDIR=$(BUILD_DEBUG_DIR) CFLAGS="$(DEBUG_CFLAGS)"
 
 clean-release:
 	$(MAKE) clean2 BUILDDIR=$(BUILD_RELEASE_DIR) CFLAGS="$(DEBUG_CFLAGS)"
+
+clean-win32:
+	$(MAKE) clean2 BUILDDIR=$(BUILD_WIN32_DEBUG_DIR) CFLAGS="$(WIN_DEBUG_CFLAGS)"
+	$(MAKE) clean2 BUILDDIR=$(BUILD_WIN32_RELEASE_DIR) CFLAGS="$(WIN_RELEASE_CFLAGS)"
+
+clean-win64:
+	$(MAKE) clean2 BUILDDIR=$(BUILD_WIN64_DEBUG_DIR) CFLAGS="$(WIN_DEBUG_CFLAGS)"
+	$(MAKE) clean2 BUILDDIR=$(BUILD_WIN64_RELEASE_DIR) CFLAGS="$(WIN_RELEASE_CFLAGS)"
 
 clean2:
 	-rm -f $(GAME_OBJS)

@@ -126,7 +126,8 @@ extern vec3_t vec3_origin;
 // microsoft's fabs seems to be ungodly slow...
 //float Q_fabs (float f);
 //#define	fabs(f) Q_fabs(f)
-#if !defined C_ONLY && !defined __linux__ && !defined __sgi
+
+#if !defined C_ONLY && !defined __linux__ && !defined __sgi && defined _MSC_VER
 extern long Q_ftol( float f );
 #else
 #define Q_ftol( f ) ( long ) (f)
@@ -987,16 +988,19 @@ typedef enum
 #define	STAT_LAYOUTS			13
 #define	STAT_FRAGS				14
 #define	STAT_FLASHES			15		// cleared each frame, 1 = health, 2 = armor
-#define STAT_CHASE				16
-#define STAT_SPECTATOR			17
 
-// arena.c/p_hud.c -- Rocket Arena 2 additions
-#define STAT_SKIN_ICON			18
-#define STAT_QUEUE1				19
-#define STAT_QUEUE1_ICON		20
-#define STAT_QUEUE2				21
-#define STAT_QUEUE2_ICON		22
+#define STAT_COUNTDOWN			16
+#define STAT_ARENASTATUS		17
+
+#define STAT_SKIN_ICON			0
+
+#define STAT_ROUNDINFO			18
+
+#define STAT_QUEUE1				21
+#define STAT_QUEUE2				22
 #define STAT_SHOWQUEUE			23
+#define STAT_QUEUE1_ICON		24
+#define STAT_QUEUE2_ICON		25
 
 #define	MAX_STATS				32
 

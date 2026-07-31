@@ -1,50 +1,17 @@
-// menu.c -- generic in-game menu engine
-//
-// Menus are drawn by taking over CS_STATUSBAR (the same "layout program"
-// language stock Quake 2 uses for the health/ammo HUD, see p_hud.c) for as
-// long as a menu is up, and handing it back to the normal deathmatch/
-// singleplayer statusbar program when it closes.  Navigation reuses the
-// stock inventory keys -- invnext/invprev/invuse/inven map to MenuNext,
-// MenuPrev, UseMenu and clear_menus.
-
 #include "g_local.h"
 
-#define	MAXMENUITEMS	18		// items per statusbar page before "(More)"
+#define	MAXMENUITEMS	18
 
-//
-// queue_insert/queue_delete -- the doubly linked list glue shared by a
-// menu's item list and a client's menu queue.  Kept private to this file;
-// nothing outside menu.c ever looks at a qmenu_t's next/prev.
-//
-
-static void
-queue_insert (qmenu_t *node, qmenu_t **head)
-{
-	node->prev = NULL;
-	node->next = *head;
-	if (*head)
-		(*head)->prev = node;
-	*head = node;
-}
-
-static void
-queue_delete (qmenu_t *node, qmenu_t **head)
-{
-	if (node->prev)
-		node->prev->next = node->next;
-	else
-		*head = node->next;
-
-	if (node->next)
-		node->next->prev = node->prev;
-}
-
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00050ca0-0x00050cc1 */
 void
 PrintMenuItem (menuitem_t *item)
 {
 	gi.bprintf (PRINT_HIGH, "  %s %s %d\n", item->text, item->value, item->num);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00050cc4-0x00050d11 */
 void
 PrintMenu (qmenu_t *menu)
 {
@@ -52,16 +19,20 @@ PrintMenu (qmenu_t *menu)
 	qmenu_t		*node;
 	menuitem_t	*item;
 
-	info = (menuinfo_t *)menu->data;
+	info = (menuinfo_t *)menu->it;
 	gi.bprintf (PRINT_HIGH, "%s\n", info->title);
 
-	for (node = info->items ; node ; node = node->next)
+	node = (qmenu_t *)info;
+	while (node->next)
 	{
-		item = (menuitem_t *)node->data;
+		node = node->next;
+		item = (menuitem_t *)node->it;
 		gi.bprintf (PRINT_HIGH, "  %s %s %d\n", item->text, item->value, item->num);
 	}
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00050d14-0x00050d7c */
 void
 PrintMenuQueue (edict_t *ent)
 {
@@ -69,53 +40,59 @@ PrintMenuQueue (edict_t *ent)
 	qmenu_t		*menu, *node;
 	menuitem_t	*item;
 
-	for (menu = ent->client->menuqueue ; menu ; menu = menu->next)
+	menu = &ent->client->menuqueue;
+	while (menu->next)
 	{
-		info = (menuinfo_t *)menu->data;
+		menu = menu->next;
+		info = (menuinfo_t *)menu->it;
 		gi.bprintf (PRINT_HIGH, "%s\n", info->title);
 
-		for (node = info->items ; node ; node = node->next)
+		node = (qmenu_t *)info;
+		while (node->next)
 		{
-			item = (menuitem_t *)node->data;
+			node = node->next;
+			item = (menuitem_t *)node->it;
 			gi.bprintf (PRINT_HIGH, "  %s %s %d\n", item->text, item->value, item->num);
 		}
 	}
 }
 
-// LoPrint/HiPrint flip a string between the console font's plain and
-// "hi-bit" (gold) character ranges in place, and hand the same pointer
-// back.  HiPrint is used to make a menu's title stand out.
-
+/* gamex86.dll 0x2001f170-0x2001f1b0 (manual-confirmed) */
+/* gamei386.so 0x00050d7c-0x00050dd8 */
 char *
 LoPrint (char *string)
 {
-	char	*p;
+	int		i;
 
 	if (!string)
 		return NULL;
 
-	for (p = string ; *p ; p++)
-		if ((unsigned char)*p > 0x7f)
-			*p += 0x80;
+	for (i = 0 ; i < strlen (string) ; i++)
+		if ((unsigned char)string[i] > 0x7f)
+			string[i] += 0x80;
 
 	return string;
 }
 
+/* gamex86.dll 0x2001f1b0-0x2001f1f4 (manual-confirmed) */
+/* gamei386.so 0x00050dd8-0x00050e3c */
 char *
 HiPrint (char *string)
 {
-	char	*p;
+	int		i;
 
 	if (!string)
 		return NULL;
 
-	for (p = string ; *p ; p++)
-		if ((unsigned char)(*p + 0xe0) <= 0x5e)
-			*p += 0x80;
+	for (i = 0 ; i < strlen (string) ; i++)
+		if ((unsigned char)string[i] < 0x7f && (unsigned char)string[i] >= 0x20)
+			string[i] += 0x80;
 
 	return string;
 }
 
+/* gamex86.dll 0x2001f200-0x2001f240 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00050e3c-0x00050e72 */
 void
 SendMenu (edict_t *ent)
 {
@@ -125,18 +102,18 @@ SendMenu (edict_t *ent)
 	gi.unicast (ent, false);
 }
 
-// SendStatusBar copies string into the client's statusbar buffer and, if
-// transmit is set, flushes it immediately with SendMenu.  menutime tracks
-// the level.framenum the buffer was last flushed on so MenuThink can tell
-// whether a periodic keepalive resend is due.
+/* gamex86.dll 0x2001f240-0x2001f2c0 (aligned) */
+/* gamei386.so 0x00050e74-0x00050f13 */
 void
 SendStatusBar (edict_t *ent, char *string, qboolean transmit)
 {
-	strncpy (ent->client->menutext, string, sizeof (ent->client->menutext));
+	strncpy (ent->client->menutext, string, MAXSTATUSBAR);
+	ent->client->menutime = level.framenum + 1;
 
 	if (transmit)
 	{
-		SendMenu (ent);
+		if (ent->client->menutime != level.framenum)
+			SendMenu (ent);
 		ent->client->menutime = level.framenum;
 	}
 	else
@@ -145,86 +122,122 @@ SendStatusBar (edict_t *ent, char *string, qboolean transmit)
 	}
 }
 
+/* gamex86.dll 0x2001f2c0-0x2001f650 (padded) */
+/* gamei386.so 0x00050f14-0x00051564 */
 void
 DisplayMenu (edict_t *ent)
 {
 	gclient_t	*cl;
 	menuinfo_t	*info;
-	menuitem_t	*item;
-	qmenu_t		*node;
-	char		buf[MAXMENUTEXT];
-	char		text[256];
-	char		row[300];
-	int			selected, page, y, shown;
+	qmenu_t		*node, *selected;
+	char		*p;
+	int			shown, y;
+	char		string[MAXSTATUSBAR];
+	char		entry[1000];
 
 	cl = ent->client;
 
 	if (!cl->showmenu)
 	{
-		SendStatusBar (ent, deathmatch->value ? dm_statusbar : single_statusbar, true);
+		if (deathmatch->value)
+			SendStatusBar (ent, dm_statusbar, true);
+		else
+			SendStatusBar (ent, single_statusbar, true);
 		return;
 	}
 
-	// flush whatever DisplayMenu built up last time it ran before spending
-	// time building this frame's version
-	SendStatusBar (ent, cl->menutext, true);
+	info = (menuinfo_t *)cl->curmenulink->it;
+	selected = cl->selected;
 
-	info = (menuinfo_t *)cl->menu->data;
+	string[0] = 0;
+	sprintf (string, "xv 32 yv 8 picn inventory ");
 
-	// find which page the highlighted item falls on
-	selected = 0;
-	for (node = info->items ; node ; node = node->next, selected++)
-		if (node == cl->menuitem)
+	p = string + strlen (string);
+	sprintf (p, "xv 202 yv 12 string2 \"%s\" ", "Menu");
+	p = string + strlen (string);
+	sprintf (p, "xv 0 yv 24 cstring2 \"%s\" ", info->title);
+
+	p = string + strlen (string);
+	shown = count_queue ((qmenu_t *)info) - count_queue (selected);
+	if (shown > MAXMENUITEMS)
+	{
+		node = selected;
+		do
+		{
+			node = node->prev;
+			shown--;
+		} while (node != (qmenu_t *)info && (shown % MAXMENUITEMS) != 0);
+
+		sprintf (p, "xv 50 yv 32 string2 \"(More)\" ");
+	}
+	else
+	{
+		node = (qmenu_t *)info;
+		sprintf (p, "xv 50 ");
+	}
+
+	p = string + strlen (string);
+	y = 32;
+	shown = 0;
+
+	for ( ;; )
+	{
+		if (!node->next)
 			break;
-	page = selected / MAXMENUITEMS;
 
-	strcpy (buf, "xv 32 yv 8 picn inventory ");
+		if (shown >= MAXMENUITEMS)
+			break;
 
-	sprintf (row, "xv 202 yv 12 string2 \"%s\" ", HiPrint (info->title));
-	strcat (buf, row);
-
-	node = info->items;
-	for (selected = 0 ; node && selected < page * MAXMENUITEMS ; selected++)
 		node = node->next;
-
-	strcat (buf, "xv 0 ");
-	y = 24;
-
-	for (shown = 0 ; node && shown < MAXMENUITEMS ; node = node->next, shown++)
-	{
-		item = (menuitem_t *)node->data;
-
-		strcpy (text, item->text);
-		if (item->value)
-			strcat (text, item->value);
-		if (item->num >= 0)
-			sprintf (text + strlen (text), "%d", item->num);
-
-		sprintf (row, "yv %d string2 \"%s\" ", y, text);
-		strcat (buf, row);
-
 		y += 8;
+		shown++;
+
+		entry[0] = 0;
+
+		if (node == selected)
+		{
+			strcat (entry, "\r");
+			strcat (entry, LoPrint (((menuitem_t *)node->it)->text));
+
+			if (((menuitem_t *)node->it)->value)
+				strcat (entry, ((menuitem_t *)node->it)->value);
+		}
+		else
+		{
+			strcat (entry, " ");
+			strcat (entry, HiPrint (((menuitem_t *)node->it)->text));
+
+			if (((menuitem_t *)node->it)->value)
+				strcat (entry, ((menuitem_t *)node->it)->value);
+		}
+
+		LoPrint (((menuitem_t *)node->it)->text);
+
+		if (((menuitem_t *)node->it)->num >= 0)
+			sprintf (entry + strlen (entry), "%d", ((menuitem_t *)node->it)->num);
+
+		if (strlen (string) + strlen (entry) + 50 >= MAXSTATUSBAR)
+			break;
+
+		sprintf (p, "yv %d string2 \"%s\" ", y, entry);
+		p = string + strlen (string);
 	}
 
-	if (shown == MAXMENUITEMS && node)
-	{
-		sprintf (row, "yv %d string2 \"(More)\" ", y + 10);
-		strcat (buf, row);
-	}
+	if (shown == MAXMENUITEMS && node->next)
+		sprintf (p, "yv %d string2 \"(More)\" ", y + 10);
 
-	strncpy (cl->menutext, buf, sizeof (cl->menutext));
-	cl->menutime = level.framenum + 1;
+	SendStatusBar (ent, string, false);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00051564-0x0005172f */
 void
 DisplaySimpMenu (edict_t *ent)
 {
 	gclient_t	*cl;
 	menuinfo_t	*info;
-	menuitem_t	*item;
-	qmenu_t		*node;
-	char		buf[MAXMENUTEXT];
-	char		num[16];
+	qmenu_t		*node, *selected;
+	char		buf[MAXSTATUSBAR];
 
 	cl = ent->client;
 
@@ -234,30 +247,36 @@ DisplaySimpMenu (edict_t *ent)
 		return;
 	}
 
-	info = (menuinfo_t *)cl->menu->data;
+	info = (menuinfo_t *)cl->curmenulink->it;
+	selected = cl->selected;
 
-	strcpy (buf, HiPrint (info->title));
+	count_queue ((qmenu_t *)info);
 
-	for (node = info->items ; node ; node = node->next)
+	buf[0] = 0;
+	strcat (buf, HiPrint (info->title));
+	LoPrint (info->title);
+	strcat (buf, "\n");
+
+	node = (qmenu_t *)info;
+	while (node->next)
 	{
+		node = node->next;
 		strcat (buf, "\n");
-		if (node == cl->menuitem)
+		if (node == selected)
 			strcat (buf, "*");
 
-		item = (menuitem_t *)node->data;
-		strcat (buf, item->text);
-		if (item->value)
-			strcat (buf, item->value);
-		if (item->num >= 0)
-		{
-			sprintf (num, "%d", item->num);
-			strcat (buf, num);
-		}
+		strcat (buf, ((menuitem_t *)node->it)->text);
+		if (((menuitem_t *)node->it)->value)
+			strcat (buf, ((menuitem_t *)node->it)->value);
+		if (((menuitem_t *)node->it)->num >= 0)
+			sprintf (buf + strlen (buf), "%d", ((menuitem_t *)node->it)->num);
 	}
 
 	gi.centerprintf (ent, "%s", buf);
 }
 
+/* gamex86.dll 0x2001f650-0x2001f6d0 (aligned) */
+/* gamei386.so 0x00051730-0x00051798 */
 qmenu_t *
 CreateQMenu (edict_t *ent, char *title)
 {
@@ -266,17 +285,19 @@ CreateQMenu (edict_t *ent, char *title)
 
 	info = gi.TagMalloc (sizeof (*info), TAG_LEVEL);
 	menu = gi.TagMalloc (sizeof (*menu), TAG_LEVEL);
-	menu->data = info;
+	menu->it = info;
 
 	info->title = gi.TagMalloc (strlen (title) + 1, TAG_LEVEL);
 	strcpy (info->title, title);
-	info->items = NULL;
 	info->flags = 0;
+	info->items = NULL;
 
 	return menu;
 }
 
-void
+/* gamex86.dll 0x2001f6d0-0x2001f7b0 (manual-confirmed) */
+/* gamei386.so 0x00051798-0x00051869 */
+qmenu_t *
 AddMenuItem (qmenu_t *menu, char *text, char *value, int num, menuselect_t select)
 {
 	menuinfo_t	*info;
@@ -301,157 +322,138 @@ AddMenuItem (qmenu_t *menu, char *text, char *value, int num, menuselect_t selec
 
 	item->num = num;
 	item->select = select;
-	node->data = item;
+	node->it = item;
 
-	info = (menuinfo_t *)menu->data;
-	queue_insert (node, &info->items);
+	info = (menuinfo_t *)menu->it;
+	add_to_queue (node, (qmenu_t *)info);
+
+	return node;
 }
 
+/* gamex86.dll 0x2001f7b0-0x2001f800 (call-propagated) */
+/* gamei386.so 0x0005186c-0x000518b5 */
 void
 FinishMenu (edict_t *ent, qmenu_t *menu, qboolean show)
 {
-	gclient_t	*cl;
-	menuinfo_t	*info;
+	ent->client->curmenulink = menu;
+	ent->client->selected = ((menuinfo_t *)menu->it)->items;
+	ent->client->showmenu = show;
 
-	cl = ent->client;
-	info = (menuinfo_t *)menu->data;
-
-	cl->menu = menu;
-	cl->menuitem = info->items;
-	cl->showmenu = show;
-
-	queue_insert (menu, &cl->menuqueue);
+	add_to_queue (menu, &ent->client->menuqueue);
 
 	DisplayMenu (ent);
 }
 
+/* gamex86.dll 0x2001f800-0x2001f880 (call-propagated) */
+/* gamei386.so 0x000518b8-0x00051916 */
 void
 MenuNext (edict_t *ent)
 {
-	gclient_t	*cl;
-	qmenu_t		*node;
-	menuitem_t	*item;
-
-	cl = ent->client;
-
-	for ( ; ; )
+	if (ent->client->selected->next)
 	{
-		node = cl->menuitem->next;
-		if (!node)
-			node = ((menuinfo_t *)cl->menu->data)->items;
+		ent->client->selected = ent->client->selected->next;
 
-		cl->menuitem = node;
-
-		if (!node->next)
-			break;
-
-		item = (menuitem_t *)node->data;
-		if (item->select)
-			break;
+		while (ent->client->selected->next
+			&& !((menuitem_t *)ent->client->selected->it)->select)
+			ent->client->selected = ent->client->selected->next;
 	}
+	else
+		ent->client->selected =
+			((menuinfo_t *)ent->client->curmenulink->it)->items;
 
 	DisplayMenu (ent);
 }
 
+/* gamex86.dll 0x2001f880-0x2001f910 (call-propagated) */
+/* gamei386.so 0x00051918-0x00051984 */
 void
 MenuPrev (edict_t *ent)
 {
-	gclient_t	*cl;
-	qmenu_t		*node;
-	menuitem_t	*item;
-
-	cl = ent->client;
-
-	for ( ; ; )
+	if (ent->client->selected->prev->prev)
 	{
-		node = cl->menuitem->prev;
-		if (!node)
-			for (node = cl->menuitem ; node->next ; node = node->next)
-				;
+		ent->client->selected = ent->client->selected->prev;
 
-		cl->menuitem = node;
-
-		if (!node->prev)
-			break;
-
-		item = (menuitem_t *)node->data;
-		if (item->select)
-			break;
-	}
-
-	DisplayMenu (ent);
-}
-
-void
-UseMenu (edict_t *ent, int arg)
-{
-	gclient_t	*cl;
-	qmenu_t		*menu, *item, *node, *next, *tail;
-	menuinfo_t	*info;
-	menuitem_t	*it;
-	int			result;
-
-	cl = ent->client;
-
-	if (cl->menuusetime + 5 > level.framenum)
-		return;
-	cl->menuusetime = level.framenum;
-
-	menu = cl->menu;
-	item = cl->menuitem;
-	it = (menuitem_t *)item->data;
-
-	if (!it->select)
-		return;
-
-	result = it->select (ent, menu, item, arg);
-
-	if (result == 1)
-	{
-		DisplayMenu (ent);
-		return;
-	}
-	if (result != 0)
-		return;
-
-	// the callback wants this menu closed -- tear it down and drop the
-	// next queued menu, if any, into its place
-	queue_delete (menu, &cl->menuqueue);
-
-	info = (menuinfo_t *)menu->data;
-	gi.TagFree (info->title);
-
-	for (node = info->items ; node ; node = next)
-	{
-		next = node->next;
-		it = (menuitem_t *)node->data;
-		gi.TagFree (it->text);
-		if (it->value)
-			gi.TagFree (it->value);
-		gi.TagFree (it);
-		gi.TagFree (node);
-	}
-
-	gi.TagFree (info);
-	gi.TagFree (menu);
-
-	if (cl->menuqueue)
-	{
-		for (tail = cl->menuqueue ; tail->next ; tail = tail->next)
-			;
-
-		cl->menu = tail;
-		cl->menuitem = ((menuinfo_t *)tail->data)->items;
+		while (ent->client->selected->prev->prev
+			&& !((menuitem_t *)ent->client->selected->it)->select)
+			ent->client->selected = ent->client->selected->prev;
 	}
 	else
 	{
-		cl->menu = NULL;
-		cl->showmenu = false;
+		while (ent->client->selected->next)
+			ent->client->selected = ent->client->selected->next;
 	}
 
 	DisplayMenu (ent);
 }
 
+/* gamex86.dll 0x2001f910-0x2001fa60 (call-propagated-reverse) */
+/* gamei386.so 0x00051984-0x00051ad3 */
+void
+UseMenu (edict_t *ent, int arg)
+{
+	qmenu_t		*menu, *item, *node;
+	int			result;
+
+	if (ent->client->menuusetime + 5 > level.framenum)
+		return;
+	ent->client->menuusetime = level.framenum;
+
+	menu = ent->client->curmenulink;
+	item = ent->client->selected;
+
+	if (!((menuitem_t *)item->it)->select)
+		return;
+
+	result = ((menuitem_t *)item->it)->select (ent, menu, item, arg);
+
+	if (result)
+	{
+		if (result == 1)
+			DisplayMenu (ent);
+		return;
+	}
+
+	remove_from_queue (menu, &ent->client->menuqueue);
+
+	node = (qmenu_t *)menu->it;
+	gi.TagFree (node->it);
+
+	while (node->next)
+	{
+		node = node->next;
+
+		gi.TagFree (((menuitem_t *)node->it)->text);
+		if (((menuitem_t *)node->it)->value)
+			gi.TagFree (((menuitem_t *)node->it)->value);
+		if (node->prev)
+			gi.TagFree (node->prev);
+	}
+
+	if (node)
+		gi.TagFree (node);
+
+	gi.TagFree (menu);
+
+	menu = &ent->client->menuqueue;
+	while (menu->next)
+		menu = menu->next;
+
+	if (menu->it)
+	{
+		ent->client->curmenulink = menu;
+		ent->client->selected = ((menuinfo_t *)ent->client->curmenulink->it)->items;
+	}
+	else
+	{
+		ent->client->curmenulink = NULL;
+		ent->client->showmenu = false;
+	}
+
+	DisplayMenu (ent);
+}
+
+/* gamex86.dll 0x2001fa60-0x2001faa0 (shape-matched(ratio=0.73)) */
+/* gamei386.so 0x00051ad4-0x00051b3c */
 qboolean
 MenuThink (edict_t *ent)
 {
@@ -459,69 +461,66 @@ MenuThink (edict_t *ent)
 
 	cl = ent->client;
 
-	if (!cl->showmenu)
-		return false;
+	if (cl->showmenu && !((level.framenum - cl->menutime) % 10))
+	{
+		SendMenu (ent);
+		return true;
+	}
 
-	if ((level.framenum - cl->menutime) % 10 != 0)
-		return false;
-
-	SendMenu (ent);
-
-	return true;
+	return false;
 }
 
+/* gamex86.dll 0x2001faa0-0x2001fad0 (shape-matched(ratio=0.86)) */
+/* gamei386.so 0x00051b3c-0x00051b71 */
 void
 clear_menus (edict_t *ent)
 {
 	ent->client->showmenu = false;
-	ent->client->menu = NULL;
-	ent->client->menuqueue = NULL;
+	ent->client->curmenulink = NULL;
+	ent->client->menuqueue.next = NULL;
 
 	DisplayMenu (ent);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00051b74-0x00051b9e */
 int
 MySelect (edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
 {
-	menuitem_t	*it;
-
-	it = (menuitem_t *)item->data;
-	gi.bprintf (PRINT_HIGH, "menu item %s selected by %s\n", it->text, ent->client->pers.netname);
+	gi.bprintf (PRINT_HIGH, "menu item %s selected by %s\n",
+		((menuitem_t *)item->it)->text, ent->client->pers.netname);
 
 	return 0;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00051ba0-0x00051bce */
 int
 MySelect2 (edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
 {
-	menuitem_t	*it;
-
-	it = (menuitem_t *)item->data;
-
 	if (arg)
-		it->num++;
+		((menuitem_t *)item->it)->num++;
 	else
-		it->num--;
+		((menuitem_t *)item->it)->num--;
 
-	if (it->num == 0)
-		it->num = 1;
+	if (((menuitem_t *)item->it)->num == 0)
+		((menuitem_t *)item->it)->num = 1;
 
 	return 1;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00051bd0-0x00051c43 */
 int
 MySelect3 (edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
 {
-	menuinfo_t	*info;
-	menuitem_t	*fragitem, *timeitem;
-	char		fragbuf[16], timebuf[16];
+	qmenu_t		*node;
+	char		fragbuf[8], timebuf[8];
 
-	info = (menuinfo_t *)menu->data;
-	fragitem = (menuitem_t *)info->items->data;
-	timeitem = (menuitem_t *)info->items->next->data;
-
-	sprintf (fragbuf, "%d", fragitem->num);
-	sprintf (timebuf, "%d", timeitem->num);
+	node = ((menuinfo_t *)menu->it)->items;
+	sprintf (fragbuf, "%d", ((menuitem_t *)node->it)->num);
+	node = node->next;
+	sprintf (timebuf, "%d", ((menuitem_t *)node->it)->num);
 
 	gi.bprintf (PRINT_HIGH, "Fraglimit is now %s. Timelimit is now %s\n", fragbuf, timebuf);
 

@@ -27,6 +27,8 @@ qboolean	trail_active = false;
 #define PREV(n)		(((n) - 1) & (TRAIL_LENGTH - 1))
 
 
+/* gamex86.dll 0x200242f0-0x20024340 (padded) */
+/* gamei386.so 0x00040cc0-0x00040d8f */
 void PlayerTrail_Init (void)
 {
 	int		n;
@@ -45,6 +47,8 @@ void PlayerTrail_Init (void)
 }
 
 
+/* gamex86.dll 0x20024340-0x20024410 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00040d90-0x00040e43 */
 void PlayerTrail_Add (vec3_t spot)
 {
 	vec3_t	temp;
@@ -63,6 +67,8 @@ void PlayerTrail_Add (vec3_t spot)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00040e44-0x00040fd2 */
 void PlayerTrail_New (vec3_t spot)
 {
 	if (!trail_active)
@@ -73,6 +79,8 @@ void PlayerTrail_New (vec3_t spot)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00040fd4-0x0004106c */
 edict_t *PlayerTrail_PickFirst (edict_t *self)
 {
 	int		marker;
@@ -102,6 +110,8 @@ edict_t *PlayerTrail_PickFirst (edict_t *self)
 	return trail[marker];
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004106c-0x000410c1 */
 edict_t *PlayerTrail_PickNext (edict_t *self)
 {
 	int		marker;
@@ -121,6 +131,8 @@ edict_t *PlayerTrail_PickNext (edict_t *self)
 	return trail[marker];
 }
 
+/* gamex86.dll 0x20024410-0x20024430 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000410c4-0x000410d5 */
 edict_t *PlayerTrail_LastSpot (void)
 {
 	return trail[PREV(trail_head)];

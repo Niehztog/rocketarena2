@@ -2,6 +2,7 @@
 
 #include "g_local.h"
 #include "arena.h"
+#include "gbucket.h"
 
 /*
 ============
@@ -11,6 +12,8 @@ Returns true if the inflictor can directly damage the target.  Used for
 explosions and melee attacks.
 ============
 */
+/* gamex86.dll 0x200077b0-0x20007b00 (manual-confirmed) */
+/* gamei386.so 0x00024fec-0x00025297 */
 qboolean CanDamage (edict_t *targ, edict_t *inflictor)
 {
 	vec3_t	dest;
@@ -71,6 +74,8 @@ qboolean CanDamage (edict_t *targ, edict_t *inflictor)
 Killed
 ============
 */
+/* gamex86.dll 0x20007b00-0x20007c10 (padded) */
+/* gamei386.so 0x00025298-0x0002537f */
 void Killed (edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	if (targ->health < -999)
@@ -114,6 +119,8 @@ void Killed (edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, v
 SpawnDamage
 ================
 */
+/* gamex86.dll 0x20007c10-0x20007c50 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00025380-0x000253c1 */
 void SpawnDamage (int type, vec3_t origin, vec3_t normal, int damage)
 {
 	if (damage > 255)
@@ -151,6 +158,8 @@ dflags		these flags are used to control how T_Damage works
 	DAMAGE_NO_PROTECTION	kills godmode, armor, everything
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000253c4-0x00025624 */
 static int CheckPowerArmor (edict_t *ent, vec3_t point, vec3_t normal, int damage, int dflags)
 {
 	gclient_t	*client;
@@ -235,6 +244,8 @@ static int CheckPowerArmor (edict_t *ent, vec3_t point, vec3_t normal, int damag
 	return save;
 }
 
+/* gamex86.dll 0x200080e0-0x20008200 (manual-confirmed) */
+/* gamei386.so 0x00025624-0x0002576d */
 static int CheckArmor (edict_t *ent, vec3_t point, vec3_t normal, int damage, int te_sparks, int dflags, edict_t *attacker)
 {
 	gclient_t	*client;
@@ -270,29 +281,23 @@ static int CheckArmor (edict_t *ent, vec3_t point, vec3_t normal, int damage, in
 	if (!save)
 		return 0;
 
-	// per-arena armor protection -- teammates' shots still spark off you
-	// normally, but don't actually eat into your armor
 	take = save;
 	if (OnSameTeam (ent, attacker) && !(dflags & DAMAGE_NO_PROTECTION))
 	{
-		switch (arenas[client->arenanum].armorprotect)
-		{
-		case 1:
+		if (arenas[client->resp.context].armorprotect == 1)
 			take = 0;
-			break;
-		case 2:
-			if (ent != attacker)
-				take = 0;
-			break;
-		}
+		else if (arenas[client->resp.context].armorprotect == 2 && ent != attacker)
+			take = 0;
 	}
 
 	client->pers.inventory[index] -= take;
-	SpawnDamage (te_sparks, point, normal, save);
+	SpawnDamage (te_sparks, point, normal, take);
 
 	return save;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00025770-0x00025945 */
 void M_ReactToDamage (edict_t *targ, edict_t *attacker)
 {
 	if (!(attacker->client) && !(attacker->svflags & SVF_MONSTER))
@@ -368,6 +373,8 @@ void M_ReactToDamage (edict_t *targ, edict_t *attacker)
 	}
 }
 
+/* gamex86.dll 0x20007c50-0x20007c90 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00025948-0x0002597d */
 qboolean CheckTeamDamage (edict_t *targ, edict_t *attacker)
 {
 	if (!targ->client || !attacker->client)
@@ -376,17 +383,20 @@ qboolean CheckTeamDamage (edict_t *targ, edict_t *attacker)
 	if (targ == attacker)
 		return false;
 
-	if (targ->client->teamnum != attacker->client->teamnum)
-		return false;
+	if (targ->client->resp.teamnum == attacker->client->resp.teamnum)
+		return true;
 
-	return true;
+	return false;
 }
 
+/* gamex86.dll 0x20007c90-0x200080e0 (shape-matched(ratio=0.59)) */
+/* gamei386.so 0x00025980-0x00025f93 */
 void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir, vec3_t point, vec3_t normal, int damage, int knockback, int dflags, int mod)
 {
 	gclient_t	*client;
 	int			take;
 	int			save;
+	int			psave;
 	int			asave;
 	int			te_sparks;
 
@@ -432,6 +442,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 
 	take = damage;
 	save = 0;
+	psave = 0;
 
 	// check for godmode
 	if ( (targ->flags & FL_GODMODE) && !(dflags & DAMAGE_NO_PROTECTION) )
@@ -447,24 +458,17 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	//treat cheat/powerup savings the same as armor
 	asave += save;
 
-	// a suspected bot's shots are redirected back onto itself instead of
-	// its victim
-	if (attacker->client && attacker->client->zbotscore)
+	if (attacker->client && attacker->client->resp.isbot)
 	{
-		targ = attacker;
 		client = attacker->client;
+		targ = attacker;
 	}
 	else if (OnSameTeam (targ, attacker) && !(dflags & DAMAGE_NO_PROTECTION))
 	{
-		switch (arenas[targ->client->arenanum].healthprotect)
-		{
-		case 1:
+		if (arenas[targ->client->resp.context].healthprotect == 1)
 			return;
-		case 2:
-			if (targ != attacker)
-				return;
-			break;
-		}
+		if (arenas[targ->client->resp.context].healthprotect == 2 && targ != attacker)
+			return;
 		mod |= MOD_FRIENDLY_FIRE;
 	}
 	meansOfDeath = mod;
@@ -477,29 +481,22 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		else
 			SpawnDamage (te_sparks, point, normal, take);
 
-		// "Damage Scoring" -- 1pt per 100 damage dealt, capped at 1pt per hit
 		if (targ->client && attacker->client && (attacker != targ) && !OnSameTeam (targ, attacker) &&
-			arenas[attacker->client->arenanum].scorebydamage)
+			arenas[attacker->client->resp.context].scorebydamage)
 		{
 			int		points;
 
-			points = asave;
-			if (points < 0)
-				points = 0;
-			if (targ->health < take)
-			{
-				if (targ->health >= 0)
-					points += targ->health;
-			}
-			else if (take >= 0)
-				points += take;
+			points = (asave < 0 ? 0 : asave) +
+				((targ->health < take ? targ->health : take) < 0 ?
+				0 : (targ->health < take ? targ->health : take));
 
-			if (points > 500)
-				attacker->client->damagedealt += 100;
-			else
-				attacker->client->damagedealt += points;
+			attacker->client->resp.damagedealt += points > 500 ? 100 : points;
+			attacker->client->resp.score = attacker->client->resp.damagedealt / 100;
 
-			attacker->client->resp.score = attacker->client->damagedealt / 100;
+			if (arenas[attacker->client->resp.context].statsptr)
+				bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr,
+					"score", bucketfuncs[BUCKET_SET],
+					attacker->client->resp.score, (attacker - g_edicts) + 1);
 		}
 
 		targ->health = targ->health - take;
@@ -529,6 +526,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	// at the end of the frame
 	if (client)
 	{
+		client->damage_parmor += psave;
 		client->damage_armor += asave;
 		client->damage_blood += take;
 		client->damage_knockback += knockback;
@@ -542,6 +540,8 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 T_RadiusDamage
 ============
 */
+/* gamex86.dll 0x20008200-0x20008370 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00025f94-0x00026100 */
 void T_RadiusDamage (edict_t *inflictor, edict_t *attacker, float damage, edict_t *ignore, float radius, int mod)
 {
 	float	points;

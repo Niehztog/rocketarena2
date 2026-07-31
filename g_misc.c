@@ -10,6 +10,8 @@ Used to group brushes together just for editor convenience.
 
 //=====================================================
 
+/* gamex86.dll 0x2000e010-0x2000e040 (bracketed-cross-object) */
+/* gamei386.so 0x0002dc88-0x0002dcae */
 void Use_Areaportal (edict_t *ent, edict_t *other, edict_t *activator)
 {
 	ent->count ^= 1;		// toggle state
@@ -23,6 +25,8 @@ This is a non-visible object that divides the world into
 areas that are seperated when this portal is not activated.
 Usually enclosed in the middle of a door.
 */
+/* gamex86.dll 0x2000e040-0x2000e060 (bracketed-cross-object) */
+/* gamei386.so 0x0002dcb0-0x0002dcc9 */
 void SP_func_areaportal (edict_t *ent)
 {
 	ent->use = Use_Areaportal;
@@ -37,6 +41,8 @@ void SP_func_areaportal (edict_t *ent)
 Misc functions
 =================
 */
+/* gamex86.dll 0x2000e060-0x2000e110 (bracketed-cross-object) */
+/* gamei386.so 0x0002dccc-0x0002dd7c */
 void VelocityForDamage (int damage, vec3_t v)
 {
 	v[0] = 100.0 * crandom();
@@ -49,6 +55,8 @@ void VelocityForDamage (int damage, vec3_t v)
 		VectorScale (v, 1.2, v);
 }
 
+/* gamex86.dll 0x2000e110-0x2000e1d0 (bracketed-cross-object) */
+/* gamei386.so 0x0002dd7c-0x0002de37 */
 void ClipGibVelocity (edict_t *ent)
 {
 	if (ent->velocity[0] < -300)
@@ -71,6 +79,8 @@ void ClipGibVelocity (edict_t *ent)
 gibs
 =================
 */
+/* gamex86.dll 0x2000e1d0-0x2000e240 (bracketed-cross-object) */
+/* gamei386.so 0x0002de38-0x0002de95 */
 void gib_think (edict_t *self)
 {
 	self->s.frame++;
@@ -83,6 +93,8 @@ void gib_think (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x2000e240-0x2000e300 (padded) */
+/* gamei386.so 0x0002de98-0x0002df41 */
 void gib_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	vec3_t	normal_angles, right;
@@ -109,11 +121,15 @@ void gib_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf
 	}
 }
 
+/* gamex86.dll 0x200100b0-0x200100c0 (manual-confirmed) */
+/* gamei386.so 0x0002df44-0x0002df52 */
 void gib_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	G_FreeEdict (self);
 }
 
+/* gamex86.dll 0x2000e300-0x2000e540 (bracketed-skip-inlined) */
+/* gamei386.so 0x0002df54-0x0002e2b1 */
 void ThrowGib (edict_t *self, char *gibname, int damage, int type)
 {
 	edict_t *gib;
@@ -162,6 +178,8 @@ void ThrowGib (edict_t *self, char *gibname, int damage, int type)
 	gi.linkentity (gib);
 }
 
+/* gamex86.dll 0x2000e540-0x2000e6b0 (bracketed-skip-inlined) */
+/* gamei386.so 0x0002e2b4-0x0002e57b */
 void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 {
 	vec3_t	vd;
@@ -208,6 +226,8 @@ void ThrowHead (edict_t *self, char *gibname, int damage, int type)
 }
 
 
+/* gamex86.dll 0x2000e6b0-0x2000e7e0 (manual-confirmed) */
+/* gamei386.so 0x0002e57c-0x0002e759 */
 void ThrowClientHead (edict_t *self, int damage)
 {
 	vec3_t	vd;
@@ -260,11 +280,15 @@ void ThrowClientHead (edict_t *self, int damage)
 debris
 =================
 */
+/* gamex86.dll 0x200100b0-0x200100c0 (manual-confirmed) */
+/* gamei386.so 0x0002e75c-0x0002e76a */
 void debris_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	G_FreeEdict (self);
 }
 
+/* gamex86.dll 0x2000e7e0-0x2000e9b0 (padded) */
+/* gamei386.so 0x0002e76c-0x0002e927 */
 void ThrowDebris (edict_t *self, char *modelname, float speed, vec3_t origin)
 {
 	edict_t	*chunk;
@@ -293,6 +317,8 @@ void ThrowDebris (edict_t *self, char *modelname, float speed, vec3_t origin)
 }
 
 
+/* gamex86.dll 0x2000e9b0-0x2000e9f0 (bracketed) */
+/* gamei386.so 0x0002e928-0x0002e961 */
 void BecomeExplosion1 (edict_t *self)
 {
 	gi.WriteByte (svc_temp_entity);
@@ -304,6 +330,8 @@ void BecomeExplosion1 (edict_t *self)
 }
 
 
+/* gamex86.dll 0x2000e9f0-0x2000ea30 (bracketed) */
+/* gamei386.so 0x0002e964-0x0002e99d */
 void BecomeExplosion2 (edict_t *self)
 {
 	gi.WriteByte (svc_temp_entity);
@@ -321,6 +349,8 @@ Pathtarget: gets used when an entity that has
 	this path_corner targeted touches it
 */
 
+/* gamex86.dll 0x2000ea30-0x2000eb90 (bracketed) */
+/* gamei386.so 0x0002e9a0-0x0002eb10 */
 void path_corner_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	vec3_t		v;
@@ -378,6 +408,8 @@ void path_corner_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface
 	}
 }
 
+/* gamex86.dll 0x2000eb90-0x2000ec20 (padded) */
+/* gamei386.so 0x0002eb10-0x0002eba4 */
 void SP_path_corner (edict_t *self)
 {
 	if (!self->targetname)
@@ -401,6 +433,8 @@ Makes this the target of a monster and it will head here
 when first activated before going after the activator.  If
 hold is selected, it will stay here.
 */
+/* gamex86.dll 0x2000ec20-0x2000ed80 (padded) */
+/* gamei386.so 0x0002eba4-0x0002ece7 */
 void point_combat_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	edict_t	*activator;
@@ -453,6 +487,8 @@ void point_combat_touch (edict_t *self, edict_t *other, cplane_t *plane, csurfac
 	}
 }
 
+/* gamex86.dll 0x2000ed80-0x2000ee10 (bracketed) */
+/* gamei386.so 0x0002ece8-0x0002ed72 */
 void SP_point_combat (edict_t *self)
 {
 	if (deathmatch->value)
@@ -472,12 +508,16 @@ void SP_point_combat (edict_t *self)
 /*QUAKED viewthing (0 .5 .8) (-8 -8 -8) (8 8 8)
 Just for the debugging level.  Don't use
 */
+/* gamex86.dll 0x2000ee10-0x2000ee40 (bracketed) */
+/* gamei386.so 0x0002ed74-0x0002eda6 */
 void TH_viewthing(edict_t *ent)
 {
 	ent->s.frame = (ent->s.frame + 1) % 7;
 	ent->nextthink = level.time + FRAMETIME;
 }
 
+/* gamex86.dll 0x2000ee40-0x2000eee0 (padded+majority) */
+/* gamei386.so 0x0002eda8-0x0002ee4e */
 void SP_viewthing(edict_t *ent)
 {
 	gi.dprintf ("viewthing spawned\n");
@@ -498,6 +538,8 @@ void SP_viewthing(edict_t *ent)
 /*QUAKED info_null (0 0.5 0) (-4 -4 -4) (4 4 4)
 Used as a positional target for spotlights, etc.
 */
+/* gamex86.dll 0x200100b0-0x200100c0 (manual-confirmed) */
+/* gamei386.so 0x0002ee50-0x0002ee5e */
 void SP_info_null (edict_t *self)
 {
 	G_FreeEdict (self);
@@ -507,6 +549,8 @@ void SP_info_null (edict_t *self)
 /*QUAKED info_notnull (0 0.5 0) (-4 -4 -4) (4 4 4)
 Used as a positional target for lightning.
 */
+/* gamex86.dll 0x2000eee0-0x2000ef20 (bracketed-skip-inlined) */
+/* gamei386.so 0x0002ee60-0x0002ee9b */
 void SP_info_notnull (edict_t *self)
 {
 	VectorCopy (self->s.origin, self->absmin);
@@ -524,6 +568,8 @@ Default _cone value is 10 (used to set size of light for spotlights)
 
 #define START_OFF	1
 
+/* gamex86.dll 0x2000efa0-0x2000f010 (bracketed-skip-inlined) */
+/* gamei386.so 0x000319c0-0x00031a18 */
 static void light_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (self->spawnflags & START_OFF)
@@ -538,6 +584,8 @@ static void light_use (edict_t *self, edict_t *other, edict_t *activator)
 	}
 }
 
+/* gamex86.dll 0x2000ef20-0x2000efa0 (bracketed-skip-inlined) */
+/* gamei386.so 0x0002ee9c-0x0002ef0c */
 void SP_light (edict_t *self)
 {
 	// no targeted lights in deathmatch, because they cause global messages
@@ -572,6 +620,8 @@ START_ON		only valid for TRIGGER_SPAWN walls
 				the wall will initially be present
 */
 
+/* gamex86.dll 0x2000f010-0x2000f080 (bracketed-skip-inlined) */
+/* gamei386.so 0x0002ef0c-0x0002ef69 */
 void func_wall_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (self->solid == SOLID_NOT)
@@ -591,6 +641,8 @@ void func_wall_use (edict_t *self, edict_t *other, edict_t *activator)
 		self->use = NULL;
 }
 
+/* gamex86.dll 0x2000f080-0x2000f160 (padded) */
+/* gamei386.so 0x0002ef6c-0x0002f026 */
 void SP_func_wall (edict_t *self)
 {
 	self->movetype = MOVETYPE_PUSH;
@@ -644,6 +696,8 @@ void SP_func_wall (edict_t *self)
 This is solid bmodel that will fall if it's support it removed.
 */
 
+/* gamex86.dll 0x2000f160-0x2000f1c0 (bracketed) */
+/* gamei386.so 0x0002f028-0x0002f076 */
 void func_object_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	// only squash thing we fall on top of
@@ -656,12 +710,16 @@ void func_object_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface
 	T_Damage (other, self, self, vec3_origin, self->s.origin, vec3_origin, self->dmg, 1, 0, MOD_CRUSH);
 }
 
+/* gamex86.dll 0x2000f1c0-0x2000f1e0 (bracketed) */
+/* gamei386.so 0x0002f078-0x0002f091 */
 void func_object_release (edict_t *self)
 {
 	self->movetype = MOVETYPE_TOSS;
 	self->touch = func_object_touch;
 }
 
+/* gamex86.dll 0x2000f1e0-0x2000f220 (bracketed) */
+/* gamei386.so 0x0002f094-0x0002f0d3 */
 void func_object_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->solid = SOLID_BSP;
@@ -671,6 +729,8 @@ void func_object_use (edict_t *self, edict_t *other, edict_t *activator)
 	func_object_release (self);
 }
 
+/* gamex86.dll 0x2000f220-0x2000f350 (bracketed) */
+/* gamei386.so 0x0002f0d4-0x0002f1ef */
 void SP_func_object (edict_t *self)
 {
 	gi.setmodel (self, self->model);
@@ -724,6 +784,8 @@ mass defaults to 75.  This determines how much debris is emitted when
 it explodes.  You get one large chunk per 100 of mass (up to 8) and
 one small chunk per 25 of mass (up to 16).  So 800 gives the most.
 */
+/* gamex86.dll 0x2000f350-0x2000f630 (padded+size) */
+/* gamei386.so 0x0002f1f0-0x0002f4e9 */
 void func_explosive_explode (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	vec3_t	origin;
@@ -788,11 +850,15 @@ void func_explosive_explode (edict_t *self, edict_t *inflictor, edict_t *attacke
 		G_FreeEdict (self);
 }
 
+/* gamex86.dll 0x2000f630-0x2000f650 (bracketed) */
+/* gamei386.so 0x0002f4ec-0x0002f50c */
 void func_explosive_use(edict_t *self, edict_t *other, edict_t *activator)
 {
 	func_explosive_explode (self, self, other, self->health, vec3_origin);
 }
 
+/* gamex86.dll 0x2000f650-0x2000f690 (bracketed) */
+/* gamei386.so 0x0002f50c-0x0002f53f */
 void func_explosive_spawn (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->solid = SOLID_BSP;
@@ -802,6 +868,8 @@ void func_explosive_spawn (edict_t *self, edict_t *other, edict_t *activator)
 	gi.linkentity (self);
 }
 
+/* gamex86.dll 0x2000f690-0x2000f790 (manual-confirmed+funcbounds-fix) */
+/* gamei386.so 0x0002f540-0x0002f641 */
 void SP_func_explosive (edict_t *self)
 {
 	if (deathmatch->value)
@@ -852,6 +920,8 @@ Large exploding box.  You can override its mass (100),
 health (80), and dmg (150).
 */
 
+/* gamex86.dll 0x2001fe80-0x2001fe90 (manual-confirmed) */
+/* gamei386.so 0x0002f644-0x0002f67e */
 void barrel_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 
 {
@@ -863,9 +933,10 @@ void barrel_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *s
 
 	ratio = (float)other->mass / (float)self->mass;
 	VectorSubtract (self->s.origin, other->s.origin, v);
-	M_walkmove (self, vectoyaw(v), 20 * ratio * FRAMETIME);
 }
 
+/* gamex86.dll 0x2000f790-0x2000ff30 (unpadded-prologue+size) */
+/* gamei386.so 0x0002f680-0x0002fe9d */
 void barrel_explode (edict_t *self)
 {
 	vec3_t	org;
@@ -945,6 +1016,8 @@ void barrel_explode (edict_t *self)
 		BecomeExplosion1 (self);
 }
 
+/* gamex86.dll 0x2000ff30-0x2000ff70 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002fea0-0x0002fedb */
 void barrel_delay (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	self->takedamage = DAMAGE_NO;
@@ -953,6 +1026,8 @@ void barrel_delay (edict_t *self, edict_t *inflictor, edict_t *attacker, int dam
 	self->activator = attacker;
 }
 
+/* gamex86.dll 0x2000ff70-0x200100b0 (manual-confirmed) */
+/* gamei386.so 0x0002fedc-0x00030025 */
 void SP_misc_explobox (edict_t *self)
 {
 	if (deathmatch->value)
@@ -1000,6 +1075,8 @@ void SP_misc_explobox (edict_t *self)
 /*QUAKED misc_blackhole (1 .5 0) (-8 -8 -8) (8 8 8)
 */
 
+/* gamex86.dll 0x200100b0-0x200100c0 (manual-confirmed) */
+/* gamei386.so 0x00030028-0x00030036 */
 void misc_blackhole_use (edict_t *ent, edict_t *other, edict_t *activator)
 {
 	/*
@@ -1011,6 +1088,8 @@ void misc_blackhole_use (edict_t *ent, edict_t *other, edict_t *activator)
 	G_FreeEdict (ent);
 }
 
+/* gamex86.dll 0x200100c0-0x200100f0 (bracketed) */
+/* gamei386.so 0x00030038-0x0003006d */
 void misc_blackhole_think (edict_t *self)
 {
 	if (++self->s.frame < 19)
@@ -1022,6 +1101,8 @@ void misc_blackhole_think (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x200100f0-0x20010180 (padded) */
+/* gamei386.so 0x00030070-0x00030114 */
 void SP_misc_blackhole (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1039,6 +1120,8 @@ void SP_misc_blackhole (edict_t *ent)
 /*QUAKED misc_eastertank (1 .5 0) (-32 -32 -16) (32 32 32)
 */
 
+/* gamex86.dll 0x20010180-0x200101b0 (bracketed) */
+/* gamei386.so 0x00030114-0x0003014d */
 void misc_eastertank_think (edict_t *self)
 {
 	if (++self->s.frame < 293)
@@ -1050,6 +1133,8 @@ void misc_eastertank_think (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x200101b0-0x20010240 (padded) */
+/* gamei386.so 0x00030150-0x000301ea */
 void SP_misc_eastertank (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1067,6 +1152,8 @@ void SP_misc_eastertank (edict_t *ent)
 */
 
 
+/* gamex86.dll 0x20010240-0x20010270 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000301ec-0x00030225 */
 void misc_easterchick_think (edict_t *self)
 {
 	if (++self->s.frame < 247)
@@ -1078,6 +1165,8 @@ void misc_easterchick_think (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x20010270-0x20010300 (aligned) */
+/* gamei386.so 0x00030228-0x000302c2 */
 void SP_misc_easterchick (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1095,6 +1184,8 @@ void SP_misc_easterchick (edict_t *ent)
 */
 
 
+/* gamex86.dll 0x20010300-0x20010330 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000302c4-0x000302fd */
 void misc_easterchick2_think (edict_t *self)
 {
 	if (++self->s.frame < 287)
@@ -1106,6 +1197,8 @@ void misc_easterchick2_think (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x20010330-0x200103c0 (manual-confirmed) */
+/* gamei386.so 0x00030300-0x0003039a */
 void SP_misc_easterchick2 (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1125,6 +1218,8 @@ Not really a monster, this is the Tank Commander's decapitated body.
 There should be a item_commander_head that has this as it's target.
 */
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0003039c-0x00030406 */
 void commander_body_think (edict_t *self)
 {
 	if (++self->s.frame < 24)
@@ -1136,6 +1231,8 @@ void commander_body_think (edict_t *self)
 		gi.sound (self, CHAN_BODY, gi.soundindex ("tank/thud.wav"), 1, ATTN_NORM, 0);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00030408-0x0003045a */
 void commander_body_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->think = commander_body_think;
@@ -1143,12 +1240,16 @@ void commander_body_use (edict_t *self, edict_t *other, edict_t *activator)
 	gi.sound (self, CHAN_BODY, gi.soundindex ("tank/pain.wav"), 1, ATTN_NORM, 0);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0003045c-0x00030477 */
 void commander_body_drop (edict_t *self)
 {
 	self->movetype = MOVETYPE_TOSS;
 	self->s.origin[2] += 2;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00030478-0x0003054f */
 void SP_monster_commander_body (edict_t *self)
 {
 	self->movetype = MOVETYPE_NONE;
@@ -1175,12 +1276,16 @@ void SP_monster_commander_body (edict_t *self)
 The origin is the bottom of the banner.
 The banner is 128 tall.
 */
+/* gamex86.dll 0x200103c0-0x200103f0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00030550-0x00030585 */
 void misc_banner_think (edict_t *ent)
 {
 	ent->s.frame = (ent->s.frame + 1) % 16;
 	ent->nextthink = level.time + FRAMETIME;
 }
 
+/* gamex86.dll 0x200103f0-0x20010450 (padded+size) */
+/* gamei386.so 0x00030588-0x000305f4 */
 void SP_misc_banner (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1196,6 +1301,8 @@ void SP_misc_banner (edict_t *ent)
 /*QUAKED misc_deadsoldier (1 .5 0) (-16 -16 0) (16 16 16) ON_BACK ON_STOMACH BACK_DECAP FETAL_POS SIT_DECAP IMPALED
 This is the dead player model. Comes in 6 exciting different poses!
 */
+/* gamex86.dll 0x20010450-0x200104c0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000305f4-0x00030688 */
 void misc_deadsoldier_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	int		n;
@@ -1209,6 +1316,8 @@ void misc_deadsoldier_die (edict_t *self, edict_t *inflictor, edict_t *attacker,
 	ThrowHead (self, "models/objects/gibs/head2/tris.md2", damage, GIB_ORGANIC);
 }
 
+/* gamex86.dll 0x200104c0-0x200105e0 (manual-confirmed) */
+/* gamei386.so 0x00030688-0x000307ab */
 void SP_misc_deadsoldier (edict_t *ent)
 {
 	if (deathmatch->value)
@@ -1257,6 +1366,8 @@ There must be a path for it to follow once it is activated.
 extern void train_use (edict_t *self, edict_t *other, edict_t *activator);
 extern void func_train_find (edict_t *self);
 
+/* gamex86.dll 0x200109a0-0x200109e0 (manual-confirmed) */
+/* gamei386.so 0x000307ac-0x000307d5 */
 void misc_viper_use  (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->svflags &= ~SVF_NOCLIENT;
@@ -1264,6 +1375,8 @@ void misc_viper_use  (edict_t *self, edict_t *other, edict_t *activator)
 	train_use (self, other, activator);
 }
 
+/* gamex86.dll 0x200105e0-0x200106e0 (unpadded-prologue) */
+/* gamei386.so 0x000307d8-0x000308e2 */
 void SP_misc_viper (edict_t *ent)
 {
 	if (!ent->target)
@@ -1295,6 +1408,8 @@ void SP_misc_viper (edict_t *ent)
 /*QUAKED misc_bigviper (1 .5 0) (-176 -120 -24) (176 120 72) 
 This is a large stationary viper as seen in Paul's intro
 */
+/* gamex86.dll 0x200106e0-0x20010750 (unpadded-prologue) */
+/* gamei386.so 0x000308e4-0x00030955 */
 void SP_misc_bigviper (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1309,6 +1424,8 @@ void SP_misc_bigviper (edict_t *ent)
 /*QUAKED misc_viper_bomb (1 0 0) (-8 -8 -8) (8 8 8)
 "dmg"	how much boom should the bomb make?
 */
+/* gamex86.dll 0x20010750-0x200107b0 (bracketed) */
+/* gamei386.so 0x00030958-0x000309da */
 void misc_viper_bomb_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	G_UseTargets (self, self->activator);
@@ -1318,6 +1435,8 @@ void misc_viper_bomb_touch (edict_t *self, edict_t *other, cplane_t *plane, csur
 	BecomeExplosion2 (self);
 }
 
+/* gamex86.dll 0x200107b0-0x20010840 (bracketed) */
+/* gamei386.so 0x000309dc-0x00030a73 */
 void misc_viper_bomb_prethink (edict_t *self)
 {
 	vec3_t	v;
@@ -1337,6 +1456,8 @@ void misc_viper_bomb_prethink (edict_t *self)
 	self->s.angles[2] = diff + 10;
 }
 
+/* gamex86.dll 0x20010840-0x20010900 (padded) */
+/* gamei386.so 0x00030a74-0x00030b23 */
 void misc_viper_bomb_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	edict_t	*viper;
@@ -1357,6 +1478,8 @@ void misc_viper_bomb_use (edict_t *self, edict_t *other, edict_t *activator)
 	VectorCopy (viper->moveinfo.dir, self->moveinfo.dir);
 }
 
+/* gamex86.dll 0x20010900-0x200109a0 (padded) */
+/* gamei386.so 0x00030b24-0x00030bbc */
 void SP_misc_viper_bomb (edict_t *self)
 {
 	self->movetype = MOVETYPE_NONE;
@@ -1387,6 +1510,8 @@ There must be a path for it to follow once it is activated.
 extern void train_use (edict_t *self, edict_t *other, edict_t *activator);
 extern void func_train_find (edict_t *self);
 
+/* gamex86.dll 0x200109a0-0x200109e0 (manual-confirmed) */
+/* gamei386.so 0x00030bbc-0x00030be5 */
 void misc_strogg_ship_use  (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->svflags &= ~SVF_NOCLIENT;
@@ -1394,6 +1519,8 @@ void misc_strogg_ship_use  (edict_t *self, edict_t *other, edict_t *activator)
 	train_use (self, other, activator);
 }
 
+/* gamex86.dll 0x200109e0-0x20010af0 (padded) */
+/* gamei386.so 0x00030be8-0x00030cfa */
 void SP_misc_strogg_ship (edict_t *ent)
 {
 	if (!ent->target)
@@ -1424,6 +1551,8 @@ void SP_misc_strogg_ship (edict_t *ent)
 
 /*QUAKED misc_satellite_dish (1 .5 0) (-64 -64 0) (64 64 128)
 */
+/* gamex86.dll 0x20010af0-0x20010b20 (bracketed) */
+/* gamei386.so 0x00030cfc-0x00030d28 */
 void misc_satellite_dish_think (edict_t *self)
 {
 	self->s.frame++;
@@ -1431,6 +1560,8 @@ void misc_satellite_dish_think (edict_t *self)
 		self->nextthink = level.time + FRAMETIME;
 }
 
+/* gamex86.dll 0x20010b20-0x20010b50 (bracketed) */
+/* gamei386.so 0x00030d28-0x00030d56 */
 void misc_satellite_dish_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->s.frame = 0;
@@ -1438,6 +1569,8 @@ void misc_satellite_dish_use (edict_t *self, edict_t *other, edict_t *activator)
 	self->nextthink = level.time + FRAMETIME;
 }
 
+/* gamex86.dll 0x20010b50-0x20010bc0 (padded) */
+/* gamei386.so 0x00030d58-0x00030dd3 */
 void SP_misc_satellite_dish (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1452,6 +1585,8 @@ void SP_misc_satellite_dish (edict_t *ent)
 
 /*QUAKED light_mine1 (0 1 0) (-2 -2 -12) (2 2 12)
 */
+/* gamex86.dll 0x20010bc0-0x20010c00 (padded) */
+/* gamei386.so 0x00030dd4-0x00030e09 */
 void SP_light_mine1 (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1463,6 +1598,8 @@ void SP_light_mine1 (edict_t *ent)
 
 /*QUAKED light_mine2 (0 1 0) (-2 -2 -12) (2 2 12)
 */
+/* gamex86.dll 0x20010c00-0x20010c40 (padded) */
+/* gamei386.so 0x00030e0c-0x00030e41 */
 void SP_light_mine2 (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_NONE;
@@ -1475,6 +1612,8 @@ void SP_light_mine2 (edict_t *ent)
 /*QUAKED misc_gib_arm (1 0 0) (-8 -8 -8) (8 8 8)
 Intended for use with the target_spawner
 */
+/* gamex86.dll 0x20010c40-0x20010d30 (padded+size) */
+/* gamei386.so 0x00030e44-0x00030f13 */
 void SP_misc_gib_arm (edict_t *ent)
 {
 	gi.setmodel (ent, "models/objects/gibs/arm/tris.md2");
@@ -1496,6 +1635,8 @@ void SP_misc_gib_arm (edict_t *ent)
 /*QUAKED misc_gib_leg (1 0 0) (-8 -8 -8) (8 8 8)
 Intended for use with the target_spawner
 */
+/* gamex86.dll 0x20010d30-0x20010e20 (padded) */
+/* gamei386.so 0x00030f14-0x00030fe3 */
 void SP_misc_gib_leg (edict_t *ent)
 {
 	gi.setmodel (ent, "models/objects/gibs/leg/tris.md2");
@@ -1517,6 +1658,8 @@ void SP_misc_gib_leg (edict_t *ent)
 /*QUAKED misc_gib_head (1 0 0) (-8 -8 -8) (8 8 8)
 Intended for use with the target_spawner
 */
+/* gamex86.dll 0x20010e20-0x20010f10 (padded) */
+/* gamei386.so 0x00030fe4-0x000310b3 */
 void SP_misc_gib_head (edict_t *ent)
 {
 	gi.setmodel (ent, "models/objects/gibs/head/tris.md2");
@@ -1542,6 +1685,8 @@ used with target_string (must be on same "team")
 "count" is position in the string (starts at 1)
 */
 
+/* gamex86.dll 0x20010f10-0x20010f50 (bracketed) */
+/* gamei386.so 0x000310b4-0x000310f0 */
 void SP_target_character (edict_t *self)
 {
 	self->movetype = MOVETYPE_PUSH;
@@ -1556,6 +1701,8 @@ void SP_target_character (edict_t *self)
 /*QUAKED target_string (0 0 1) (-8 -8 -8) (8 8 8)
 */
 
+/* gamex86.dll 0x20010f50-0x20010fd0 (bracketed) */
+/* gamei386.so 0x000310f0-0x0003117c */
 void target_string_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	edict_t *e;
@@ -1586,6 +1733,8 @@ void target_string_use (edict_t *self, edict_t *other, edict_t *activator)
 	}
 }
 
+/* gamex86.dll 0x20010fd0-0x20011000 (bracketed) */
+/* gamei386.so 0x0003117c-0x0003119e */
 void SP_target_string (edict_t *self)
 {
 	if (!self->message)
@@ -1612,6 +1761,8 @@ If START_OFF, this entity must be used before it starts
 // don't let field width of any clock messages change, or it
 // could cause an overwrite after a game load
 
+/* gamex86.dll 0x200111a0-0x200111f0 (bracketed) */
+/* gamei386.so: no symbol -- inlined into its callers */
 static void func_clock_reset (edict_t *self)
 {
 	self->activator = NULL;
@@ -1627,6 +1778,8 @@ static void func_clock_reset (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x200111f0-0x20011310 (padded+majority) */
+/* gamei386.so 0x000311a0-0x000312c4 */
 static void func_clock_format_countdown (edict_t *self)
 {
 	if (self->style == 0)
@@ -1654,6 +1807,8 @@ static void func_clock_format_countdown (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x20011000-0x200111a0 (padded+size) */
+/* gamei386.so 0x000312c4-0x000314a0 */
 void func_clock_think (edict_t *self)
 {
 	if (!self->enemy)
@@ -1719,6 +1874,8 @@ void func_clock_think (edict_t *self)
 	self->nextthink = level.time + 1;
 }
 
+/* gamex86.dll 0x20011310-0x20011350 (bracketed) */
+/* gamei386.so 0x000314a0-0x000314d7 */
 void func_clock_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (!(self->spawnflags & 8))
@@ -1729,6 +1886,8 @@ void func_clock_use (edict_t *self, edict_t *other, edict_t *activator)
 	self->think (self);
 }
 
+/* gamex86.dll 0x20011350-0x20011429 (unpadded-prologue+majority) */
+/* gamei386.so 0x000314d8-0x000315e4 */
 void SP_func_clock (edict_t *self)
 {
 	if (!self->target)
@@ -1762,6 +1921,8 @@ void SP_func_clock (edict_t *self)
 
 //=================================================================================
 
+/* gamex86.dll 0x20011430-0x200115c0 (manual-confirmed) */
+/* gamei386.so 0x000315e4-0x0003180d */
 void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	edict_t		*dest;
@@ -1772,12 +1933,13 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 
 	if (self->arena > 0)
 	{
-		if (other->client->teamnum == -1)
+		if (other->client->resp.teamnum != -1)
 		{
-			menu_centerprint (other, "You must join or create a team first");
+			AddtoArena (other, self->arena, 1, 0);
 			return;
 		}
-		AddtoArena (other, self->arena, 1);
+
+		menu_centerprint (other, "You must join or create a team first");
 		return;
 	}
 
@@ -1802,7 +1964,7 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 	other->client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 
 	// draw the teleport splash at source and on the player
-	if (other->client->entered)
+	if (other->client->resp.fightstate == FIGHT_ALIVE)
 	{
 		self->owner->s.event = EV_PLAYER_TELEPORT;
 		other->s.event = EV_PLAYER_TELEPORT;
@@ -1827,11 +1989,13 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 /*QUAKED misc_teleporter (1 0 0) (-32 -32 -24) (32 32 -16)
 Stepping onto this disc will teleport players to the targeted misc_teleporter_dest object.
 */
+/* gamex86.dll 0x200115c0-0x200116f0 (padded+majority) */
+/* gamei386.so 0x00031810-0x0003194c */
 void SP_misc_teleporter (edict_t *ent)
 {
 	edict_t		*trig;
 
-	if (!ent->target && !(ent->arena > 0))
+	if (!ent->target && ent->arena < 1)
 	{
 		gi.dprintf ("teleporter without a target.\n");
 		G_FreeEdict (ent);
@@ -1864,14 +2028,16 @@ void SP_misc_teleporter (edict_t *ent)
 /*QUAKED misc_teleporter_dest (1 0 0) (-32 -32 -24) (32 32 -16)
 Point teleporters at these.
 */
+/* gamex86.dll 0x200116f0-0x20011760 (padded+size) */
+/* gamei386.so 0x0003194c-0x000319bf */
 void SP_misc_teleporter_dest (edict_t *ent)
 {
 	gi.setmodel (ent, "models/objects/dmspot/tris.md2");
 	ent->s.skinnum = 0;
-	ent->solid = SOLID_BBOX;
+	ent->svflags |= SVF_NOCLIENT;
+	ent->solid = SOLID_NOT;
 //	ent->s.effects |= EF_FLIES;
 	VectorSet (ent->mins, -32, -32, -24);
 	VectorSet (ent->maxs, 32, 32, -16);
 	gi.linkentity (ent);
 }
-

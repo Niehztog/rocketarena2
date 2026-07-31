@@ -3,6 +3,8 @@
 #include "g_local.h"
 
 
+/* gamex86.dll 0x20017410-0x200174c0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00039ea0-0x00039f6c */
 void AnglesNormalize(vec3_t vec)
 {
 	while(vec[0] > 360)
@@ -15,6 +17,8 @@ void AnglesNormalize(vec3_t vec)
 		vec[1] += 360;
 }
 
+/* gamex86.dll 0x200174c0-0x20017510 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00039f6c-0x00039fdc */
 float SnapToEights(float x)
 {
 	x *= 8.0;
@@ -26,6 +30,8 @@ float SnapToEights(float x)
 }
 
 
+/* gamex86.dll 0x20017510-0x20017560 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00039fdc-0x0003a02c */
 void turret_blocked(edict_t *self, edict_t *other)
 {
 	edict_t	*attacker;
@@ -56,6 +62,8 @@ Use "angle" to set the starting angle.
 "maxyaw"	max acceptable yaw angle   : default 360
 */
 
+/* gamex86.dll 0x20017560-0x20017680 (padded) */
+/* gamei386.so 0x0003a02c-0x0003a156 */
 void turret_breach_fire (edict_t *self)
 {
 	vec3_t	f, r, u;
@@ -74,6 +82,8 @@ void turret_breach_fire (edict_t *self)
 	gi.positioned_sound (start, self, CHAN_WEAPON, gi.soundindex("weapons/rocklf1a.wav"), 1, ATTN_NORM, 0);
 }
 
+/* gamex86.dll 0x20017680-0x20017a30 (bracketed) */
+/* gamei386.so 0x0003a158-0x0003a882 */
 void turret_breach_think (edict_t *self)
 {
 	edict_t	*ent;
@@ -179,6 +189,8 @@ void turret_breach_think (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x20017a30-0x20017ac0 (unpadded-prologue) */
+/* gamei386.so 0x0003a884-0x0003a92a */
 void turret_breach_finish_init (edict_t *self)
 {
 	// get and save info for muzzle location
@@ -198,6 +210,8 @@ void turret_breach_finish_init (edict_t *self)
 	self->think (self);
 }
 
+/* gamex86.dll 0x20017ac0-0x20017bf0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0003a92c-0x0003aa5e */
 void SP_turret_breach (edict_t *self)
 {
 	self->solid = SOLID_BSP;
@@ -237,6 +251,8 @@ This portion of the turret changes yaw only.
 MUST be teamed with a turret_breach.
 */
 
+/* gamex86.dll 0x20017bf0-0x20017c30 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0003aa60-0x0003aa9f */
 void SP_turret_base (edict_t *self)
 {
 	self->solid = SOLID_BSP;
@@ -252,10 +268,10 @@ Must NOT be on the team with the rest of the turret parts.
 Instead it must target the turret_breach.
 */
 
-void infantry_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage);
-void infantry_stand (edict_t *self);
 void monster_use (edict_t *self, edict_t *other, edict_t *activator);
 
+/* gamex86.dll 0x20017c30-0x20017ca0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0003aaa0-0x0003ab1b */
 void turret_driver_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	edict_t	*ent;
@@ -272,12 +288,12 @@ void turret_driver_die (edict_t *self, edict_t *inflictor, edict_t *attacker, in
 
 	self->target_ent->owner = NULL;
 	self->target_ent->teammaster->owner = NULL;
-
-	infantry_die (self, inflictor, attacker, damage);
 }
 
 qboolean FindTarget (edict_t *self);
 
+/* gamex86.dll 0x20017ca0-0x20017e20 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0003ab1c-0x0003ac99 */
 void turret_driver_think (edict_t *self)
 {
 	vec3_t	target;
@@ -332,6 +348,8 @@ void turret_driver_think (edict_t *self)
 	self->target_ent->spawnflags |= 65536;
 }
 
+/* gamex86.dll 0x20017e20-0x20017f60 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0003ac9c-0x0003aec3 */
 void turret_driver_link (edict_t *self)
 {
 	vec3_t	vec;
@@ -365,6 +383,8 @@ void turret_driver_link (edict_t *self)
 	self->flags |= FL_TEAMSLAVE;
 }
 
+/* gamex86.dll 0x20017f60-0x20018100 (manual-confirmed) */
+/* gamei386.so 0x0003aec4-0x0003b04a */
 void SP_turret_driver (edict_t *self)
 {
 	if (deathmatch->value)
@@ -385,7 +405,6 @@ void SP_turret_driver (edict_t *self)
 	self->viewheight = 24;
 
 	self->die = turret_driver_die;
-	self->monsterinfo.stand = infantry_stand;
 
 	self->flags |= FL_NO_KNOCKBACK;
 

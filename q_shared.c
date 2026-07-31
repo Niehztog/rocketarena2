@@ -10,6 +10,8 @@ vec3_t vec3_origin = {0,0,0};
 #pragma optimize( "", off )
 #endif
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046388-0x0004658d */
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees )
 {
 	float	m[3][3];
@@ -70,13 +72,13 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 #endif
 
 
-
+/* gamex86.dll 0x20028b90-0x20028ce0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00046590-0x00046701 */
 void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	float		angle;
 	static float		sr, sp, sy, cr, cp, cy;
 	// static to help MS compiler fp bugs
-
 	angle = angles[YAW] * (M_PI*2 / 360);
 	sy = sin(angle);
 	cy = cos(angle);
@@ -86,7 +88,6 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 	angle = angles[ROLL] * (M_PI*2 / 360);
 	sr = sin(angle);
 	cr = cos(angle);
-
 	if (forward)
 	{
 		forward[0] = cp*cy;
@@ -108,20 +109,18 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046704-0x0004677a */
 void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 {
 	float d;
 	vec3_t n;
 	float inv_denom;
-
 	inv_denom = 1.0F / DotProduct( normal, normal );
-
 	d = DotProduct( normal, p ) * inv_denom;
-
 	n[0] = normal[0] * inv_denom;
 	n[1] = normal[1] * inv_denom;
 	n[2] = normal[2] * inv_denom;
-
 	dst[0] = p[0] - d * n[0];
 	dst[1] = p[1] - d * n[1];
 	dst[2] = p[2] - d * n[2];
@@ -130,13 +129,14 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 /*
 ** assumes "src" is normalized
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004677c-0x00046887 */
 void PerpendicularVector( vec3_t dst, const vec3_t src )
 {
 	int	pos;
 	int i;
 	float minelem = 1.0F;
 	vec3_t tempvec;
-
 	/*
 	** find the smallest magnitude axially aligned vector
 	*/
@@ -150,12 +150,10 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 	}
 	tempvec[0] = tempvec[1] = tempvec[2] = 0.0F;
 	tempvec[pos] = 1.0F;
-
 	/*
 	** project the point onto the plane defined by src
 	*/
 	ProjectPointOnPlane( dst, tempvec, src );
-
 	/*
 	** normalize the result
 	*/
@@ -163,12 +161,13 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 }
 
 
-
 /*
 ================
 R_ConcatRotations
 ================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046888-0x0004696f */
 void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 {
 	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
@@ -197,6 +196,8 @@ void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 R_ConcatTransforms
 ================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046970-0x00046aaa */
 void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 {
 	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
@@ -228,7 +229,8 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 
 //============================================================================
 
-
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046aac-0x00046ac2 */
 float Q_fabs (float f)
 {
 #if 0
@@ -242,8 +244,10 @@ float Q_fabs (float f)
 #endif
 }
 
-#if defined _M_IX86 && !defined C_ONLY
+#if defined _M_IX86 && !defined C_ONLY && defined _MSC_VER
 #pragma warning (disable:4035)
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so: no symbol -- not compiled into the Unix build */
 __declspec( naked ) long Q_ftol( float f )
 {
 	static int tmp;
@@ -258,9 +262,10 @@ __declspec( naked ) long Q_ftol( float f )
 /*
 ===============
 LerpAngle
-
 ===============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046ac4-0x00046b10 */
 float LerpAngle (float a2, float a1, float frac)
 {
 	if (a1 - a2 > 180)
@@ -269,8 +274,8 @@ float LerpAngle (float a2, float a1, float frac)
 		a1 += 360;
 	return a2 + frac * (a1 - a2);
 }
-
-
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046b10-0x00046b56 */
 float	anglemod(float a)
 {
 #if 0
@@ -282,19 +287,17 @@ float	anglemod(float a)
 	a = (360.0/65536) * ((int)(a*(65536/360.0)) & 65535);
 	return a;
 }
-
 	int		i;
 	vec3_t	corners[2];
-
-
 // this is the slow, general version
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046b58-0x00046c60 */
 int BoxOnPlaneSide2 (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	int		i;
 	float	dist1, dist2;
 	int		sides;
 	vec3_t	corners[2];
-
 	for (i=0 ; i<3 ; i++)
 	{
 		if (p->normal[i] < 0)
@@ -315,23 +318,21 @@ int BoxOnPlaneSide2 (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 		sides = 1;
 	if (dist2 < 0)
 		sides |= 2;
-
 	return sides;
 }
-
 /*
 ==================
 BoxOnPlaneSide
-
 Returns 1, 2, or 1 + 2
 ==================
 */
-#if !id386 || defined __linux__ 
+#if !id386 || defined __linux__ || !defined _MSC_VER
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046c60-0x00046e79 */
 int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	float	dist1, dist2;
 	int		sides;
-
 // fast axial cases
 	if (p->type < 3)
 	{
@@ -341,7 +342,6 @@ int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 			return 2;
 		return 3;
 	}
-	
 // general case
 	switch (p->signbits)
 	{
@@ -396,6 +396,8 @@ dist2 = p->normal[0]*emaxs[0] + p->normal[1]*emaxs[1] + p->normal[2]*emaxs[2];
 #else
 #pragma warning( disable: 4035 )
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so: no symbol -- not compiled into the Unix build */
 __declspec( naked ) int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	static int bops_initialized;
@@ -628,12 +630,16 @@ Lerror:
 #pragma warning( default: 4035 )
 #endif
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046e7c-0x00046ea1 */
 void ClearBounds (vec3_t mins, vec3_t maxs)
 {
 	mins[0] = mins[1] = mins[2] = 99999;
 	maxs[0] = maxs[1] = maxs[2] = -99999;
 }
 
+/* gamex86.dll 0x20028ce0-0x20028d20 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00046ea4-0x00046f24 */
 void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs)
 {
 	int		i;
@@ -650,6 +656,8 @@ void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs)
 }
 
 
+/* gamex86.dll 0x20028d20-0x20028d60 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00046f24-0x00046f6a */
 int VectorCompare (vec3_t v1, vec3_t v2)
 {
 	if (v1[0] != v2[0] || v1[1] != v2[1] || v1[2] != v2[2])
@@ -659,6 +667,8 @@ int VectorCompare (vec3_t v1, vec3_t v2)
 }
 
 
+/* gamex86.dll 0x20028d60-0x20028db0 (aligned) */
+/* gamei386.so 0x00046f6c-0x00046fb7 */
 vec_t VectorNormalize (vec3_t v)
 {
 	float	length, ilength;
@@ -678,6 +688,8 @@ vec_t VectorNormalize (vec3_t v)
 
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00046fb8-0x00047007 */
 vec_t VectorNormalize2 (vec3_t v, vec3_t out)
 {
 	float	length, ilength;
@@ -697,6 +709,8 @@ vec_t VectorNormalize2 (vec3_t v, vec3_t out)
 
 }
 
+/* gamex86.dll 0x20028db0-0x20028df0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00047008-0x00047035 */
 void VectorMA (vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
 {
 	vecc[0] = veca[0] + scale*vecb[0];
@@ -705,11 +719,15 @@ void VectorMA (vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
 }
 
 
+/* gamex86.dll 0x20028df0-0x20028e10 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00047038-0x00047055 */
 vec_t _DotProduct (vec3_t v1, vec3_t v2)
 {
 	return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047058-0x0004707d */
 void _VectorSubtract (vec3_t veca, vec3_t vecb, vec3_t out)
 {
 	out[0] = veca[0]-vecb[0];
@@ -717,6 +735,8 @@ void _VectorSubtract (vec3_t veca, vec3_t vecb, vec3_t out)
 	out[2] = veca[2]-vecb[2];
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047080-0x000470a5 */
 void _VectorAdd (vec3_t veca, vec3_t vecb, vec3_t out)
 {
 	out[0] = veca[0]+vecb[0];
@@ -724,6 +744,8 @@ void _VectorAdd (vec3_t veca, vec3_t vecb, vec3_t out)
 	out[2] = veca[2]+vecb[2];
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000470a8-0x000470c1 */
 void _VectorCopy (vec3_t in, vec3_t out)
 {
 	out[0] = in[0];
@@ -731,6 +753,8 @@ void _VectorCopy (vec3_t in, vec3_t out)
 	out[2] = in[2];
 }
 
+/* gamex86.dll 0x20028e10-0x20028e50 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000470c4-0x000470ff */
 void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 {
 	cross[0] = v1[1]*v2[2] - v1[2]*v2[1];
@@ -740,6 +764,8 @@ void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 
 double sqrt(double x);
 
+/* gamex86.dll 0x20028e50-0x20028e80 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00047100-0x00047129 */
 vec_t VectorLength(vec3_t v)
 {
 	int		i;
@@ -753,6 +779,8 @@ vec_t VectorLength(vec3_t v)
 	return length;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004712c-0x00047147 */
 void VectorInverse (vec3_t v)
 {
 	v[0] = -v[0];
@@ -760,6 +788,8 @@ void VectorInverse (vec3_t v)
 	v[2] = -v[2];
 }
 
+/* gamex86.dll 0x20028e80-0x20028eb0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00047148-0x00047169 */
 void VectorScale (vec3_t in, vec_t scale, vec3_t out)
 {
 	out[0] = in[0]*scale;
@@ -768,6 +798,8 @@ void VectorScale (vec3_t in, vec_t scale, vec3_t out)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004716c-0x0004717b */
 int Q_log2(int val)
 {
 	int answer=0;
@@ -785,6 +817,8 @@ int Q_log2(int val)
 COM_SkipPath
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004717c-0x00047199 */
 char *COM_SkipPath (char *pathname)
 {
 	char	*last;
@@ -804,6 +838,8 @@ char *COM_SkipPath (char *pathname)
 COM_StripExtension
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004719c-0x000471bf */
 void COM_StripExtension (char *in, char *out)
 {
 	while (*in && *in != '.')
@@ -816,6 +852,8 @@ void COM_StripExtension (char *in, char *out)
 COM_FileExtension
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000471c0-0x00047208 */
 char *COM_FileExtension (char *in)
 {
 	static char exten[8];
@@ -837,6 +875,8 @@ char *COM_FileExtension (char *in)
 COM_FileBase
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047208-0x00047273 */
 void COM_FileBase (char *in, char *out)
 {
 	char *s, *s2;
@@ -866,6 +906,8 @@ COM_FilePath
 Returns the path up to, but not including the last /
 ============
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047274-0x000472b9 */
 void COM_FilePath (char *in, char *out)
 {
 	char *s;
@@ -885,6 +927,8 @@ void COM_FilePath (char *in, char *out)
 COM_DefaultExtension
 ==================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000472bc-0x00047301 */
 void COM_DefaultExtension (char *path, char *extension)
 {
 	char    *src;
@@ -923,13 +967,27 @@ int		(*_LittleLong) (int l);
 float	(*_BigFloat) (float l);
 float	(*_LittleFloat) (float l);
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047304-0x00047316 */
 short	BigShort(short l){return _BigShort(l);}
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047318-0x0004732a */
 short	LittleShort(short l) {return _LittleShort(l);}
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004732c-0x0004733c */
 int		BigLong (int l) {return _BigLong(l);}
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004733c-0x0004734c */
 int		LittleLong (int l) {return _LittleLong(l);}
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004734c-0x0004735c */
 float	BigFloat (float l) {return _BigFloat(l);}
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004735c-0x0004736c */
 float	LittleFloat (float l) {return _LittleFloat(l);}
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004736c-0x00047386 */
 short   ShortSwap (short l)
 {
 	byte    b1,b2;
@@ -940,11 +998,15 @@ short   ShortSwap (short l)
 	return (b1<<8) + b2;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047388-0x0004738e */
 short	ShortNoSwap (short l)
 {
 	return l;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047390-0x000473bd */
 int    LongSwap (int l)
 {
 	byte    b1,b2,b3,b4;
@@ -957,11 +1019,15 @@ int    LongSwap (int l)
 	return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000473c0-0x000473c5 */
 int	LongNoSwap (int l)
 {
 	return l;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000473c8-0x00047407 */
 float FloatSwap (float f)
 {
 	union
@@ -979,6 +1045,8 @@ float FloatSwap (float f)
 	return dat2.f;
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047408-0x0004740d */
 float FloatNoSwap (float f)
 {
 	return f;
@@ -989,6 +1057,8 @@ float FloatNoSwap (float f)
 Swap_Init
 ================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047410-0x000474c6 */
 void Swap_Init (void)
 {
 	byte	swaptest[2] = {1,0};
@@ -1028,6 +1098,8 @@ varargs versions of all text functions.
 FIXME: make this buffer size safe someday
 ============
 */
+/* gamex86.dll 0x20028eb0-0x20028ed0 (manual-confirmed+collision-resolved) */
+/* gamei386.so 0x000474c8-0x000474e5 */
 char	*va(char *format, ...)
 {
 	va_list		argptr;
@@ -1050,6 +1122,8 @@ COM_Parse
 Parse a token out of a string
 ==============
 */
+/* gamex86.dll 0x20028ed0-0x20028f80 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000474e8-0x00047598 */
 char *COM_Parse (char **data_p)
 {
 	int		c;
@@ -1139,6 +1213,8 @@ Com_PageInMemory
 */
 int	paged_total;
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00047598-0x00047648 */
 void Com_PageInMemory (byte *buffer, int size)
 {
 	int		i;
@@ -1158,6 +1234,8 @@ void Com_PageInMemory (byte *buffer, int size)
 */
 
 // FIXME: replace all Q_stricmp with Q_strcasecmp
+/* gamex86.dll 0x20028f80-0x20028fa0 (aligned) */
+/* gamei386.so 0x00047648-0x0004765b */
 int Q_stricmp (char *s1, char *s2)
 {
 #if defined(WIN32)
@@ -1168,6 +1246,8 @@ int Q_stricmp (char *s1, char *s2)
 }
 
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0004765c-0x000476b2 */
 int Q_strncasecmp (char *s1, char *s2, int n)
 {
 	int		c1, c2;
@@ -1194,6 +1274,8 @@ int Q_strncasecmp (char *s1, char *s2, int n)
 	return 0;		// strings are equal
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x000476b4-0x0004770a */
 int Q_strcasecmp (char *s1, char *s2)
 {
 	return Q_strncasecmp (s1, s2, 99999);
@@ -1201,6 +1283,8 @@ int Q_strcasecmp (char *s1, char *s2)
 
 
 
+/* gamex86.dll 0x20028fa0-0x20029010 (padded) */
+/* gamei386.so 0x0004770c-0x0004776b */
 void Com_sprintf (char *dest, int size, char *fmt, ...)
 {
 	int		len;
@@ -1231,6 +1315,8 @@ Searches the string for the given
 key and returns the associated value, or an empty string.
 ===============
 */
+/* gamex86.dll 0x20029010-0x200290f0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0004776c-0x00047826 */
 char *Info_ValueForKey (char *s, char *key)
 {
 	char	pkey[512];
@@ -1273,6 +1359,8 @@ char *Info_ValueForKey (char *s, char *key)
 	}
 }
 
+/* gamex86.dll 0x200290f0-0x200291d0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00047828-0x000478cf */
 void Info_RemoveKey (char *s, char *key)
 {
 	char	*start;
@@ -1331,6 +1419,8 @@ Some characters are illegal in info strings because they
 can mess up the server's parsing
 ==================
 */
+/* gamex86.dll 0x200291d0-0x20029200 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000478d0-0x0004790c */
 qboolean Info_Validate (char *s)
 {
 	if (strstr (s, "\""))
@@ -1340,6 +1430,8 @@ qboolean Info_Validate (char *s)
 	return true;
 }
 
+/* gamex86.dll 0x20029200-0x200293d0 (unpadded-prologue) */
+/* gamei386.so 0x0004790c-0x00047b4f */
 void Info_SetValueForKey (char *s, char *key, char *value)
 {
 	char	newi[MAX_INFO_STRING], *v;

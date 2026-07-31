@@ -1,25 +1,22 @@
-// hashtable.h -- generic hash table, see hashtable.c
+#ifndef _HASHTABLE_H
+#define _HASHTABLE_H
 
-typedef struct tableentry_s
-{
-	void				*key;
-	void				*data;
-	struct tableentry_s	*next;
-} tableentry_t;
+#include "darray.h"
 
 typedef struct table_s
 {
-	int		(*hashFn)(void *key);
-	int		(*compFn)(void *key1, void *key2);
-	int		elemSize;
+	array_t	**buckets;
 	int		nBuckets;
-	int		count;
-	tableentry_t	**buckets;
+	void	(*freefn)(void *entry);
+	int		(*hashFn)(void *key, int nBuckets);
+	int		(*compFn)(void *key1, void *key2);
 } table_t;
 
-table_t	*TableNew (int nBuckets, int (*hashFn)(void *key), int (*compFn)(void *key1, void *key2));
+table_t	*TableNew (int elemSize, int nBuckets, int (*hashFn)(void *key, int nBuckets), int (*compFn)(void *key1, void *key2), void (*freefn)(void *entry));
 void	TableFree (table_t *table);
-void	TableEnter (table_t *table, void *key, void *data);
+void	TableEnter (table_t *table, void *entry);
 void	*TableLookup (table_t *table, void *key);
-void	TableMap (table_t *table, void (*mapFn)(void *key, void *data));
+void	TableMap (table_t *table, void (*mapFn)(void *entry, void *userdata), void *userdata);
 int		TableCount (table_t *table);
+
+#endif // _HASHTABLE_H

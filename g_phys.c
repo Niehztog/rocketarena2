@@ -28,6 +28,8 @@ SV_TestEntityPosition
 
 ============
 */
+/* gamex86.dll 0x20011ac0-0x20011b20 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00032f84-0x00032fda */
 edict_t	*SV_TestEntityPosition (edict_t *ent)
 {
 	trace_t	trace;
@@ -51,6 +53,8 @@ edict_t	*SV_TestEntityPosition (edict_t *ent)
 SV_CheckVelocity
 ================
 */
+/* gamex86.dll 0x20011b20-0x20011b80 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00032fdc-0x000330a8 */
 void SV_CheckVelocity (edict_t *ent)
 {
 	int		i;
@@ -74,6 +78,8 @@ SV_RunThink
 Runs thinking code for this frame if necessary
 =============
 */
+/* gamex86.dll 0x20011b80-0x20011bf0 (manual-confirmed) */
+/* gamei386.so 0x000330a8-0x00033118 */
 qboolean SV_RunThink (edict_t *ent)
 {
 	float	thinktime;
@@ -99,6 +105,8 @@ SV_Impact
 Two entities have touched, so run their touch functions
 ==================
 */
+/* gamex86.dll 0x20011bf0-0x20011c50 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00033118-0x00033168 */
 void SV_Impact (edict_t *e1, trace_t *trace)
 {
 	edict_t		*e2;
@@ -124,6 +132,8 @@ returns the blocked flags (1 = floor, 2 = step / wall)
 */
 #define	STOP_EPSILON	0.1
 
+/* gamex86.dll 0x20011c50-0x20011d00 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00033168-0x00033251 */
 int ClipVelocity (vec3_t in, vec3_t normal, vec3_t out, float overbounce)
 {
 	float	backoff;
@@ -162,6 +172,8 @@ Returns the clipflags if the velocity was modified (hit something solid)
 ============
 */
 #define	MAX_CLIP_PLANES	5
+/* gamex86.dll 0x20011d00-0x200120f0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00033254-0x000338ca */
 int SV_FlyMove (edict_t *ent, float time, int mask)
 {
 	edict_t		*hit;
@@ -301,6 +313,8 @@ SV_AddGravity
 
 ============
 */
+/* gamex86.dll 0x200120f0-0x20012120 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000338cc-0x000338f9 */
 void SV_AddGravity (edict_t *ent)
 {
 	ent->velocity[2] -= ent->gravity * sv_gravity->value * FRAMETIME;
@@ -321,6 +335,8 @@ SV_PushEntity
 Does not change the entities velocity at all
 ============
 */
+/* gamex86.dll 0x20012120-0x20012260 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000338fc-0x00033a4e */
 trace_t SV_PushEntity (edict_t *ent, vec3_t push)
 {
 	trace_t	trace;
@@ -382,6 +398,8 @@ Objects need to be moved back on a failed push,
 otherwise riders would continue to slide.
 ============
 */
+/* gamex86.dll 0x20012260-0x20012770 (shape-matched(ratio=0.99)) */
+/* gamei386.so 0x00033a50-0x0003441a */
 qboolean SV_Push (edict_t *pusher, vec3_t move, vec3_t amove)
 {
 	int			i, e;
@@ -541,6 +559,8 @@ Bmodel objects don't interact with each other, but
 push all box objects
 ================
 */
+/* gamex86.dll 0x20012770-0x200128f0 (unpadded-prologue) */
+/* gamei386.so 0x0003441c-0x00034608 */
 void SV_Physics_Pusher (edict_t *ent)
 {
 	vec3_t		move, amove;
@@ -609,6 +629,8 @@ SV_Physics_None
 Non moving objects can only think
 =============
 */
+/* gamex86.dll 0x200128f0-0x20012900 (bracketed) */
+/* gamei386.so 0x00034608-0x0003466c */
 void SV_Physics_None (edict_t *ent)
 {
 // regular thinking
@@ -622,6 +644,8 @@ SV_Physics_Noclip
 A moving object that doesn't obey physics
 =============
 */
+/* gamex86.dll 0x20012900-0x20012950 (bracketed) */
+/* gamei386.so 0x0003466c-0x00034705 */
 void SV_Physics_Noclip (edict_t *ent)
 {
 // regular thinking
@@ -649,6 +673,8 @@ SV_Physics_Toss
 Toss, bounce, and fly movement.  When onground, do nothing.
 =============
 */
+/* gamex86.dll 0x20012950-0x20012bf0 (padded+size) */
+/* gamei386.so 0x00034708-0x00034b6e */
 void SV_Physics_Toss (edict_t *ent)
 {
 	trace_t		trace;
@@ -770,6 +796,8 @@ FIXME: is this true?
 #define sv_friction			6
 #define sv_waterfriction	1
 
+/* gamex86.dll 0x20012bf0-0x20012c60 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00034b70-0x00034c9a */
 void SV_AddRotationalFriction (edict_t *ent)
 {
 	int		n;
@@ -794,6 +822,8 @@ void SV_AddRotationalFriction (edict_t *ent)
 	}
 }
 
+/* gamex86.dll 0x20012c60-0x20012f80 (unpadded-prologue+size) */
+/* gamei386.so 0x00034c9c-0x0003522a */
 void SV_Physics_Step (edict_t *ent)
 {
 	qboolean	wasonground;
@@ -893,7 +923,7 @@ void SV_Physics_Step (edict_t *ent)
 		if (!ent->inuse)
 			return;
 
-		if (!ent->client || ent->client->fightstate == FIGHT_ALIVE)
+		if (!ent->client || ent->client->resp.fightstate == FIGHT_ALIVE)
 			if (ent->groundentity)
 				if (!wasonground)
 					if (hitsound)
@@ -904,13 +934,16 @@ void SV_Physics_Step (edict_t *ent)
 	SV_RunThink (ent);
 }
 
-//============================================================================
 /*
+============================================================================
+
 ================
 G_RunEntity
 
 ================
 */
+/* gamex86.dll 0x20012f80-0x20013020 (manual-confirmed) */
+/* gamei386.so 0x0003522c-0x00035388 */
 void G_RunEntity (edict_t *ent)
 {
 	if (ent->prethink)

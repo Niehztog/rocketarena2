@@ -10,6 +10,8 @@ a non-instant attack weapon.  It checks to see if a
 monster's dodge function should be called.
 =================
 */
+/* gamex86.dll 0x200195b0-0x200196e0 (bracketed) */
+/* gamei386.so: no symbol -- inlined into its callers */
 static void check_dodge (edict_t *self, vec3_t start, vec3_t dir, int speed)
 {
 	vec3_t	end;
@@ -41,6 +43,8 @@ fire_hit
 Used for all impact (hit/punch/slash) attacks
 =================
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0003c130-0x0003c428 */
 qboolean fire_hit (edict_t *self, vec3_t aim, int damage, int kick)
 {
 	trace_t		tr;
@@ -112,6 +116,8 @@ fire_lead
 This is an internal support routine used for bullet/pellet based weapons.
 =================
 */
+/* gamex86.dll 0x20018cb0-0x200192a0 (padded+collision-resolved) */
+/* gamei386.so 0x0003c428-0x0003ca11 */
 static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
 {
 	trace_t		tr;
@@ -255,6 +261,8 @@ Fires a single round.  Used for machinegun and chaingun.  Would be fine for
 pistols, rifles, etc....
 =================
 */
+/* gamex86.dll 0x20018c70-0x20018cb0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0003ca14-0x0003ca4f */
 void fire_bullet (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int mod)
 {
 	fire_lead (self, start, aimdir, damage, kick, TE_GUNSHOT, hspread, vspread, mod);
@@ -268,6 +276,8 @@ fire_shotgun
 Shoots shotgun pellets.  Used by shotgun and super shotgun.
 =================
 */
+/* gamex86.dll 0x200192a0-0x20019300 (bracketed) */
+/* gamei386.so 0x0003ca50-0x0003cbb2 */
 void fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int mod)
 {
 	int		i;
@@ -284,11 +294,16 @@ fire_blaster
 Fires a single blaster bolt.  Used by the blaster and hyper blaster.
 =================
 */
+/* gamex86.dll 0x20019300-0x200193f0 (bracketed) */
+/* gamei386.so 0x0003cbb4-0x0003ccb0 */
 void blaster_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	int		mod;
 
 	if (other == self->owner)
+		return;
+
+	if (!other->solid)
 		return;
 
 	if (surf && (surf->flags & SURF_SKY))
@@ -323,6 +338,8 @@ void blaster_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *
 	G_FreeEdict (self);
 }
 
+/* gamex86.dll 0x200193f0-0x200195b0 (padded+majority) */
+/* gamei386.so 0x0003ccb0-0x0003cfc1 */
 void fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int effect, qboolean hyper)
 {
 	edict_t	*bolt;
@@ -376,6 +393,8 @@ void fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, int spee
 fire_grenade
 =================
 */
+/* gamex86.dll 0x20019890-0x20019a70 (bracketed) */
+/* gamei386.so 0x0003cfc4-0x0003d1e8 */
 static void Grenade_Explode (edict_t *ent)
 {
 	vec3_t		origin;
@@ -433,9 +452,14 @@ static void Grenade_Explode (edict_t *ent)
 	G_FreeEdict (ent);
 }
 
+/* gamex86.dll 0x20019a70-0x20019b40 (padded) */
+/* gamei386.so 0x0003e560-0x0003e63d */
 static void Grenade_Touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (other == ent->owner)
+		return;
+
+	if (!other->solid)
 		return;
 
 	if (surf && (surf->flags & SURF_SKY))
@@ -464,6 +488,8 @@ static void Grenade_Touch (edict_t *ent, edict_t *other, cplane_t *plane, csurfa
 	Grenade_Explode (ent);
 }
 
+/* gamex86.dll 0x200196e0-0x20019890 (padded+majority) */
+/* gamei386.so 0x0003d1e8-0x0003d3c3 */
 void fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, float timer, float damage_radius)
 {
 	edict_t	*grenade;
@@ -497,6 +523,8 @@ void fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int s
 	gi.linkentity (grenade);
 }
 
+/* gamex86.dll 0x20019b40-0x20019d5f (unpadded-prologue+majority) */
+/* gamei386.so 0x0003d3c4-0x0003d621 */
 void fire_grenade2 (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, float timer, float damage_radius, qboolean held)
 {
 	edict_t	*grenade;
@@ -547,12 +575,17 @@ void fire_grenade2 (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int 
 fire_rocket
 =================
 */
+/* gamex86.dll 0x20019d60-0x20019ee0 (shape-matched(ratio=0.99)) */
+/* gamei386.so 0x0003d624-0x0003d876 */
 void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	vec3_t		origin;
 	int			n;
 
 	if (other == ent->owner)
+		return;
+
+	if (!other->solid)
 		return;
 
 	if (surf && (surf->flags & SURF_SKY))
@@ -598,6 +631,8 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 	G_FreeEdict (ent);
 }
 
+/* gamex86.dll 0x20019ee0-0x2001a040 (padded+majority) */
+/* gamei386.so 0x0003d878-0x0003daef */
 void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
 {
 	edict_t	*rocket;
@@ -636,6 +671,8 @@ void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed
 fire_rail
 =================
 */
+/* gamex86.dll 0x2001a040-0x2001a210 (bracketed) */
+/* gamei386.so 0x0003daf0-0x0003dc93 */
 void fire_rail (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick)
 {
 	vec3_t		from;
@@ -701,6 +738,8 @@ void fire_rail (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick
 fire_bfg
 =================
 */
+/* gamex86.dll 0x2001a210-0x2001a3d0 (bracketed) */
+/* gamei386.so 0x0003dc94-0x0003de3a */
 void bfg_explode (edict_t *self)
 {
 	edict_t	*ent;
@@ -745,9 +784,14 @@ void bfg_explode (edict_t *self)
 		self->think = G_FreeEdict;
 }
 
+/* gamex86.dll 0x2001a3d0-0x2001a540 (padded) */
+/* gamei386.so 0x0003de3c-0x0003dfd6 */
 void bfg_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (other == self->owner)
+		return;
+
+	if (!other->solid)
 		return;
 
 	if (surf && (surf->flags & SURF_SKY))
@@ -784,6 +828,8 @@ void bfg_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf
 }
 
 
+/* gamex86.dll 0x2001a540-0x2001a800 (padded) */
+/* gamei386.so 0x0003dfd8-0x0003e2c1 */
 void bfg_think (edict_t *self)
 {
 	edict_t	*ent;
@@ -804,6 +850,9 @@ void bfg_think (edict_t *self)
 	while ((ent = findradius(ent, self->s.origin, 256)) != NULL)
 	{
 		if (ent == self)
+			continue;
+
+		if (!ent->solid)
 			continue;
 
 		if (ent == self->owner)
@@ -862,6 +911,8 @@ void bfg_think (edict_t *self)
 }
 
 
+/* gamex86.dll 0x2001a800-0x2001a980 (padded+majority) */
+/* gamei386.so 0x0003e2c4-0x0003e560 */
 void fire_bfg (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius)
 {
 	edict_t	*bfg;

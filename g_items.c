@@ -1,4 +1,5 @@
 #include "g_local.h"
+#include "arena.h"
 
 
 qboolean	Pickup_Weapon (edict_t *ent, edict_t *other);
@@ -40,6 +41,8 @@ static int	quad_drop_timeout_hack;
 GetItemByIndex
 ===============
 */
+/* gamex86.dll 0x2000b940-0x2000b970 (aligned-cross-object) */
+/* gamei386.so 0x0002ab3c-0x0002ab5e */
 gitem_t	*GetItemByIndex (int index)
 {
 	if (index == 0 || index >= game.num_items)
@@ -55,6 +58,8 @@ FindItemByClassname
 
 ===============
 */
+/* gamex86.dll 0x2000b970-0x2000b9c0 (aligned-cross-object) */
+/* gamei386.so 0x0002ab60-0x0002aba6 */
 gitem_t	*FindItemByClassname (char *classname)
 {
 	int		i;
@@ -78,6 +83,8 @@ FindItem
 
 ===============
 */
+/* gamex86.dll 0x2000b9c0-0x2000ba10 (aligned-cross-object) */
+/* gamei386.so 0x0002aba8-0x0002abee */
 gitem_t	*FindItem (char *pickup_name)
 {
 	int		i;
@@ -97,6 +104,8 @@ gitem_t	*FindItem (char *pickup_name)
 
 //======================================================================
 
+/* gamex86.dll 0x2000ba10-0x2000ba80 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002abf0-0x0002ac9e */
 void DoRespawn (edict_t *ent)
 {
 	if (ent->team)
@@ -124,6 +133,8 @@ void DoRespawn (edict_t *ent)
 	ent->s.event = EV_ITEM_RESPAWN;
 }
 
+/* gamex86.dll 0x2000ba80-0x2000bae0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002aca0-0x0002ace5 */
 void SetRespawn (edict_t *ent, float delay)
 {
 	ent->flags |= FL_RESPAWN;
@@ -137,6 +148,8 @@ void SetRespawn (edict_t *ent, float delay)
 
 //======================================================================
 
+/* gamex86.dll 0x2000bae0-0x2000bc30 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002ace8-0x0002aec0 */
 qboolean Pickup_Powerup (edict_t *ent, edict_t *other)
 {
 	int		quantity;
@@ -165,6 +178,8 @@ qboolean Pickup_Powerup (edict_t *ent, edict_t *other)
 	return true;
 }
 
+/* gamex86.dll 0x2000bc30-0x2000bc80 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002aec0-0x0002af06 */
 void Drop_General (edict_t *ent, gitem_t *item)
 {
 	Drop_Item (ent, item);
@@ -175,6 +190,8 @@ void Drop_General (edict_t *ent, gitem_t *item)
 
 //======================================================================
 
+/* gamex86.dll 0x2000bc80-0x2000bd00 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002af08-0x0002afb0 */
 qboolean Pickup_Adrenaline (edict_t *ent, edict_t *other)
 {
 	if (!deathmatch->value)
@@ -189,6 +206,8 @@ qboolean Pickup_Adrenaline (edict_t *ent, edict_t *other)
 	return true;
 }
 
+/* gamex86.dll 0x2000bd00-0x2000bd60 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002afb0-0x0002b029 */
 qboolean Pickup_AncientHead (edict_t *ent, edict_t *other)
 {
 	other->max_health += 2;
@@ -199,6 +218,8 @@ qboolean Pickup_AncientHead (edict_t *ent, edict_t *other)
 	return true;
 }
 
+/* gamex86.dll 0x2000bd60-0x2000bec0 (padded+size) */
+/* gamei386.so 0x0002b02c-0x0002b216 */
 qboolean Pickup_Bandolier (edict_t *ent, edict_t *other)
 {
 	gitem_t	*item;
@@ -237,6 +258,8 @@ qboolean Pickup_Bandolier (edict_t *ent, edict_t *other)
 	return true;
 }
 
+/* gamex86.dll 0x2000bec0-0x2000c1a0 (padded+majority) */
+/* gamei386.so 0x0002b218-0x0002b64e */
 qboolean Pickup_Pack (edict_t *ent, edict_t *other)
 {
 	gitem_t	*item;
@@ -317,6 +340,8 @@ qboolean Pickup_Pack (edict_t *ent, edict_t *other)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c1a0-0x2000c270 (padded+size) */
+/* gamei386.so 0x0002b650-0x0002b712 */
 void Use_Quad (edict_t *ent, gitem_t *item)
 {
 	int		timeout;
@@ -344,6 +369,8 @@ void Use_Quad (edict_t *ent, gitem_t *item)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c270-0x2000c300 (bracketed) */
+/* gamei386.so 0x0002b714-0x0002b797 */
 void Use_Breather (edict_t *ent, gitem_t *item)
 {
 	ent->client->pers.inventory[ITEM_INDEX(item)]--;
@@ -359,6 +386,8 @@ void Use_Breather (edict_t *ent, gitem_t *item)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c300-0x2000c390 (bracketed) */
+/* gamei386.so 0x0002b798-0x0002b81b */
 void Use_Envirosuit (edict_t *ent, gitem_t *item)
 {
 	ent->client->pers.inventory[ITEM_INDEX(item)]--;
@@ -374,6 +403,8 @@ void Use_Envirosuit (edict_t *ent, gitem_t *item)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c390-0x2000c440 (padded+size) */
+/* gamei386.so 0x0002b81c-0x0002b8c4 */
 void	Use_Invulnerability (edict_t *ent, gitem_t *item)
 {
 	ent->client->pers.inventory[ITEM_INDEX(item)]--;
@@ -389,6 +420,8 @@ void	Use_Invulnerability (edict_t *ent, gitem_t *item)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c440-0x2000c4a0 (bracketed) */
+/* gamei386.so 0x0002b8c4-0x0002b90a */
 void	Use_Silencer (edict_t *ent, gitem_t *item)
 {
 	ent->client->pers.inventory[ITEM_INDEX(item)]--;
@@ -400,6 +433,8 @@ void	Use_Silencer (edict_t *ent, gitem_t *item)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c4a0-0x2000c600 (bracketed) */
+/* gamei386.so 0x0002b90c-0x0002ba24 */
 qboolean Pickup_Key (edict_t *ent, edict_t *other)
 {
 	if (coop->value)
@@ -425,6 +460,8 @@ qboolean Pickup_Key (edict_t *ent, edict_t *other)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c600-0x2000c6c0 (bracketed) */
+/* gamei386.so 0x0002ba24-0x0002baef */
 qboolean Add_Ammo (edict_t *ent, gitem_t *item, int count)
 {
 	int			index;
@@ -461,6 +498,8 @@ qboolean Add_Ammo (edict_t *ent, gitem_t *item, int count)
 	return true;
 }
 
+/* gamex86.dll 0x2000c6c0-0x2000c7e0 (padded+size) */
+/* gamei386.so 0x0002baf0-0x0002bd58 */
 qboolean Pickup_Ammo (edict_t *ent, edict_t *other)
 {
 	int			oldcount;
@@ -491,6 +530,8 @@ qboolean Pickup_Ammo (edict_t *ent, edict_t *other)
 	return true;
 }
 
+/* gamex86.dll 0x2000c7e0-0x2000c8b0 (padded+size) */
+/* gamei386.so 0x0002bd58-0x0002be1a */
 void Drop_Ammo (edict_t *ent, gitem_t *item)
 {
 	edict_t	*dropped;
@@ -519,6 +560,8 @@ void Drop_Ammo (edict_t *ent, gitem_t *item)
 
 //======================================================================
 
+/* gamex86.dll 0x2000c8b0-0x2000c920 (bracketed) */
+/* gamei386.so 0x0002be1c-0x0002bebe */
 void MegaHealth_think (edict_t *self)
 {
 	if (self->owner->health > self->owner->max_health)
@@ -534,6 +577,8 @@ void MegaHealth_think (edict_t *self)
 		G_FreeEdict (self);
 }
 
+/* gamex86.dll 0x2000c920-0x2000ca10 (bracketed) */
+/* gamei386.so 0x0002bec0-0x0002bfc0 */
 qboolean Pickup_Health (edict_t *ent, edict_t *other)
 {
 	if (!(ent->style & HEALTH_IGNORE_MAX))
@@ -568,6 +613,8 @@ qboolean Pickup_Health (edict_t *ent, edict_t *other)
 
 //======================================================================
 
+/* gamex86.dll 0x2000ca10-0x2000ca60 (bracketed) */
+/* gamei386.so 0x0002bfc0-0x0002c007 */
 int ArmorIndex (edict_t *ent)
 {
 	if (!ent->client)
@@ -585,6 +632,8 @@ int ArmorIndex (edict_t *ent)
 	return 0;
 }
 
+/* gamex86.dll 0x2000ca60-0x2000cbe0 (bracketed) */
+/* gamei386.so 0x0002c008-0x0002c24d */
 qboolean Pickup_Armor (edict_t *ent, edict_t *other)
 {
 	int				old_armor_index;
@@ -666,6 +715,8 @@ qboolean Pickup_Armor (edict_t *ent, edict_t *other)
 
 //======================================================================
 
+/* gamex86.dll 0x2000cbe0-0x2000cc30 (bracketed) */
+/* gamei386.so 0x0002c250-0x0002c295 */
 int PowerArmorType (edict_t *ent)
 {
 	if (!ent->client)
@@ -683,6 +734,8 @@ int PowerArmorType (edict_t *ent)
 	return POWER_ARMOR_NONE;
 }
 
+/* gamex86.dll 0x2000cc30-0x2000cce0 (padded+majority) */
+/* gamei386.so 0x0002c298-0x0002c37c */
 void Use_PowerArmor (edict_t *ent, gitem_t *item)
 {
 	int		index;
@@ -705,6 +758,8 @@ void Use_PowerArmor (edict_t *ent, gitem_t *item)
 	}
 }
 
+/* gamex86.dll 0x2000cce0-0x2000cd70 (bracketed) */
+/* gamei386.so 0x0002c37c-0x0002c442 */
 qboolean Pickup_PowerArmor (edict_t *ent, edict_t *other)
 {
 	int		quantity;
@@ -725,6 +780,8 @@ qboolean Pickup_PowerArmor (edict_t *ent, edict_t *other)
 	return true;
 }
 
+/* gamex86.dll 0x2000cd70-0x2000cdd0 (bracketed) */
+/* gamei386.so 0x0002c444-0x0002c4cb */
 void Drop_PowerArmor (edict_t *ent, gitem_t *item)
 {
 	if ((ent->flags & FL_POWER_ARMOR) && (ent->client->pers.inventory[ITEM_INDEX(item)] == 1))
@@ -739,6 +796,8 @@ void Drop_PowerArmor (edict_t *ent, gitem_t *item)
 Touch_Item
 ===============
 */
+/* gamex86.dll 0x2000cdd0-0x2000cfce (unpadded-prologue+collision-resolved) */
+/* gamei386.so 0x0002c4cc-0x0002c6dc */
 void Touch_Item (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	qboolean	taken;
@@ -803,6 +862,8 @@ void Touch_Item (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf
 
 //======================================================================
 
+/* gamex86.dll 0x2000d190-0x2000d1c0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002d38c-0x0002d3b3 */
 static void drop_temp_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (other == ent->owner)
@@ -811,6 +872,8 @@ static void drop_temp_touch (edict_t *ent, edict_t *other, cplane_t *plane, csur
 	Touch_Item (ent, other, plane, surf);
 }
 
+/* gamex86.dll 0x2000d1c0-0x2000d200 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002d3b4-0x0002d3f5 */
 static void drop_make_touchable (edict_t *ent)
 {
 	ent->touch = Touch_Item;
@@ -821,6 +884,8 @@ static void drop_make_touchable (edict_t *ent)
 	}
 }
 
+/* gamex86.dll 0x2000cfd0-0x2000d190 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002c6dc-0x0002c8b8 */
 edict_t *Drop_Item (edict_t *ent, gitem_t *item)
 {
 	edict_t	*dropped;
@@ -870,6 +935,8 @@ edict_t *Drop_Item (edict_t *ent, gitem_t *item)
 	return dropped;
 }
 
+/* gamex86.dll 0x2000d200-0x2000d260 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002c8b8-0x0002c90c */
 void Use_Item (edict_t *ent, edict_t *other, edict_t *activator)
 {
 	ent->svflags &= ~SVF_NOCLIENT;
@@ -896,6 +963,8 @@ void Use_Item (edict_t *ent, edict_t *other, edict_t *activator)
 droptofloor
 ================
 */
+/* gamex86.dll 0x2000d260-0x2000d480 (padded) */
+/* gamei386.so 0x0002c90c-0x0002cb0c */
 void droptofloor (edict_t *ent)
 {
 	trace_t		tr;
@@ -971,6 +1040,8 @@ This will be called for each item spawned in a level,
 and for each item in each client's inventory.
 ===============
 */
+/* gamex86.dll 0x2000d480-0x2000d6a0 (padded) */
+/* gamei386.so 0x0002cb0c-0x0002ccdf */
 void PrecacheItem (gitem_t *it)
 {
 	char	*s, *start;
@@ -1039,6 +1110,8 @@ Items can't be immediately dropped to floor, because they might
 be on an entity that hasn't spawned yet.
 ============
 */
+/* gamex86.dll 0x2000d6a0-0x2000d820 (padded+majority) */
+/* gamei386.so 0x0002cce0-0x0002ce1a */
 void SpawnItem (edict_t *ent, gitem_t *item)
 {
 	PrecacheItem (item);
@@ -1052,10 +1125,6 @@ void SpawnItem (edict_t *ent, gitem_t *item)
 		}
 	}
 
-	// arenas hand out their loadout directly (see give_ammo/init_player) -
-	// map-placed pickups would only conflict with the configured loadout,
-	// so anything the map spawns that could actually be picked up is
-	// simply discarded
 	if (item->pickup)
 	{
 		G_FreeEdict (ent);
@@ -1238,6 +1307,31 @@ gitem_t	itemlist[] =
 	//
 	// WEAPONS 
 	//
+
+/*QUAKED weapon_grapple (.3 .3 1) (-16 -16 -16) (16 16 16)
+always owned, never in the world
+*/
+
+	{
+		"weapon_grapple",
+		NULL,
+		NULL,
+		NULL,
+		CTFWeapon_Grapple,
+		"misc/w_pkup.wav",
+		NULL, 0,
+		"models/weapons/grapple/tris.md2",
+/* icon */		"w_grapple",
+/* pickup */	"Grapple",
+		0,
+		0,
+		NULL,
+		IT_WEAPON,
+		WEAP_GRAPPLE,
+		NULL,
+		0,
+/* precache */ "weapons/grapple/grfire.wav weapons/grapple/grpull.wav weapons/grapple/grhang.wav weapons/grapple/grreset.wav weapons/grapple/grhit.wav"
+	},
 
 /* weapon_blaster (.3 .3 1) (-16 -16 -16) (16 16 16)
 always owned, never in the world
@@ -2072,6 +2166,8 @@ tank commander's head
 
 /*QUAKED item_health (.3 .3 1) (-16 -16 -16) (16 16 16)
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0002ce1c-0x0002cee4 */
 void SP_item_health (edict_t *self)
 {
 	if ( deathmatch->value && ((int)dmflags->value & DF_NO_HEALTH) )
@@ -2088,6 +2184,8 @@ void SP_item_health (edict_t *self)
 
 /*QUAKED item_health_small (.3 .3 1) (-16 -16 -16) (16 16 16)
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0002cee4-0x0002cfb6 */
 void SP_item_health_small (edict_t *self)
 {
 	if ( deathmatch->value && ((int)dmflags->value & DF_NO_HEALTH) )
@@ -2105,6 +2203,8 @@ void SP_item_health_small (edict_t *self)
 
 /*QUAKED item_health_large (.3 .3 1) (-16 -16 -16) (16 16 16)
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0002cfb8-0x0002d080 */
 void SP_item_health_large (edict_t *self)
 {
 	if ( deathmatch->value && ((int)dmflags->value & DF_NO_HEALTH) )
@@ -2121,6 +2221,8 @@ void SP_item_health_large (edict_t *self)
 
 /*QUAKED item_health_mega (.3 .3 1) (-16 -16 -16) (16 16 16)
 */
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x0002d080-0x0002d152 */
 void SP_item_health_mega (edict_t *self)
 {
 	if ( deathmatch->value && ((int)dmflags->value & DF_NO_HEALTH) )
@@ -2137,6 +2239,8 @@ void SP_item_health_mega (edict_t *self)
 }
 
 
+/* gamex86.dll 0x2000d820-0x2000d830 (manual-confirmed(byte-identical)) */
+/* gamei386.so 0x0002d154-0x0002d15f */
 void InitItems (void)
 {
 	game.num_items = sizeof(itemlist)/sizeof(itemlist[0]) - 1;
@@ -2151,6 +2255,8 @@ SetItemNames
 Called by worldspawn
 ===============
 */
+/* gamex86.dll 0x2000d830-0x2000d940 (padded+size) */
+/* gamei386.so 0x0002d160-0x0002d389 */
 void SetItemNames (void)
 {
 	int		i;

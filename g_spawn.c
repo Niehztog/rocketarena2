@@ -130,7 +130,7 @@ void SP_trigger_teleport (edict_t *ent);
 void SP_info_teleport_destination (edict_t *ent);
 void SP_func_illusionary (edict_t *ent);
 
-void arena_init (edict_t *edicts);
+void arena_init (edict_t *wsent);
 void GSLogNewmap (void);
 
 extern char	*teamskins[];
@@ -272,6 +272,8 @@ spawn_t	spawns[] = {
 SP_none
 ===============
 */
+/* gamex86.dll 0x200100b0-0x200100c0 (manual-confirmed) */
+/* gamei386.so 0x00036700-0x0003670e */
 void SP_none (edict_t *ent)
 {
 	G_FreeEdict (ent);
@@ -284,6 +286,8 @@ ED_CallSpawn
 Finds the spawn function for the entity and calls it
 ===============
 */
+/* gamex86.dll 0x20014040-0x20014140 (padded) */
+/* gamei386.so 0x00036710-0x000367c8 */
 void ED_CallSpawn (edict_t *ent)
 {
 	spawn_t	*s;
@@ -325,6 +329,8 @@ void ED_CallSpawn (edict_t *ent)
 ED_NewString
 =============
 */
+/* gamex86.dll 0x20014140-0x200141a0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000367c8-0x0003683d */
 char *ED_NewString (char *string)
 {
 	char	*newb, *new_p;
@@ -364,6 +370,8 @@ Takes a key/value pair and sets the binary values
 in an edict
 ===============
 */
+/* gamex86.dll 0x200141a0-0x200142f0 (manual-confirmed) */
+/* gamei386.so 0x00036840-0x00036a4f */
 void ED_ParseField (char *key, char *value, edict_t *ent)
 {
 	field_t	*f;
@@ -420,6 +428,8 @@ Parses an edict out of the given string, returning the new position
 ed should be a properly initialized empty edict.
 ====================
 */
+/* gamex86.dll 0x200142f0-0x200143e0 (manual-confirmed) */
+/* gamei386.so 0x00036a50-0x00036b2b */
 char *ED_ParseEdict (char *data, edict_t *ent)
 {
 	qboolean	init;
@@ -476,6 +486,8 @@ All but the first will have the FL_TEAMSLAVE flag set.
 All but the last will have the teamchain field set to the next one
 ================
 */
+/* gamex86.dll 0x200143e0-0x20014550 (padded) */
+/* gamei386.so 0x00036b2c-0x00036c5a */
 void G_FindTeams (void)
 {
 	edict_t	*e, *e2, *chain;
@@ -526,6 +538,8 @@ Creates a server's entity / program execution context by
 parsing textual entity definitions out of an ent file.
 ==============
 */
+/* gamex86.dll 0x20014550-0x20014800 (padded+majority) */
+/* gamei386.so 0x00036c5c-0x000370e1 */
 void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 {
 	edict_t		*ent;
@@ -717,82 +731,45 @@ char *single_statusbar =
 ;
 
 char *dm_statusbar =
-"yb	-24 "
 
-// health
-"xv	0 "
-"hnum "
-"xv	50 "
-"pic 0 "
+"if 16 	xv	150 	yt	60 	num	2	16"
+"    xv 20"
+"    yt 50"
+"    stat_string 17"
+"    xv 140"
+"    yt 40"
+"    stat_string 18"
+" endif"
+
+" if 23 	xr	-34 	yt	32 	num 2	21 	xr	-34 	yt	62 	num 2	22 	xr	-64 	yt	40 	stat_string 24 	xr	-64 	yt	70 	stat_string	25"
+" endif yb	-32 xv	50 pic 0 yb	-24 xv	0 hnum"
 
 // ammo
-"if 2 "
-"	xv	100 "
-"	anum "
-"	xv	150 "
-"	pic 2 "
-"endif "
+" if 2 	xv	100 	anum 	xv	150 	pic 2"
+" endif"
 
 // armor
-"if 4 "
-"	xv	200 "
-"	rnum "
-"	xv	250 "
-"	pic 4 "
-"endif "
+" if 4 	xv	200 	rnum 	xv	250 	pic 4"
+" endif"
 
 // selected item
-"if 6 "
-"	xv	296 "
-"	pic 6 "
-"endif "
+" if 6 	xv	296 	pic 6"
+" endif yb	-50"
 
-"yb	-50 "
-
-// picked up item
-"if 7 "
-"	xv	0 "
-"	pic 7 "
-"	xv	26 "
-"	yb	-42 "
-"	stat_string 8 "
-"	yb	-50 "
-"endif "
+// pickup
+" if 7 	xv	0 	pic 7 	xv	26 	yb	-42 	stat_string 8 	yb	-50"
+" endif"
 
 // timer
-"if 9 "
-"	xv	246 "
-"	num	2	10 "
-"	xv	296 "
-"	pic	9 "
-"endif "
+" if 9 	xv	246 	num	2	10 	xv	296 	pic	9"
+" endif"
 
-//  help / weapon icon 
-"if 11 "
-"	xv	148 "
-"	pic	11 "
-"endif "
+// help / weapon icon
+" if 11 	xv	148 	pic	11"
+" endif xr	-50 yt 2 num 3 14"
 
-//  frags
-"xr	-50 "
-"yt 2 "
-"num 3 14 "
-
-// spectator
-"if 17 "
-  "xv 0 "
-  "yb -58 "
-  "string2 \"SPECTATOR MODE\" "
-"endif "
-
-// chase camera
-"if 16 "
-  "xv 0 "
-  "yb -68 "
-  "string \"Chasing\" "
-  "xv 64 "
-  "stat_string 16 "
-"endif "
+" if 20 xv 0 yb -58 stat_string 20"
+" endif "
 ;
 
 
@@ -806,6 +783,8 @@ Only used for the world.
 "gravity"	800 is default gravity
 "message"	text to print at user logon
 */
+/* gamex86.dll 0x20014800-0x20014de0 (padded+majority+collision-resolved) */
+/* gamei386.so 0x000370e4-0x0003786c */
 void SP_worldspawn (edict_t *ent)
 {
 	int	i;
@@ -856,12 +835,7 @@ void SP_worldspawn (edict_t *ent)
 	else
 		gi.configstring (CS_STATUSBAR, single_statusbar);
 
-	teamskins_precachem[0] = gi.imageindex (va ("male/%s_i", teamskins[0]));
-	teamskins_precachef[0] = gi.imageindex (va ("female/%s_i", teamskins[0]));
-	teamskins_precachecw[0] = gi.imageindex (va ("crakhor/%s_i", teamskins[0]));
-	teamskins_precachecb[0] = gi.imageindex (va ("cyborg/%s_i", teamskins[0]));
-
-	for (i=1 ; i<=6 ; i++)
+	for (i=0 ; i<7 ; i++)
 	{
 		teamskins_precachem[i] = gi.imageindex (va ("male/%s_i", teamskins[i]));
 		teamskins_precachef[i] = gi.imageindex (va ("female/%s_i", teamskins[i]));
@@ -931,6 +905,7 @@ void SP_worldspawn (edict_t *ent)
 	gi.modelindex ("#w_hyperblaster.md2");
 	gi.modelindex ("#w_railgun.md2");
 	gi.modelindex ("#w_bfg.md2");
+	gi.modelindex ("#w_grapple.md2");
 
 	//-------------------
 

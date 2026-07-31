@@ -213,6 +213,7 @@ typedef struct
 #define WEAP_HYPERBLASTER		9 
 #define WEAP_RAILGUN			10
 #define WEAP_BFG				11
+#define WEAP_GRAPPLE			12
 
 typedef struct gitem_s
 {
@@ -274,8 +275,6 @@ typedef struct
 	int			num_items;
 
 	qboolean	autosaved;
-
-	int			queue_icon;		// arena.c -- base precached image index for the queue-position HUD icons
 } game_locals_t;
 
 
@@ -323,8 +322,6 @@ typedef struct
 	int			body_que;			// dead bodies
 
 	int			power_cubes;		// ugly necessity for coop
-
-	int			unknown_icon;		// arena.c -- fallback skin/team icon when a player's own isn't precached
 } level_locals_t;
 
 
@@ -540,8 +537,8 @@ extern	cvar_t	*sv_maplist;
 extern	cvar_t	*logfile;
 extern	cvar_t	*netlog;
 
-extern	char	*dm_statusbar;		// default deathmatch statusbar program, see g_spawn.c
-extern	char	*single_statusbar;	// default single player statusbar program, see g_spawn.c
+extern	char	*dm_statusbar;
+extern	char	*single_statusbar;
 
 #define world	(&g_edicts[0])
 
@@ -646,6 +643,7 @@ void vectoangles (vec3_t vec, vec3_t angles);
 //
 qboolean OnSameTeam (edict_t *ent1, edict_t *ent2);
 qboolean CanDamage (edict_t *targ, edict_t *inflictor);
+qboolean CheckTeamDamage (edict_t *targ, edict_t *attacker);
 void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir, vec3_t point, vec3_t normal, int damage, int knockback, int dflags, int mod);
 void T_RadiusDamage (edict_t *inflictor, edict_t *attacker, float damage, edict_t *ignore, float radius, int mod);
 
@@ -770,8 +768,8 @@ void ClientEndServerFrame (edict_t *ent);
 //
 void MoveClientToIntermission (edict_t *client);
 void G_SetStats (edict_t *ent);
-void G_SetSpectatorStats (edict_t *ent);
 void G_CheckChaseStats (edict_t *ent);
+void G_SetSpectatorStats (edict_t *ent);
 void ValidateSelectedItem (edict_t *ent);
 void DeathmatchScoreboardMessage (edict_t *ent, edict_t *killer);
 
@@ -856,10 +854,17 @@ typedef struct
 
 	qboolean	spectator;			// client is a spectator
 
-	qboolean	admin;				// arena.c/ra2menus.c -- toggled by the "admin" command
+	qboolean	showmotd;
 } client_persistant_t;
 
 // client data that stays across deathmatch respawns
+typedef enum {
+	NORMAL,
+	FREEFLYING,
+	TRACKCAM,
+	EYECAM
+} observer_mode_t;
+
 typedef struct
 {
 	client_persistant_t	coop_respawn;	// what to set client->pers to on a respawn
@@ -868,6 +873,25 @@ typedef struct
 	vec3_t		cmd_angles;			// angles sent over in the last command
 
 	qboolean	spectator;			// client is a spectator
+
+	int			teamnum;
+	int			_unidentified1a;
+	int			fightstate;
+	int			context;
+	qmenu_t		teammember;
+	int			spawn_recheck;
+	observer_mode_t	omode;
+	qboolean	entered;
+	edict_t		*track_target;
+	int			omode_buttons;
+	observer_mode_t	lastomode;
+
+	qboolean	voted;
+	int			votes;
+	int			zbotcount;
+	float		zbotlastcheck;
+	int			isbot;
+	int			damagedealt;
 } client_respawn_t;
 
 // this structure is cleared on each PutClientInServer(),
@@ -882,70 +906,30 @@ struct gclient_s
 	client_persistant_t	pers;
 	client_respawn_t	resp;
 
-	//
-	// arena.c/menu.c -- Rocket Arena 2 additions.
-	//
-	// This block was originally (incorrectly) placed at the very end of
-	// this struct. Direct disassembly cross-reference (init_player,
-	// move_to_arena, ChangeOMode, SetObserverMode, CTFPlayerResetGrapple,
-	// clear_menus, FinishMenu, MenuThink, all in gamei386.so) proved the
-	// real binary inserts it HERE instead, immediately after `resp` and
-	// before `old_pmove` -- this single relocation accounts for the
-	// "+1548 byte" offset drift on every stock field from `old_pmove`
-	// onward that two earlier passes on this project had already found
-	// independently (see _recon-notes and the reconstruction-feasibility
-	// memory). Confirmed-by-disassembly fields are marked; the rest are
-	// a best-effort placement that preserves the confirmed total block
-	// size (1548 bytes) without direct evidence for their exact slot.
-	//
-	int			teamnum;			// CONFIRMED @resp+0 (init_player, move_to_arena: cmpl $-1)
-	int			inarena;			// inferred @resp+4 (gap between two confirmed neighbors)
-	int			fightstate;			// CONFIRMED @resp+8 (init_player, ChangeOMode, ra p_view.c/p_weapon.c gates)
-	int			arenanum;			// CONFIRMED @resp+12 (move_to_arena stores its 2nd arg here; ChangeOMode)
-	edict_t		*selfedict;			// NEWLY DISCOVERED @resp+16 (init_player stores `ent` itself here; name guessed -- real purpose is a self/owner back-pointer, not previously identified at all)
-	vec3_t		cam_angle;			// inferred @resp+20 (12-byte gap exactly fits a vec3_t)
-	int			omode;				// CONFIRMED @resp+32 (ChangeOMode saves/restores this)
-	int			omode_buttons;		// inferred @resp+36
-	edict_t		*track_target;		// CONFIRMED @resp+40 (SetObserverMode clears/sets this)
-	int			spawn_recheck;		// inferred @resp+44
-	int			lastomode;			// CONFIRMED @resp+48 (ChangeOMode: lastomode = old omode)
-
-	// resp+52 .. resp+144 (92 bytes, up to the confirmed ctf_grapple
-	// anchor): only ~32 bytes of this are accounted for by fields we
-	// already know about (below). The remaining ~60 bytes are NOT
-	// identified -- reserved rather than invented, see _unidentified1.
-	qboolean	entered;
-	int			votes;
-	qboolean	voted;
-	int			scoremode;
-	qboolean	inmenu;
+	pmove_state_t	old_pmove;
 	int			zbotscore;
-	int			damagedealt;
-	gclient_t	*arena_next;
-	gclient_t	*arena_prev;
-	char		_unidentified1[56];	// real content unknown, see comment above
-
-	edict_t		*ctf_grapple;			// CONFIRMED @resp+144 (CTFPlayerResetGrapple)
-	int			ctf_grapplestate;		// inferred @resp+148 (contiguous w/ confirmed neighbors)
-	float		ctf_grapplereleasetime;	// inferred @resp+152
-	qboolean	hookbutton;				// inferred @resp+156
-
-	qboolean	showmenu;			// CONFIRMED @resp+160 (MenuThink, clear_menus, FinishMenu)
-	int			menutime;			// CONFIRMED @resp+164 (MenuThink time-delta check)
-	int			menuusetime;		// inferred @resp+168
-	char		_unidentified2[4];	// two more small gaps found bracketing menuqueue -- not identified
-	qmenu_t		*menuqueue;			// CONFIRMED (clear_menus)
-	char		_unidentified3[4];	// see _unidentified2
-	qmenu_t		*menu;				// CONFIRMED (FinishMenu, clear_menus)
-	qmenu_t		*menuitem;			// inferred
-	char		menutext[MAXMENUTEXT];	// rendered CS_STATUSBAR program, sent by SendMenu -- MAXMENUTEXT itself (1400) is our own guess, not binary-confirmed, and the arithmetic above does not land it exactly back on old_pmove's confirmed start; treat the exact tail of this block as approximate
-
-	pmove_state_t		old_pmove;	// for detecting out-of-pmove changes
-
-	qboolean	showscores;			// set layout stat
-	qboolean	showinventory;		// set layout stat
+	short		oldangles[2][2];
+	int			scoremode;
+	qboolean	showinventory;
 	qboolean	showhelp;
 	qboolean	showhelpicon;
+	char		_unidentified1b[4];
+
+	int			spamcount;
+	float		spamtime;
+
+	edict_t		*ctf_grapple;
+	int			ctf_grapplestate;
+	float		ctf_grapplereleasetime;
+	qboolean	hookbutton;
+
+	qboolean	showmenu;
+	int			menutime;
+	int			menuusetime;
+	qmenu_t		menuqueue;
+	qmenu_t		*curmenulink;
+	qmenu_t		*selected;
+	char		menutext[MAXMENUTEXT];
 
 	int			ammo_index;
 
@@ -1008,12 +992,6 @@ struct gclient_s
 	float		flood_locktill;		// locked from talking
 	float		flood_when[10];		// when messages were said
 	int			flood_whenhead;		// head pointer for when said
-
-	// g_cmds.c -- Cmd_Say_f's own simpler flood check: a run of more
-	// than 5 messages each within 2 seconds of the last one gets the
-	// talker permanently muted (spamcount == -1) and disconnected
-	int			spamcount;			// consecutive rapid-fire messages, -1 once muted
-	float		spamtime;			// level.time the last message was said
 
 	float		respawn_time;		// can respawn when time > this
 
@@ -1170,6 +1148,7 @@ struct edict_s
 	moveinfo_t		moveinfo;
 	monsterinfo_t	monsterinfo;
 
-	int			arena;			// arena.c -- which arena this entity belongs to, for multi-arena maps
-};
+	int			arena;
 
+	char		_edict_unidentified1[12];
+};

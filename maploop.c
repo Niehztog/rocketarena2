@@ -1,36 +1,17 @@
-// maploop.c -- arena.cfg config file parser and map rotation
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "g_local.h"
 #include "arena.h"
-
-/*
-==============================================================
-
-arena.cfg is a single brace-delimited definitions file that lives in the
-mod's game directory.  It holds one global block of "key value" and
-"key: value value ...;" settings that apply to every arena on the server,
-further blocks nested inside it and named after a map (.bsp name) whose
-settings override the global ones for that map only, and, nested inside
-those, numbered blocks ("0", "1", "2"...) that override settings for one
-particular arena on that map.
-
-set_config() walks global -> map -> arena for every arena on the server
-each time settings need to be reapplied, letting each level override
-whatever the previous level set.  The parser itself (read_block) turns
-the raw file into a tree of "definition" structures; find_key/has_val/
-get_val are the accessors used to pull values back out of that tree.
-
-==============================================================
-*/
 
 #define	MAX_DEFS	256
 
 typedef struct definition_s
 {
-	int				count;		// number of values appended to 'value'
-	int				count2;		// number of values appended to 'value2', or number of items under 'value2' when type == 2
+	int				count;
+	int				count2;
 	char			*value;
-	int				type;		// 0 == "key value", 1 == "key: value value...;", 2 == "key { ... }"
+	int				type;
 	void			*value2;
 } definition_t;
 
@@ -100,14 +81,8 @@ int		damage_scoring;
 
 static	blockstack_t	stack[32];
 
-/*
-===============
-has_val
-
-Does the space separated value list 'str' contain 'key' as one of its
-words?
-===============
-*/
+/* gamex86.dll 0x2001ccb0-0x2001cd60 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0004d668-0x0004d6d6 */
 int has_val (char *str, char *key)
 {
 	char	buf[1024];
@@ -128,14 +103,8 @@ int has_val (char *str, char *key)
 }
 
 
-/*
-===============
-get_val
-
-Returns the 'index'th (0 based) space separated word in 'str', or an
-empty string if there aren't that many.
-===============
-*/
+/* gamex86.dll 0x2001cd60-0x2001ce30 (shape-matched(ratio=0.89)) */
+/* gamei386.so 0x0004d6d8-0x0004d750 */
 char *get_val (char *str, int index)
 {
 	static char	fnd[1024];
@@ -145,7 +114,7 @@ char *get_val (char *str, int index)
 	strcpy (buf, str);
 	tok = strtok (buf, " ");
 
-	while (index && tok)
+	while (tok && index)
 	{
 		index--;
 		tok = strtok (NULL, " ");
@@ -160,31 +129,29 @@ char *get_val (char *str, int index)
 }
 
 
-/*
-===============
-get_settings
-
-Applies every setting found in 'items' (a block of 'count' definitions)
-on top of whatever the settings globals already hold.  Called once for
-the global block, once for the current map's block, and once for the
-current arena's block, in that order, so that each level only overrides
-what it actually defines.
-===============
-*/
+/* gamex86.dll 0x2001ce30-0x2001d610 (padded+majority) */
+/* gamei386.so 0x0004d750-0x0004f16d */
 void get_settings (definition_t *items, int count)
 {
 	definition_t	*key;
 	unsigned int	mask;
-	int				i;
+	int				i, n;
 
 	key = find_key ("weapons", 1, items, count);
 	if (key)
 	{
 		mask = 0;
 
-		for (i = 0; i < 9; i++)
-			if (has_val (key->value2, va ("%d", i + 1)))
+		for (i = 0; i <= 8; i++)
+		{
+			if (i == 8)
+				n = 0;
+			else
+				n = i + 2;
+
+			if (has_val (key->value2, va ("%d", n)))
 				mask |= weapon_vals[i];
+		}
 
 		weapons = mask;
 	}
@@ -355,24 +322,17 @@ void get_settings (definition_t *items, int count)
 }
 
 
-/*
-===============
-set_config
-
-Resets arenas 'first' through 'last' (inclusive) to the compiled in
-defaults, lets arena.cfg override them (global block, then this map's
-block, then this arena's block), and copies the results into the arena
-structures themselves.
-===============
-*/
+/* gamex86.dll 0x2001d610-0x2001d980 (manual-confirmed) */
+/* gamei386.so 0x0004f170-0x0004f5da */
 void set_config (int first, int last)
 {
 	int		i;
 
-	if (first > last)
+	i = first;
+	if (i > last)
 		return;
 
-	for (i = first; i <= last; i++)
+	for (; i <= last; i++)
 	{
 		weapons = 0xff;
 		armor = 200;
@@ -380,9 +340,15 @@ void set_config (int first, int last)
 		minping = 0;
 		maxping = 1000;
 		playersperteam = 1;
-		rounds = idmap ? 9 : 1;
+		if (!idmap)
+			rounds = 1;
+		else
+			rounds = 9;
 		max_teams = 128;
-		pickup = idmap ? 1 : 0;
+		if (!idmap)
+			pickup = 0;
+		else
+			pickup = 1;
 		rocket_speed = 650;
 		shells = 100;
 		bullets = 200;
@@ -425,13 +391,15 @@ void set_config (int first, int last)
 		if (map_block && arena_blocks[i])
 			get_settings (arena_blocks[i]->value2, arena_blocks[i]->count2);
 
-		arenas[i].playersperteam = playersperteam;
-		arenas[i].rounds = rounds;
 		arenas[i].weapons = weapons;
 		arenas[i].armor = armor;
 		arenas[i].health = health;
 		arenas[i].minping = minping;
 		arenas[i].maxping = maxping;
+		arenas[i].playersperteam = playersperteam;
+		arenas[i].rounds = rounds;
+		arenas[i].maxteams = max_teams;
+		arenas[i].idarena = pickup;
 		arenas[i].rocket_speed = rocket_speed;
 		arenas[i].shells = shells;
 		arenas[i].bullets = bullets;
@@ -465,54 +433,38 @@ void set_config (int first, int last)
 		arenas[i].locked = lock_arena;
 		arenas[i].competition = competition_mode;
 		arenas[i].scorebydamage = damage_scoring;
-		arenas[i].votetries = 0;
-		arenas[i].pickup = pickup;
-		arenas[i].maxteams = max_teams;
+		arenas[i].changed = 0;
 	}
 }
 
 
-/*
-===============
-ra_isalnum
-===============
-*/
-int ra_isalnum (int c)
+/* gamex86.dll 0x2001d980-0x2001d9b0 (bracketed) */
+/* gamei386.so 0x0004f5dc-0x0004f603 */
+int ra_isalnum (char ch)
 {
-	if (c >= '0' && c <= '9')
-		return 1;
+	int	c;
 
-	if (c >= 'A' && c <= 'Z')
-		return 1;
+	c = ch;
 
-	if (c >= 'a' && c <= 'z')
+	if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
 		return 1;
 
 	return 0;
 }
 
 
-/*
-===============
-next_token
-
-Splits the alnum runs and individual punctuation characters out of a
-single word already read from the config file (see 'line').  Two slashes
-in a row are returned together as a single "//" token so the caller can
-recognize a comment.  Pass NULL to keep tokenizing the string handed to
-the previous call; returns NULL once that string is exhausted.
-===============
-*/
+/* gamex86.dll 0x2001d9b0-0x2001da80 (bracketed) */
+/* gamei386.so 0x0004f604-0x0004f6ce */
 char *next_token (char *str)
 {
-	static char	*token;
+	static char	*token = NULL;
 	static char	foo[1024];
 	char		*out;
+	char		c;
 
 	if (str)
 		token = str;
-
-	if (!token)
+	else if (!token)
 		return NULL;
 
 	if (!*token || *token == '\n')
@@ -520,41 +472,34 @@ char *next_token (char *str)
 
 	out = foo;
 
-	if (ra_isalnum (*token))
+	if (!ra_isalnum (*token))
 	{
-		while (ra_isalnum (*token))
+		*out++ = c = *token++;
+
+		if (*token == '/' && c == '/')
 			*out++ = *token++;
 
 		*out = 0;
 		return foo;
 	}
 
-	*out++ = *token++;
-
-	if (token[-1] == '/' && *token == '/')
+	while (ra_isalnum (*token))
 		*out++ = *token++;
-
 	*out = 0;
 	return foo;
 }
 
 
-/*
-===============
-new_def_block
-===============
-*/
+/* gamex86.dll 0x2001da80-0x2001daa0 (bracketed) */
+/* gamei386.so 0x0004f6d0-0x0004f6e5 */
 definition_t *new_def_block (void)
 {
 	return gi.TagMalloc (sizeof(definition_t) * MAX_DEFS, TAG_LEVEL);
 }
 
 
-/*
-===============
-new_val_block
-===============
-*/
+/* gamex86.dll 0x2001daa0-0x2001dad0 (bracketed) */
+/* gamei386.so 0x0004f6e8-0x0004f70e */
 char *new_val_block (void)
 {
 	char	*buf;
@@ -566,11 +511,8 @@ char *new_val_block (void)
 }
 
 
-/*
-===============
-add_val
-===============
-*/
+/* gamex86.dll 0x2001dad0-0x2001db30 (bracketed) */
+/* gamei386.so 0x0004f710-0x0004f732 */
 void add_val (char *dest, char *token)
 {
 	strcat (dest, " ");
@@ -578,55 +520,41 @@ void add_val (char *dest, char *token)
 }
 
 
-/*
-===============
-new_def_item
-===============
-*/
+/* gamex86.dll 0x2001db30-0x2001db60 (bracketed) */
+/* gamei386.so 0x0004f734-0x0004f777 */
 definition_t *new_def_item (definition_t *item)
 {
 	item->count = 0;
 	item->count2 = 0;
-	item->value = gi.TagMalloc (0x400, TAG_LEVEL);
-	sprintf (item->value, "");
+	item->value = new_val_block ();
 	item->type = 0;
 
 	return item;
 }
 
 
-/*
-===============
-read_block
-
-Reads key/value definitions from 'fp' into the item array starting at
-'cursor', until the file ends or a '}' closes a brace this call didn't
-open itself.  Returns the number of top level definitions read at this
-level (the count belonging to whichever '{' -- or the top of the file --
-we started at).
-===============
-*/
+/* gamex86.dll 0x2001db60-0x2001dd70 (padded) */
+/* gamei386.so 0x0004f778-0x0004faac */
 int read_block (FILE *fp, definition_t *cursor)
 {
 	definition_t	*cur;
 	int				depth;
-	int				count;
 	int				mode;
+	int				count;
 	char			*tok;
 	int				c;
 
 	depth = 0;
 	count = 0;
+
+	cur = new_def_item (cursor++);
 	mode = 0;
 
-	cur = new_def_item (cursor);
-	cursor++;
-
-	for ( ;; )
+	while (1)
 	{
-		if (fscanf (fp, "%s", line) <= 0)
+		if (fscanf (fp, "%s", line) < 1)
 		{
-			if (!count)
+			if (depth)
 			{
 				gi.dprintf ("Error reading config file: unbalanced {}\n");
 				return 0;
@@ -639,12 +567,12 @@ int read_block (FILE *fp, definition_t *cursor)
 		{
 			if (tok[0] == '/' && tok[1] == '/')
 			{
-				while ((c = fgetc (fp)) > 0)
-					if (c == '\n')
-						break;
-
-				if (c <= 0)
-					return count;
+				do
+				{
+					c = fgetc (fp);
+					if (c < 1)
+						return count;
+				} while (c != '\n');
 
 				break;
 			}
@@ -659,12 +587,11 @@ int read_block (FILE *fp, definition_t *cursor)
 					stack[depth].count = count;
 					stack[depth].cursor = cursor;
 					stack[depth].item = cur;
-					depth++;
 
 					count = 0;
 					cursor = cur->value2;
-					cur = new_def_item (cursor);
-					cursor++;
+					cur = new_def_item (cursor++);
+					depth++;
 				}
 				else if (*tok == ':')
 				{
@@ -683,11 +610,11 @@ int read_block (FILE *fp, definition_t *cursor)
 					depth--;
 					cur = stack[depth].item;
 					cur->count2 = count;
-					count = stack[depth].count;
 					cursor = stack[depth].cursor;
+					count = stack[depth].count;
 
-					cur = new_def_item (cursor);
-					cursor++;
+					cur = new_def_item (cursor++);
+					mode = 0;
 					count++;
 				}
 				else
@@ -696,12 +623,11 @@ int read_block (FILE *fp, definition_t *cursor)
 					cur->count++;
 				}
 			}
-			else
+			else if (mode == 1)
 			{
 				if (*tok == ';')
 				{
-					cur = new_def_item (cursor);
-					cursor++;
+					cur = new_def_item (cursor++);
 					mode = 0;
 					count++;
 				}
@@ -716,11 +642,8 @@ int read_block (FILE *fp, definition_t *cursor)
 }
 
 
-/*
-===============
-read_config
-===============
-*/
+/* gamex86.dll 0x2001dd70-0x2001ddc0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0004faac-0x0004fb00 */
 void read_config (FILE *fp)
 {
 	definition_blocks = new_def_block ();
@@ -730,51 +653,45 @@ void read_config (FILE *fp)
 }
 
 
-/*
-===============
-find_key
-
-Looks through 'count' definitions in 'items' for one of the given 'type'
-whose value list contains 'key' as one of its words, and returns it, or
-NULL if there's no such definition.
-===============
-*/
+/* gamex86.dll 0x2001ddc0-0x2001dec0 (manual-confirmed) */
+/* gamei386.so 0x0004fb00-0x0004fc90 */
 definition_t *find_key (char *key, int type, definition_t *items, int count)
 {
 	int		i;
+	char	buf[1024];
+	char	*tok;
 
 	for (i = 0; i < count; i++)
 	{
-		if (items[i].type == type && has_val (items[i].value, key))
-			return &items[i];
+		if (items[i].type == type)
+		{
+			strcpy (buf, items[i].value);
+
+			for (tok = strtok (buf, " "); tok; tok = strtok (NULL, " "))
+				if (!strcmp (tok, key))
+					return &items[i];
+		}
 	}
 
 	return NULL;
 }
 
 
-/*
-===============
-list_keys
-
-Debug/admin helper -- descends into a nested block named by each
-console argument in turn, then dumps every key at the block it ends up
-at.
-===============
-*/
+/* gamex86.dll 0x2001dec0-0x2001e040 (unpadded-prologue) */
+/* gamei386.so 0x0004fc90-0x0004ffec */
 void list_keys (edict_t *ent)
 {
 	definition_t	*items;
 	definition_t	*key;
+	int				i;
 	int				count;
 	int				argc;
-	int				i;
 	char			path[1024];
 
-	argc = gi.argc ();
-	items = definition_blocks;
 	count = num_definition_blocks;
-	path[0] = 0;
+	items = definition_blocks;
+	argc = gi.argc ();
+	sprintf (path, "");
 
 	for (i = 1; i < argc; i++)
 	{
@@ -807,29 +724,24 @@ void list_keys (edict_t *ent)
 }
 
 
-/*
-===============
-load_config
-
-Reads arena.cfg out of the current game directory, locates the block
-for the current map (if any), and resolves each arena's numbered
-sub-block within it.  Also picks up the global only "votetries",
-"grapple" and "maploop" settings.  'num_arenas' is how many arenas
-arena_blocks needs a slot for.
-===============
-*/
+/* gamex86.dll 0x2001e040-0x2001e290 (manual-confirmed) */
+/* gamei386.so 0x0004ffec-0x000508f4 */
 void load_config (int num_arenas)
 {
 	FILE			*fp;
-	char			path[1024];
-	definition_t	*key;
+	char			path[80];
+	definition_t	*key, *block;
 	int				i;
 
 	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
 	arenacfg = gi.cvar ("arenacfg", "arena.cfg", 0);
 
 	strcpy (path, gamedir->string);
+#ifdef _WIN32
+	strcat (path, "\\");
+#else
 	strcat (path, "/");
+#endif
 	strcat (path, arenacfg->string);
 
 	fp = fopen (path, "r");
@@ -844,19 +756,20 @@ void load_config (int num_arenas)
 
 	arena_blocks = gi.TagMalloc (sizeof(definition_t *) * num_arenas, TAG_LEVEL);
 
-	map_block = find_key (level.mapname, 2, definition_blocks, num_definition_blocks);
+	block = find_key (level.mapname, 2, definition_blocks, num_definition_blocks);
 
-	if (map_block)
+	if (block)
 	{
 		gi.dprintf ("arena.cfg info for map found: %s\n", level.mapname);
+		map_block = block;
 
 		for (i = 0; i < num_arenas; i++)
-			arena_blocks[i] = find_key (va ("%d", i), 2, map_block->value2, map_block->count2);
+			arena_blocks[i] = find_key (va ("%d", i), 2, block->value2, block->count2);
 	}
 	else
 	{
-		map_block = 0;
 		gi.dprintf ("arena.cfg info for map not found: %s\n", level.mapname);
+		map_block = 0;
 	}
 
 	key = find_key ("votetries", 1, definition_blocks, num_definition_blocks);
@@ -874,19 +787,11 @@ void load_config (int num_arenas)
 }
 
 
-/*
-===============
-get_next_map
-
-Returns the map that follows 'current' in the "maploop" list, wrapping
-back to the first one after the last.  If 'current' isn't in the list
-at all, just returns the first map in it.
-===============
-*/
+/* gamex86.dll 0x2001e290-0x2001e380 (shape-matched(ratio=0.73)) */
+/* gamei386.so 0x000508f4-0x00050b33 */
 char *get_next_map (char *current)
 {
 	int		i;
-	int		count;
 	char	*val;
 
 	if (!map_loop)
@@ -895,20 +800,18 @@ char *get_next_map (char *current)
 	if (!has_val (map_loop->value2, current))
 		return get_val (map_loop->value2, 0);
 
-	count = map_loop->count2;
-
-	for (i = 0; i < count; i++)
+	for (i = 0; i < map_loop->count2; i++)
 	{
 		val = get_val (map_loop->value2, i);
 
-		if (!strcmp (val, current))
+		if (!strcmp (current, val))
 		{
 			val = get_val (map_loop->value2, i + 1);
 
-			if (*val)
-				return val;
+			if (!strlen (val))
+				return get_val (map_loop->value2, 0);
 
-			return get_val (map_loop->value2, 0);
+			return val;
 		}
 	}
 
@@ -916,11 +819,8 @@ char *get_next_map (char *current)
 }
 
 
-/*
-===============
-print_map_loop
-===============
-*/
+/* gamex86.dll 0x2001e380-0x2001e3c0 (padded) */
+/* gamei386.so 0x00050b34-0x00050b6b */
 void print_map_loop (edict_t *ent)
 {
 	if (map_loop)
@@ -930,27 +830,27 @@ void print_map_loop (edict_t *ent)
 }
 
 
-/*
-===============
-load_motd
-
-Reads motd.txt out of the current game directory, one line per queued
-motd_t, for the "show message of the day on connect" feature.
-===============
-*/
+/* gamex86.dll 0x2001e3c0-0x2001e555 (aligned-cross-object) */
+/* gamei386.so 0x00050b6c-0x00050c9f */
 void load_motd (void)
 {
-	FILE	*fp;
-	char	path[1024];
-	char	*buf;
-	char	*p;
-	int		len;
-	motd_t	*node;
+	FILE		*fp;
+	struct stat	st;
+	char		*buf;
+	char		*p;
+	motd_t		*node;
+	char		path[80];
+
+	motd.next = motd.prev = NULL;
 
 	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
 
 	strcpy (path, gamedir->string);
+#ifdef _WIN32
+	strcat (path, "\\motd.txt");
+#else
 	strcat (path, "/motd.txt");
+#endif
 
 	fp = fopen (path, "r");
 	if (!fp)
@@ -958,42 +858,33 @@ void load_motd (void)
 		gi.dprintf ("Error: Couldn't read %s\n", path);
 		return;
 	}
+	else
+		gi.dprintf ("Sucessfully read %s\n", path);
 
-	gi.dprintf ("Sucessfully read %s\n", path);
+#ifdef _WIN32
+	fstat (fileno (fp), &st);
 
-	buf = gi.TagMalloc (0x800, TAG_LEVEL);
-
-	while ((p = fgets (buf, 99999, fp)) != NULL)
+	buf = gi.TagMalloc (st.st_size + 2, TAG_LEVEL);
+	if (!buf)
 	{
-		len = strlen (p);
+		gi.dprintf ("Error: Couldn't malloc %d\n", (int)st.st_size);
+		return;
+	}
+#else
+	buf = gi.TagMalloc (2048, TAG_LEVEL);
+#endif
 
-		if (len && p[len - 1] == '\n')
-			p[len - 1] = 0;
+	p = buf;
+	while ((p = fgets (p, 99999, fp)) > 0)
+	{
+		if (p[strlen (p) - 1] == '\n')
+			p[strlen (p) - 1] = 0;
 
 		node = gi.TagMalloc (sizeof(motd_t), TAG_LEVEL);
 		node->line = p;
-		node->next = NULL;
-		node->prev = NULL;
+		add_to_queue ((qmenu_t *)node, (qmenu_t *)&motd);
 
-		// motd is its own sentinel node (motd.next == NULL means "no motd
-		// configured", see motd_menu()) -- append is a plain tail-walk since
-		// add_to_queue()'s gclient_t-shaped field access can't safely be
-		// reused on the much smaller motd_t (same issue menu.c's queue hit)
-		if (!motd.next)
-		{
-			motd.next = node;
-		}
-		else
-		{
-			motd_t	*last;
-
-			for (last = motd.next; last->next; last = last->next)
-				;
-			last->next = node;
-			node->prev = last;
-		}
-
-		buf += strlen (p) + 1;
+		p += strlen (p) + 1;
 	}
 
 	fclose (fp);

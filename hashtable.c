@@ -1,97 +1,117 @@
-// hashtable.c -- generic hash table, backing the GameSpy stats subsystem.
-// Confirmed real function names/addresses via nm on gamei386.so; the
-// field names below (hashFn, compFn, elemSize, nBuckets, table,
-// table->buckets) are confirmed via embedded assert() strings naming
-// them exactly. Bucket-chain implementation is a standard, idiomatic
-// separate-chaining hash table matching that evidence, not a
-// byte-exact recovery of the original arithmetic.
-
 #include "g_local.h"
 #include "hashtable.h"
 
-table_t *TableNew (int nBuckets, int (*hashFn)(void *key), int (*compFn)(void *key1, void *key2))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* gamex86.dll 0x2001cb10-0x2001cb80 (shape-matched(ratio=0.60)) */
+/* gamei386.so 0x00055968-0x00055b45 */
+table_t *TableNew (int elemSize, int nBuckets, int (*hashFn)(void *key, int nBuckets), int (*compFn)(void *key1, void *key2), void (*freefn)(void *entry))
 {
 	table_t	*table;
-
-	assert (nBuckets > 0);
+	int		i;
 	assert (hashFn);
 	assert (compFn);
+	assert (elemSize);
+	assert (nBuckets);
 
-	table = gi.TagMalloc (sizeof(table_t), TAG_LEVEL);
-	table->hashFn = hashFn;
-	table->compFn = compFn;
+	table = malloc (sizeof(*table));
+	assert (table);
+
+	table->buckets = malloc (nBuckets * sizeof(array_t *));
+	assert (table->buckets);
+
+	for (i = 0; i < nBuckets; i++)
+		table->buckets[i] = ArrayNew (elemSize, 0, freefn);
 	table->nBuckets = nBuckets;
-	table->count = 0;
-	table->buckets = gi.TagMalloc (nBuckets * sizeof(tableentry_t *), TAG_LEVEL);
-
+	table->freefn = freefn;
+	table->compFn = compFn;
+	table->hashFn = hashFn;
 	return table;
 }
 
+/* gamex86.dll 0x2001cb80-0x2001cbc0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00055b48-0x00055b98 */
 void TableFree (table_t *table)
 {
+	int		i;
 	assert (table);
-	assert (table->buckets);
-
-	table->buckets = NULL;
-	table->count = 0;
-}
-
-void TableEnter (table_t *table, void *key, void *data)
-{
-	int				h;
-	tableentry_t	*entry;
-
-	assert (table);
-	assert (table->buckets);
-
-	h = table->hashFn (key) % table->nBuckets;
-	if (h < 0)
-		h += table->nBuckets;
-
-	entry = gi.TagMalloc (sizeof(tableentry_t), TAG_LEVEL);
-	entry->key = key;
-	entry->data = data;
-	entry->next = table->buckets[h];
-	table->buckets[h] = entry;
-	table->count++;
-}
-
-void *TableLookup (table_t *table, void *key)
-{
-	int				h;
-	tableentry_t	*entry;
-
-	assert (table);
-	assert (table->buckets);
-
-	h = table->hashFn (key) % table->nBuckets;
-	if (h < 0)
-		h += table->nBuckets;
-
-	for (entry = table->buckets[h]; entry; entry = entry->next)
-	{
-		if (table->compFn (entry->key, key) == 0)
-			return entry->data;
-	}
-
-	return NULL;
-}
-
-void TableMap (table_t *table, void (*mapFn)(void *key, void *data))
-{
-	int				i;
-	tableentry_t	*entry;
-
-	assert (table);
-	assert (table->buckets);
-
 	for (i = 0; i < table->nBuckets; i++)
-		for (entry = table->buckets[i]; entry; entry = entry->next)
-			mapFn (entry->key, entry->data);
+		ArrayFree (table->buckets[i]);
+	free (table->buckets);
+	free (table);
 }
 
+/* gamex86.dll: no real counterpart -- confirmed dead code */
+/* gamei386.so 0x00055b98-0x00055bc4 */
 int TableCount (table_t *table)
 {
-	assert (table);
-	return table->count;
+	int		i, total;
+	total = 0;
+	for (i = 0; i < table->nBuckets; i++)
+		total += ArrayLength (table->buckets[i]);
+	return total;
+}
+
+/* gamex86.dll 0x2001cbc0-0x2001cc18 (aligned+size-corrected) */
+/* gamei386.so 0x00055bc4-0x00055c20 */
+void TableEnter (table_t *table, void *entry)
+{
+	int			h;
+	int			idx;
+	h = table->hashFn (entry, table->nBuckets);
+	idx = ArraySearch (table->buckets[h], entry,
+		(int (*)(const void *, const void *))table->compFn, 0, false);
+	if (idx == -1)
+		ArrayAppend (table->buckets[h], entry);
+	else
+		ArrayReplaceAt (table->buckets[h], entry, idx);
+}
+
+/* gamex86.dll 0x2001cc20-0x2001cc70 (shape-matched(ratio=0.72)) */
+/* gamei386.so 0x00055c20-0x00055c6e */
+void *TableLookup (table_t *table, void *key)
+{
+	int			h;
+	int			idx;
+	h = table->hashFn (key, table->nBuckets);
+	idx = ArraySearch (table->buckets[h], key,
+		(int (*)(const void *, const void *))table->compFn, 0, false);
+	if (idx == -1)
+		return NULL;
+	return ArrayNth (table->buckets[h], idx);
+}
+
+/* gamex86.dll 0x2001cc70-0x2001ccb0 (manual-confirmed(byte-identical structure)) */
+/* gamei386.so 0x00055c70-0x00055cbf */
+void TableMap (table_t *table, void (*fn)(void *entry, void *userdata), void *userdata)
+{
+	int		i;
+	assert (fn);
+
+	for (i = 0; i < table->nBuckets; i++)
+		ArrayMap (table->buckets[i], fn, userdata);
 }

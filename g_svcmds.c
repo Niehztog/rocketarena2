@@ -2,6 +2,8 @@
 #include "g_local.h"
 
 
+/* gamex86.dll 0x20014de0-0x20014e00 (manual-confirmed) */
+/* gamei386.so 0x00054b98-0x00054bac */
 void	Svcmd_Test_f (void)
 {
 	gi.cprintf (NULL, PRINT_HIGH, "Svcmd_Test_f()\n");
@@ -54,6 +56,8 @@ int			numipfilters;
 StringToFilter
 =================
 */
+/* gamex86.dll 0x20014f40-0x20014ff0 (manual-confirmed) */
+/* gamei386.so: no symbol -- inlined into its callers */
 static qboolean StringToFilter (char *s, ipfilter_t *f)
 {
 	char	num[128];
@@ -101,6 +105,8 @@ static qboolean StringToFilter (char *s, ipfilter_t *f)
 SV_FilterPacket
 =================
 */
+/* gamex86.dll 0x20014e00-0x20014eb0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00054bac-0x00054d0e */
 qboolean SV_FilterPacket (char *from)
 {
 	int		i;
@@ -136,6 +142,8 @@ qboolean SV_FilterPacket (char *from)
 SV_AddIP_f
 =================
 */
+/* gamex86.dll 0x20014eb0-0x20014f40 (padded) */
+/* gamei386.so 0x00054d10-0x00054e87 */
 void SVCmd_AddIP_f (void)
 {
 	int		i;
@@ -167,6 +175,8 @@ void SVCmd_AddIP_f (void)
 SV_RemoveIP_f
 =================
 */
+/* gamex86.dll 0x20014ff0-0x200150d0 (padded) */
+/* gamei386.so 0x00054e88-0x00055113 */
 void SVCmd_RemoveIP_f (void)
 {
 	ipfilter_t	f;
@@ -198,6 +208,8 @@ void SVCmd_RemoveIP_f (void)
 SV_ListIP_f
 =================
 */
+/* gamex86.dll 0x200150d0-0x20015150 (padded) */
+/* gamei386.so 0x00055114-0x0005517f */
 void SVCmd_ListIP_f (void)
 {
 	int		i;
@@ -216,6 +228,8 @@ void SVCmd_ListIP_f (void)
 SV_WriteIP_f
 =================
 */
+/* gamex86.dll 0x20015150-0x20015270 (padded+majority) */
+/* gamei386.so 0x00055180-0x0005529b */
 void SVCmd_WriteIP_f (void)
 {
 	FILE	*f;
@@ -260,6 +274,8 @@ The game can issue gi.argc() / gi.argv() commands to get the rest
 of the parameters
 =================
 */
+/* gamex86.dll 0x20015270-0x2001530d (manual-confirmed) */
+/* gamei386.so 0x0005529c-0x000553d2 */
 void	ServerCommand (void)
 {
 	char	*cmd;

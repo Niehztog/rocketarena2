@@ -54,12 +54,16 @@
 // Support routines for movement (changes in origin using velocity)
 //
 
+/* gamex86.dll 0x20008370-0x200083a0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026100-0x0002612f */
 void Move_Done (edict_t *ent)
 {
 	VectorClear (ent->velocity);
 	ent->moveinfo.endfunc (ent);
 }
 
+/* gamex86.dll 0x200083a0-0x20008410 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026130-0x000261cd */
 void Move_Final (edict_t *ent)
 {
 	if (ent->moveinfo.remaining_distance == 0)
@@ -74,6 +78,8 @@ void Move_Final (edict_t *ent)
 	ent->nextthink = level.time + FRAMETIME;
 }
 
+/* gamex86.dll 0x20008410-0x200084c0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000261d0-0x00026316 */
 void Move_Begin (edict_t *ent)
 {
 	float	frames;
@@ -92,6 +98,8 @@ void Move_Begin (edict_t *ent)
 
 void Think_AccelMove (edict_t *ent);
 
+/* gamex86.dll 0x200084c0-0x200085af (shape-matched(ratio=0.86)) */
+/* gamei386.so 0x00026318-0x0002642e */
 void Move_Calc (edict_t *ent, vec3_t dest, void(*func)(edict_t*))
 {
 	VectorClear (ent->velocity);
@@ -125,12 +133,16 @@ void Move_Calc (edict_t *ent, vec3_t dest, void(*func)(edict_t*))
 // Support routines for angular movement (changes in angle using avelocity)
 //
 
+/* gamex86.dll 0x200085b0-0x200085e0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026430-0x0002645f */
 void AngleMove_Done (edict_t *ent)
 {
 	VectorClear (ent->avelocity);
 	ent->moveinfo.endfunc (ent);
 }
 
+/* gamex86.dll 0x200085e0-0x200086a0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026460-0x0002653b */
 void AngleMove_Final (edict_t *ent)
 {
 	vec3_t	move;
@@ -152,6 +164,8 @@ void AngleMove_Final (edict_t *ent)
 	ent->nextthink = level.time + FRAMETIME;
 }
 
+/* gamex86.dll 0x200086a0-0x20008790 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002653c-0x000266fb */
 void AngleMove_Begin (edict_t *ent)
 {
 	vec3_t	destdelta;
@@ -187,6 +201,8 @@ void AngleMove_Begin (edict_t *ent)
 	ent->think = AngleMove_Final;
 }
 
+/* gamex86.dll 0x20008790-0x200087f6 (shape-matched(ratio=0.88)) */
+/* gamei386.so 0x000266fc-0x00026778 */
 void AngleMove_Calc (edict_t *ent, void(*func)(edict_t*))
 {
 	VectorClear (ent->avelocity);
@@ -213,6 +229,8 @@ change the speed for the next frame
 */
 #define AccelerationDistance(target, rate)	(target * ((target / rate) + 1) / 2)
 
+/* gamex86.dll 0x20008800-0x200088b0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026778-0x0002683d */
 void plat_CalcAcceleratedMove(moveinfo_t *moveinfo)
 {
 	float	accel_dist;
@@ -241,6 +259,8 @@ void plat_CalcAcceleratedMove(moveinfo_t *moveinfo)
 	moveinfo->decel_distance = decel_dist;
 };
 
+/* gamex86.dll 0x200088b0-0x200089f0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026840-0x0002699e */
 void plat_Accelerate (moveinfo_t *moveinfo)
 {
 	// are we decelerating?
@@ -312,6 +332,8 @@ void plat_Accelerate (moveinfo_t *moveinfo)
 	return;
 };
 
+/* gamex86.dll 0x200089f0-0x20008aa0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x000269a0-0x00026bb7 */
 void Think_AccelMove (edict_t *ent)
 {
 	ent->moveinfo.remaining_distance -= ent->moveinfo.current_speed;
@@ -336,6 +358,8 @@ void Think_AccelMove (edict_t *ent)
 
 void plat_go_down (edict_t *ent);
 
+/* gamex86.dll 0x20008aa0-0x20008b10 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026bb8-0x00026c19 */
 void plat_hit_top (edict_t *ent)
 {
 	if (!(ent->flags & FL_TEAMSLAVE))
@@ -350,6 +374,8 @@ void plat_hit_top (edict_t *ent)
 	ent->nextthink = level.time + 3;
 }
 
+/* gamex86.dll 0x20008b10-0x20008b60 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026c1c-0x00026c61 */
 void plat_hit_bottom (edict_t *ent)
 {
 	if (!(ent->flags & FL_TEAMSLAVE))
@@ -361,6 +387,8 @@ void plat_hit_bottom (edict_t *ent)
 	ent->moveinfo.state = STATE_BOTTOM;
 }
 
+/* gamex86.dll 0x20008b60-0x20008bc0 (aligned) */
+/* gamei386.so 0x00026c64-0x00026dbd */
 void plat_go_down (edict_t *ent)
 {
 	if (!(ent->flags & FL_TEAMSLAVE))
@@ -373,6 +401,8 @@ void plat_go_down (edict_t *ent)
 	Move_Calc (ent, ent->moveinfo.end_origin, plat_hit_bottom);
 }
 
+/* gamex86.dll 0x20008bc0-0x20008c20 (aligned) */
+/* gamei386.so 0x00026dc0-0x00026f19 */
 void plat_go_up (edict_t *ent)
 {
 	if (!(ent->flags & FL_TEAMSLAVE))
@@ -385,6 +415,8 @@ void plat_go_up (edict_t *ent)
 	Move_Calc (ent, ent->moveinfo.start_origin, plat_hit_top);
 }
 
+/* gamex86.dll 0x20008c20-0x20008cc0 (shape-matched(ratio=0.94)+size-corrected) */
+/* gamei386.so 0x00026f1c-0x00026fbd */
 void plat_blocked (edict_t *self, edict_t *other)
 {
 	if (!(other->svflags & SVF_MONSTER) && (!other->client) )
@@ -406,6 +438,8 @@ void plat_blocked (edict_t *self, edict_t *other)
 }
 
 
+/* gamex86.dll 0x20008cc0-0x20008ce0 (manual-confirmed(byte-identical)) */
+/* gamei386.so 0x00026fc0-0x00026fd7 */
 void Use_Plat (edict_t *ent, edict_t *other, edict_t *activator)
 { 
 	if (ent->think)
@@ -414,6 +448,8 @@ void Use_Plat (edict_t *ent, edict_t *other, edict_t *activator)
 }
 
 
+/* gamex86.dll 0x20008ce0-0x20008d30 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00026fd8-0x0002701f */
 void Touch_Plat_Center (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (!other->client)
@@ -429,6 +465,8 @@ void Touch_Plat_Center (edict_t *ent, edict_t *other, cplane_t *plane, csurface_
 		ent->nextthink = level.time + 1;	// the player is still on the plat, so delay going down
 }
 
+/* gamex86.dll 0x20008d30-0x20008e90 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x00027020-0x00027192 */
 void plat_spawn_inside_trigger (edict_t *ent)
 {
 	edict_t	*trigger;
@@ -491,6 +529,8 @@ Set "sounds" to one of the following:
 1) base fast
 2) chain slow
 */
+/* gamex86.dll 0x20008e90-0x20009130 (padded) */
+/* gamei386.so 0x00027194-0x00027450 */
 void SP_func_plat (edict_t *ent)
 {
 	VectorClear (ent->s.angles);
@@ -573,17 +613,23 @@ REVERSE will cause the it to rotate in the opposite direction.
 STOP mean it will stop moving instead of pushing entities
 */
 
+/* gamex86.dll 0x20009130-0x20009160 (bracketed) */
+/* gamei386.so 0x00027450-0x0002747f */
 void rotating_blocked (edict_t *self, edict_t *other)
 {
 	T_Damage (other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, 1, 0, MOD_CRUSH);
 }
 
+/* gamex86.dll 0x20009160-0x200091d0 (bracketed) */
+/* gamei386.so 0x00027480-0x000274ed */
 void rotating_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (self->avelocity[0] || self->avelocity[1] || self->avelocity[2])
 		T_Damage (other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, 1, 0, MOD_CRUSH);
 }
 
+/* gamex86.dll 0x200091d0-0x20009240 (bracketed) */
+/* gamei386.so 0x000274f0-0x00027576 */
 void rotating_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (!VectorCompare (self->avelocity, vec3_origin))
@@ -601,6 +647,8 @@ void rotating_use (edict_t *self, edict_t *other, edict_t *activator)
 	}
 }
 
+/* gamex86.dll 0x20009240-0x20009380 (bracketed) */
+/* gamei386.so 0x00027578-0x000276cc */
 void SP_func_rotating (edict_t *ent)
 {
 	ent->solid = SOLID_BSP;
@@ -670,6 +718,8 @@ When a button is touched, it moves some distance in the direction of it's angle,
 5) in-out
 */
 
+/* gamex86.dll 0x20009380-0x200093a0 (bracketed) */
+/* gamei386.so 0x000276cc-0x000276e7 */
 void button_done (edict_t *self)
 {
 	self->moveinfo.state = STATE_BOTTOM;
@@ -677,6 +727,8 @@ void button_done (edict_t *self)
 	self->s.effects |= EF_ANIM01;
 }
 
+/* gamex86.dll 0x200093a0-0x200093f0 (bracketed) */
+/* gamei386.so 0x000276e8-0x0002781f */
 void button_return (edict_t *self)
 {
 	self->moveinfo.state = STATE_DOWN;
@@ -689,6 +741,8 @@ void button_return (edict_t *self)
 		self->takedamage = DAMAGE_YES;
 }
 
+/* gamex86.dll 0x200093f0-0x20009460 (bracketed) */
+/* gamei386.so 0x00027820-0x00027884 */
 void button_wait (edict_t *self)
 {
 	self->moveinfo.state = STATE_TOP;
@@ -704,6 +758,8 @@ void button_wait (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x20009460-0x200094d0 (bracketed) */
+/* gamei386.so 0x00027884-0x000279ed */
 void button_fire (edict_t *self)
 {
 	if (self->moveinfo.state == STATE_UP || self->moveinfo.state == STATE_TOP)
@@ -715,12 +771,16 @@ void button_fire (edict_t *self)
 	Move_Calc (self, self->moveinfo.end_origin, button_wait);
 }
 
+/* gamex86.dll 0x200094d0-0x200094f0 (bracketed) */
+/* gamei386.so 0x000279f0-0x00027a08 */
 void button_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->activator = activator;
 	button_fire (self);
 }
 
+/* gamex86.dll 0x200094f0-0x20009520 (bracketed) */
+/* gamei386.so 0x00027a08-0x00027a2f */
 void button_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (!other->client)
@@ -733,6 +793,8 @@ void button_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *s
 	button_fire (self);
 }
 
+/* gamex86.dll 0x20009520-0x20009550 (bracketed) */
+/* gamei386.so 0x00027a30-0x00027a5e */
 void button_killed (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	self->activator = attacker;
@@ -741,6 +803,8 @@ void button_killed (edict_t *self, edict_t *inflictor, edict_t *attacker, int da
 	button_fire (self);
 }
 
+/* gamex86.dll 0x20009550-0x200097b0 (padded) */
+/* gamei386.so 0x00027a60-0x00027cf4 */
 void SP_func_button (edict_t *ent)
 {
 	vec3_t	abs_movedir;
@@ -830,6 +894,8 @@ NOMONSTER	monsters will not trigger this door
 4)	heavy
 */
 
+/* gamex86.dll 0x200097b0-0x20009830 (padded+size) */
+/* gamei386.so 0x00027cf4-0x00027d58 */
 void door_use_areaportals (edict_t *self, qboolean open)
 {
 	edict_t	*t = NULL;
@@ -848,6 +914,8 @@ void door_use_areaportals (edict_t *self, qboolean open)
 
 void door_go_down (edict_t *self);
 
+/* gamex86.dll 0x20009830-0x200098b0 (bracketed) */
+/* gamei386.so 0x00027d58-0x00027dd1 */
 void door_hit_top (edict_t *self)
 {
 	if (!(self->flags & FL_TEAMSLAVE))
@@ -866,6 +934,8 @@ void door_hit_top (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x200098b0-0x20009910 (bracketed) */
+/* gamei386.so 0x00027dd4-0x00027e6f */
 void door_hit_bottom (edict_t *self)
 {
 	if (!(self->flags & FL_TEAMSLAVE))
@@ -878,6 +948,8 @@ void door_hit_bottom (edict_t *self)
 	door_use_areaportals (self, false);
 }
 
+/* gamex86.dll 0x20009910-0x20009a20 (padded+size) */
+/* gamei386.so 0x00027e70-0x00028097 */
 void door_go_down (edict_t *self)
 {
 	if (!(self->flags & FL_TEAMSLAVE))
@@ -899,6 +971,8 @@ void door_go_down (edict_t *self)
 		AngleMove_Calc (self, door_hit_bottom);
 }
 
+/* gamex86.dll 0x20009a20-0x20009b60 (padded+size) */
+/* gamei386.so 0x00028098-0x0002834e */
 void door_go_up (edict_t *self, edict_t *activator)
 {
 	if (self->moveinfo.state == STATE_UP)
@@ -927,6 +1001,8 @@ void door_go_up (edict_t *self, edict_t *activator)
 	door_use_areaportals (self, true);
 }
 
+/* gamex86.dll 0x20009b60-0x20009be0 (bracketed) */
+/* gamei386.so 0x00028350-0x000283e3 */
 void door_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	edict_t	*ent;
@@ -958,6 +1034,8 @@ void door_use (edict_t *self, edict_t *other, edict_t *activator)
 	}
 };
 
+/* gamex86.dll 0x20009be0-0x20009c50 (bracketed) */
+/* gamei386.so 0x000283e4-0x000284f4 */
 void Touch_DoorTrigger (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (other->health <= 0)
@@ -976,6 +1054,8 @@ void Touch_DoorTrigger (edict_t *self, edict_t *other, cplane_t *plane, csurface
 	door_use (self->owner, other, other);
 }
 
+/* gamex86.dll 0x20009c50-0x20009d20 (bracketed) */
+/* gamei386.so 0x000284f4-0x000285ee */
 void Think_CalcMoveSpeed (edict_t *self)
 {
 	edict_t	*ent;
@@ -1016,6 +1096,8 @@ void Think_CalcMoveSpeed (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x20009d20-0x20009e90 (bracketed) */
+/* gamei386.so 0x000285f0-0x0002887e */
 void Think_SpawnDoorTrigger (edict_t *ent)
 {
 	edict_t		*other;
@@ -1054,6 +1136,8 @@ void Think_SpawnDoorTrigger (edict_t *ent)
 	Think_CalcMoveSpeed (ent);
 }
 
+/* gamex86.dll 0x20009e90-0x20009f80 (bracketed) */
+/* gamei386.so 0x00028880-0x0002896a */
 void door_blocked  (edict_t *self, edict_t *other)
 {
 	edict_t	*ent;
@@ -1091,6 +1175,8 @@ void door_blocked  (edict_t *self, edict_t *other)
 	}
 }
 
+/* gamex86.dll 0x20009f80-0x20009fd0 (bracketed) */
+/* gamei386.so 0x0002896c-0x00028a2f */
 void door_killed (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	edict_t	*ent;
@@ -1103,6 +1189,8 @@ void door_killed (edict_t *self, edict_t *inflictor, edict_t *attacker, int dama
 	door_use (self->teammaster, attacker, attacker);
 }
 
+/* gamex86.dll 0x20009fd0-0x2000a050 (padded+size) */
+/* gamei386.so 0x00028a30-0x00028aaf */
 void door_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 {
 	if (!other->client)
@@ -1116,6 +1204,8 @@ void door_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *sur
 	gi.sound (other, CHAN_AUTO, gi.soundindex ("misc/talk1.wav"), 1, ATTN_NORM, 0);
 }
 
+/* gamex86.dll 0x2000a050-0x2000a3f0 (bracketed) */
+/* gamei386.so 0x00028ab0-0x00028e94 */
 void SP_func_door (edict_t *ent)
 {
 	vec3_t	abs_movedir;
@@ -1239,6 +1329,8 @@ REVERSE will cause the door to rotate in the opposite direction.
 4)	heavy
 */
 
+/* gamex86.dll 0x2000a3f0-0x2000a7e0 (bracketed) */
+/* gamei386.so 0x00028e94-0x000292c3 */
 void SP_func_door_rotating (edict_t *ent)
 {
 	VectorClear (ent->s.angles);
@@ -1356,6 +1448,8 @@ START_OPEN causes the water to move to its destination when spawned and operate 
 2)	lava
 */
 
+/* gamex86.dll 0x2000a7e0-0x2000aa30 (padded+majority) */
+/* gamei386.so 0x000292c4-0x00029569 */
 void SP_func_water (edict_t *self)
 {
 	vec3_t	abs_movedir;
@@ -1439,6 +1533,8 @@ noise	looping sound to play when the train is in motion
 */
 void train_next (edict_t *self);
 
+/* gamex86.dll 0x2000aa30-0x2000aae0 (manual-confirmed) */
+/* gamei386.so 0x0002956c-0x0002961f */
 void train_blocked (edict_t *self, edict_t *other)
 {
 	if (!(other->svflags & SVF_MONSTER) && (!other->client) )
@@ -1460,6 +1556,8 @@ void train_blocked (edict_t *self, edict_t *other)
 	T_Damage (other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, 1, 0, MOD_CRUSH);
 }
 
+/* gamex86.dll 0x2000aae0-0x2000abe9 (shape-matched(ratio=0.95)) */
+/* gamei386.so 0x00029620-0x00029729 */
 void train_wait (edict_t *self)
 {
 	if (self->target_ent->pathtarget)
@@ -1507,6 +1605,8 @@ void train_wait (edict_t *self)
 	
 }
 
+/* gamex86.dll 0x2000abf0-0x2000adb0 (padded) */
+/* gamei386.so 0x0002972c-0x000299c6 */
 void train_next (edict_t *self)
 {
 	edict_t		*ent;
@@ -1564,6 +1664,8 @@ again:
 	self->spawnflags |= TRAIN_START_ON;
 }
 
+/* gamex86.dll 0x2000adb0-0x2000ae50 (bracketed) */
+/* gamei386.so 0x000299c8-0x00029b4c */
 void train_resume (edict_t *self)
 {
 	edict_t	*ent;
@@ -1579,6 +1681,8 @@ void train_resume (edict_t *self)
 	self->spawnflags |= TRAIN_START_ON;
 }
 
+/* gamex86.dll 0x2000ae50-0x2000af10 (padded) */
+/* gamei386.so 0x00029b4c-0x00029c1b */
 void func_train_find (edict_t *self)
 {
 	edict_t *ent;
@@ -1611,6 +1715,8 @@ void func_train_find (edict_t *self)
 	}
 }
 
+/* gamex86.dll 0x2000af10-0x2000af70 (bracketed) */
+/* gamei386.so 0x00029c1c-0x00029c8a */
 void train_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->activator = activator;
@@ -1632,6 +1738,8 @@ void train_use (edict_t *self, edict_t *other, edict_t *activator)
 	}
 }
 
+/* gamex86.dll 0x2000af70-0x2000b080 (padded) */
+/* gamei386.so 0x00029c8c-0x00029db9 */
 void SP_func_train (edict_t *self)
 {
 	self->movetype = MOVETYPE_PUSH;
@@ -1677,6 +1785,8 @@ void SP_func_train (edict_t *self)
 
 /*QUAKED trigger_elevator (0.3 0.1 0.6) (-8 -8 -8) (8 8 8)
 */
+/* gamex86.dll 0x2000b080-0x2000b110 (padded) */
+/* gamei386.so 0x00029dbc-0x00029e42 */
 void trigger_elevator_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	edict_t *target;
@@ -1704,6 +1814,8 @@ void trigger_elevator_use (edict_t *self, edict_t *other, edict_t *activator)
 	train_resume (self->movetarget);
 }
 
+/* gamex86.dll 0x2000b110-0x2000b1d0 (padded) */
+/* gamei386.so 0x00029e44-0x00029ed8 */
 void trigger_elevator_init (edict_t *self)
 {
 	if (!self->target)
@@ -1728,6 +1840,8 @@ void trigger_elevator_init (edict_t *self)
 
 }
 
+/* gamex86.dll 0x2000b1d0-0x2000b200 (bracketed) */
+/* gamei386.so 0x00029ed8-0x00029eff */
 void SP_trigger_elevator (edict_t *self)
 {
 	self->think = trigger_elevator_init;
@@ -1749,12 +1863,16 @@ so, the basic time between firing is a random time between
 
 These can used but not touched.
 */
+/* gamex86.dll 0x2000b200-0x2000b260 (bracketed) */
+/* gamei386.so 0x00029f00-0x00029f58 */
 void func_timer_think (edict_t *self)
 {
 	G_UseTargets (self, self->activator);
 	self->nextthink = level.time + self->wait + crandom() * self->random;
 }
 
+/* gamex86.dll 0x2000b260-0x2000b2c0 (bracketed) */
+/* gamei386.so 0x00029f58-0x0002a008 */
 void func_timer_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	self->activator = activator;
@@ -1773,6 +1891,8 @@ void func_timer_use (edict_t *self, edict_t *other, edict_t *activator)
 		func_timer_think (self);
 }
 
+/* gamex86.dll 0x2000b2c0-0x2000b3a0 (padded) */
+/* gamei386.so 0x0002a008-0x0002a0ed */
 void SP_func_timer (edict_t *self)
 {
 	if (!self->wait)
@@ -1803,6 +1923,8 @@ The brush should be have a surface with at least one current content enabled.
 speed	default 100
 */
 
+/* gamex86.dll 0x2000b3a0-0x2000b3e0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a0f0-0x0002a137 */
 void func_conveyor_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	if (self->spawnflags & 1)
@@ -1820,6 +1942,8 @@ void func_conveyor_use (edict_t *self, edict_t *other, edict_t *activator)
 		self->count = 0;
 }
 
+/* gamex86.dll 0x2000b3e0-0x2000b460 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a138-0x0002a1c6 */
 void SP_func_conveyor (edict_t *self)
 {
 	if (!self->speed)
@@ -1864,6 +1988,8 @@ void door_secret_move5 (edict_t *self);
 void door_secret_move6 (edict_t *self);
 void door_secret_done (edict_t *self);
 
+/* gamex86.dll 0x2000b460-0x2000b4a0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a1c8-0x0002a34a */
 void door_secret_use (edict_t *self, edict_t *other, edict_t *activator)
 {
 	// make sure we're not already moving
@@ -1874,17 +2000,23 @@ void door_secret_use (edict_t *self, edict_t *other, edict_t *activator)
 	door_use_areaportals (self, true);
 }
 
+/* gamex86.dll 0x2000b4a0-0x2000b4d0 (aligned) */
+/* gamei386.so 0x0002a34c-0x0002a373 */
 void door_secret_move1 (edict_t *self)
 {
 	self->nextthink = level.time + 1.0;
 	self->think = door_secret_move2;
 }
 
+/* gamex86.dll 0x2000b4d0-0x2000b4f0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a374-0x0002a48d */
 void door_secret_move2 (edict_t *self)
 {
 	Move_Calc (self, self->pos2, door_secret_move3);
 }
 
+/* gamex86.dll 0x2000b4f0-0x2000b520 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a490-0x0002a4cb */
 void door_secret_move3 (edict_t *self)
 {
 	if (self->wait == -1)
@@ -1893,22 +2025,30 @@ void door_secret_move3 (edict_t *self)
 	self->think = door_secret_move4;
 }
 
+/* gamex86.dll 0x2000b520-0x2000b540 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a4cc-0x0002a5e5 */
 void door_secret_move4 (edict_t *self)
 {
 	Move_Calc (self, self->pos1, door_secret_move5);
 }
 
+/* gamex86.dll 0x2000b540-0x2000b570 (aligned) */
+/* gamei386.so 0x0002a5e8-0x0002a60f */
 void door_secret_move5 (edict_t *self)
 {
 	self->nextthink = level.time + 1.0;
 	self->think = door_secret_move6;
 }
 
+/* gamex86.dll 0x2000b570-0x2000b590 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a610-0x0002a729 */
 void door_secret_move6 (edict_t *self)
 {
 	Move_Calc (self, vec3_origin, door_secret_done);
 }
 
+/* gamex86.dll 0x2000b590-0x2000b5d0 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a72c-0x0002a7af */
 void door_secret_done (edict_t *self)
 {
 	if (!(self->targetname) || (self->spawnflags & SECRET_ALWAYS_SHOOT))
@@ -1919,6 +2059,8 @@ void door_secret_done (edict_t *self)
 	door_use_areaportals (self, false);
 }
 
+/* gamex86.dll 0x2000b5d0-0x2000b670 (manual-confirmed) */
+/* gamei386.so 0x0002a7b0-0x0002a85b */
 void door_secret_blocked  (edict_t *self, edict_t *other)
 {
 	if (!(other->svflags & SVF_MONSTER) && (!other->client) )
@@ -1938,12 +2080,16 @@ void door_secret_blocked  (edict_t *self, edict_t *other)
 	T_Damage (other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, 1, 0, MOD_CRUSH);
 }
 
+/* gamex86.dll 0x2000b670-0x2000b690 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a85c-0x0002a87a */
 void door_secret_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point)
 {
 	self->takedamage = DAMAGE_NO;
 	door_secret_use (self, attacker, attacker);
 }
 
+/* gamex86.dll 0x2000b690-0x2000b900 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002a87c-0x0002aaf9 */
 void SP_func_door_secret (edict_t *ent)
 {
 	vec3_t	forward, right, up;
@@ -2015,11 +2161,15 @@ void SP_func_door_secret (edict_t *ent)
 /*QUAKED func_killbox (1 0 0) ?
 Kills everything inside when fired, irrespective of protection.
 */
+/* gamex86.dll 0x2000b900-0x2000b910 (aligned) */
+/* gamei386.so 0x0002aafc-0x0002ab0a */
 void use_killbox (edict_t *self, edict_t *other, edict_t *activator)
 {
 	KillBox (self);
 }
 
+/* gamex86.dll 0x2000b910-0x2000b940 (shape-matched(ratio=1.00)) */
+/* gamei386.so 0x0002ab0c-0x0002ab39 */
 void SP_func_killbox (edict_t *ent)
 {
 	gi.setmodel (ent, ent->model);
