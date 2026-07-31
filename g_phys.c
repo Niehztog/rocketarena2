@@ -1,6 +1,7 @@
 // g_phys.c
 
 #include "g_local.h"
+#include "arena.h"
 
 /*
 
@@ -860,9 +861,8 @@ void SV_Physics_Step (edict_t *ent)
 	if (ent->velocity[2] || ent->velocity[1] || ent->velocity[0])
 	{
 		// apply friction
-		// let dead monsters who aren't completely onground slide
 		if ((wasonground) || (ent->flags & (FL_SWIM|FL_FLY)))
-			if (!(ent->health <= 0.0 && !M_CheckBottom(ent)))
+			if (!(ent->health <= 0.0))
 			{
 				vel = ent->velocity;
 				speed = sqrt(vel[0]*vel[0] +vel[1]*vel[1]);
@@ -893,10 +893,11 @@ void SV_Physics_Step (edict_t *ent)
 		if (!ent->inuse)
 			return;
 
-		if (ent->groundentity)
-			if (!wasonground)
-				if (hitsound)
-					gi.sound (ent, 0, gi.soundindex("world/land.wav"), 1, 1, 0);
+		if (!ent->client || ent->client->fightstate == FIGHT_ALIVE)
+			if (ent->groundentity)
+				if (!wasonground)
+					if (hitsound)
+						gi.sound (ent, 0, gi.soundindex("world/land.wav"), 1, 1, 0);
 	}
 
 // regular thinking

@@ -651,23 +651,6 @@ void monster_start_go (edict_t *self)
 
 void walkmonster_start_go (edict_t *self)
 {
-	if (!(self->spawnflags & 2) && level.time < 1)
-	{
-		M_droptofloor (self);
-
-		if (self->groundentity)
-			if (!M_walkmove (self, 0, 0))
-				gi.dprintf ("%s in solid at %s\n", self->classname, vtos(self->s.origin));
-	}
-	
-	if (!self->yaw_speed)
-		self->yaw_speed = 20;
-	self->viewheight = 25;
-
-	monster_start_go (self);
-
-	if (self->spawnflags & 2)
-		monster_triggered_start (self);
 }
 
 void walkmonster_start (edict_t *self)
@@ -679,17 +662,6 @@ void walkmonster_start (edict_t *self)
 
 void flymonster_start_go (edict_t *self)
 {
-	if (!M_walkmove (self, 0, 0))
-		gi.dprintf ("%s in solid at %s\n", self->classname, vtos(self->s.origin));
-
-	if (!self->yaw_speed)
-		self->yaw_speed = 10;
-	self->viewheight = 25;
-
-	monster_start_go (self);
-
-	if (self->spawnflags & 2)
-		monster_triggered_start (self);
 }
 
 

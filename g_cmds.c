@@ -1,6 +1,19 @@
 #include "g_local.h"
 #include "m_player.h"
 
+extern	cvar_t	*admincode;
+
+void	stuffcmd (edict_t *ent, char *s);
+void	send_sound_to_arena (int arenanum, int soundindex);
+void	list_keys (edict_t *ent);
+void	print_map_loop (edict_t *ent);
+char	*get_next_map (char *current);
+
+void	Cmd_admin_f (edict_t *ent);
+void	Cmd_arenaadmin_f (edict_t *ent, int mode);
+void	Cmd_menuhelp_f (edict_t *ent);
+
+cvar_t	*allowgetadmin;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -52,8 +65,9 @@ void SelectNextItem (edict_t *ent, int itflags)
 
 	cl = ent->client;
 
-	if (cl->chase_target) {
-		ChaseNext(ent);
+	if (cl->showmenu)
+	{
+		MenuNext (ent);
 		return;
 	}
 
@@ -84,8 +98,9 @@ void SelectPrevItem (edict_t *ent, int itflags)
 
 	cl = ent->client;
 
-	if (cl->chase_target) {
-		ChasePrev(ent);
+	if (cl->showmenu)
+	{
+		MenuPrev (ent);
 		return;
 	}
 
@@ -412,30 +427,6 @@ Drop an inventory item
 */
 void Cmd_Drop_f (edict_t *ent)
 {
-	int			index;
-	gitem_t		*it;
-	char		*s;
-
-	s = gi.args();
-	it = FindItem (s);
-	if (!it)
-	{
-		gi.cprintf (ent, PRINT_HIGH, "unknown item: %s\n", s);
-		return;
-	}
-	if (!it->drop)
-	{
-		gi.cprintf (ent, PRINT_HIGH, "Item is not dropable.\n");
-		return;
-	}
-	index = ITEM_INDEX(it);
-	if (!ent->client->pers.inventory[index])
-	{
-		gi.cprintf (ent, PRINT_HIGH, "Out of item: %s\n", s);
-		return;
-	}
-
-	it->drop (ent, it);
 }
 
 
@@ -446,28 +437,16 @@ Cmd_Inven_f
 */
 void Cmd_Inven_f (edict_t *ent)
 {
-	int			i;
 	gclient_t	*cl;
 
 	cl = ent->client;
 
-	cl->showscores = false;
-	cl->showhelp = false;
+	if (cl->showmenu)
+		cl->showmenu = false;
+	else
+		cl->showmenu = (cl->menu != NULL);
 
-	if (cl->showinventory)
-	{
-		cl->showinventory = false;
-		return;
-	}
-
-	cl->showinventory = true;
-
-	gi.WriteByte (svc_inventory);
-	for (i=0 ; i<MAX_ITEMS ; i++)
-	{
-		gi.WriteShort (cl->pers.inventory[i]);
-	}
-	gi.unicast (ent, true);
+	DisplayMenu (ent);
 }
 
 /*
@@ -478,6 +457,13 @@ Cmd_InvUse_f
 void Cmd_InvUse_f (edict_t *ent)
 {
 	gitem_t		*it;
+
+	if (ent->client->showmenu)
+	{
+		if (!level.intermissiontime)
+			UseMenu (ent, 1);
+		return;
+	}
 
 	ValidateSelectedItem (ent);
 
@@ -602,23 +588,10 @@ Cmd_InvDrop_f
 */
 void Cmd_InvDrop_f (edict_t *ent)
 {
-	gitem_t		*it;
-
-	ValidateSelectedItem (ent);
-
-	if (ent->client->pers.selected_item == -1)
-	{
-		gi.cprintf (ent, PRINT_HIGH, "No item to drop.\n");
+	if (!ent->client->showmenu)
 		return;
-	}
 
-	it = &itemlist[ent->client->pers.selected_item];
-	if (!it->drop)
-	{
-		gi.cprintf (ent, PRINT_HIGH, "Item is not dropable.\n");
-		return;
-	}
-	it->drop (ent, it);
+	UseMenu (ent, 0);
 }
 
 /*
@@ -765,9 +738,9 @@ void Cmd_Wave_f (edict_t *ent)
 Cmd_Say_f
 ==================
 */
-void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0)
+void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0, qboolean bcast)
 {
-	int		i, j;
+	int		j;
 	edict_t	*other;
 	char	*p;
 	char	text[2048];
@@ -776,11 +749,32 @@ void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0)
 	if (gi.argc () < 2 && !arg0)
 		return;
 
-	if (!((int)(dmflags->value) & (DF_MODELTEAMS | DF_SKINTEAMS)))
-		team = false;
+	cl = ent->client;
+
+	if (cl->spamcount == -1)
+		return;
+
+	if (level.time > cl->spamtime + 2.0)
+	{
+		cl->spamcount = 1;
+	}
+	else
+	{
+		cl->spamcount++;
+		if (cl->spamcount > 5)
+		{
+			cl->spamcount = -1;
+			gi.bprintf (PRINT_CHAT, "%s: Sorry guys, I talk too much\n", cl->pers.netname);
+			stuffcmd (ent, "disconnect\n");
+			return;
+		}
+	}
+	cl->spamtime = level.time;
 
 	if (team)
 		Com_sprintf (text, sizeof(text), "(%s): ", ent->client->pers.netname);
+	else if (bcast)
+		Com_sprintf (text, sizeof(text), "W:%s: ", ent->client->pers.netname);
 	else
 		Com_sprintf (text, sizeof(text), "%s: ", ent->client->pers.netname);
 
@@ -808,32 +802,29 @@ void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0)
 
 	strcat(text, "\n");
 
-	if (flood_msgs->value) {
-		cl = ent->client;
-
-        if (level.time < cl->flood_locktill) {
-			gi.cprintf(ent, PRINT_HIGH, "You can't talk for %d more seconds\n",
-				(int)(cl->flood_locktill - level.time));
-            return;
-        }
-        i = cl->flood_whenhead - flood_msgs->value + 1;
-        if (i < 0)
-            i = (sizeof(cl->flood_when)/sizeof(cl->flood_when[0])) + i;
-		if (cl->flood_when[i] && 
-			level.time - cl->flood_when[i] < flood_persecond->value) {
-			cl->flood_locktill = level.time + flood_waitdelay->value;
-			gi.cprintf(ent, PRINT_CHAT, "Flood protection:  You can't talk for %d seconds.\n",
-				(int)flood_waitdelay->value);
-            return;
-        }
-		cl->flood_whenhead = (cl->flood_whenhead + 1) %
-			(sizeof(cl->flood_when)/sizeof(cl->flood_when[0]));
-		cl->flood_when[cl->flood_whenhead] = level.time;
-	}
-
 	if (dedicated->value)
 		gi.cprintf(NULL, PRINT_CHAT, "%s", text);
 
+	if (team || bcast)
+	{
+		for (j = 1; j <= game.maxclients; j++)
+		{
+			other = &g_edicts[j];
+			if (!other->inuse)
+				continue;
+			if (!other->client)
+				continue;
+			if (team)
+			{
+				if (!OnSameTeam(ent, other))
+					continue;
+			}
+			gi.cprintf(other, PRINT_CHAT, "%s", text);
+		}
+		return;
+	}
+
+	// plain "say" with no modifiers is scoped to the talker's own arena
 	for (j = 1; j <= game.maxclients; j++)
 	{
 		other = &g_edicts[j];
@@ -841,12 +832,10 @@ void Cmd_Say_f (edict_t *ent, qboolean team, qboolean arg0)
 			continue;
 		if (!other->client)
 			continue;
-		if (team)
-		{
-			if (!OnSameTeam(ent, other))
-				continue;
-		}
-		gi.cprintf(other, PRINT_CHAT, "%s", text);
+		if (other->client->arenanum != ent->client->arenanum)
+			continue;
+
+		gi.cprintf (other, PRINT_MEDIUM, "%s", HiPrint (text));
 	}
 }
 
@@ -902,12 +891,20 @@ void ClientCommand (edict_t *ent)
 	}
 	if (Q_stricmp (cmd, "say") == 0)
 	{
-		Cmd_Say_f (ent, false, false);
+		if (ent->client->arenanum)
+			Cmd_Say_f (ent, false, false, false);
+		else
+			Cmd_Say_f (ent, false, false, true);
 		return;
 	}
 	if (Q_stricmp (cmd, "say_team") == 0)
 	{
-		Cmd_Say_f (ent, true, false);
+		Cmd_Say_f (ent, true, false, false);
+		return;
+	}
+	if (Q_stricmp (cmd, "say_world") == 0)
+	{
+		Cmd_Say_f (ent, false, false, true);
 		return;
 	}
 	if (Q_stricmp (cmd, "score") == 0)
@@ -968,6 +965,28 @@ void ClientCommand (edict_t *ent)
 		Cmd_Wave_f (ent);
 	else if (Q_stricmp(cmd, "playerlist") == 0)
 		Cmd_PlayerList_f(ent);
+	else if (Q_stricmp (cmd, "admin") == 0)
+		Cmd_admin_f (ent);
+	else if (Q_stricmp (cmd, "arenaadmin") == 0)
+		Cmd_arenaadmin_f (ent, 0);
+	else if (Q_stricmp (cmd, "menuhelp") == 0)
+		Cmd_menuhelp_f (ent);
+	else if (Q_stricmp (cmd, "getdebugcode") == 0)
+		return;
+	else if (Q_stricmp (cmd, "pcount") == 0)
+		return;
+	else if (Q_stricmp (cmd, "grap_on") == 0)
+		ent->client->hookbutton = true;
+	else if (Q_stricmp (cmd, "grap_off") == 0)
+		ent->client->hookbutton = false;
+	else if (Q_stricmp (cmd, "listkeys") == 0)
+		list_keys (ent);
+	else if (Q_stricmp (cmd, "listmaps") == 0)
+		print_map_loop (ent);
+	else if (Q_stricmp (cmd, "nextmap") == 0)
+		gi.cprintf (ent, PRINT_MEDIUM, "Next map is %s\n", get_next_map (level.mapname));
+	else if (Q_stricmp (cmd, "play") == 0)
+		return;
 	else	// anything that doesn't match a command will be a chat
-		Cmd_Say_f (ent, false, true);
+		Cmd_Say_f (ent, false, true, true);
 }

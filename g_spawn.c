@@ -125,12 +125,26 @@ void SP_turret_breach (edict_t *self);
 void SP_turret_base (edict_t *self);
 void SP_turret_driver (edict_t *self);
 
+void SP_none (edict_t *ent);
+void SP_trigger_teleport (edict_t *ent);
+void SP_info_teleport_destination (edict_t *ent);
+void SP_func_illusionary (edict_t *ent);
+
+void arena_init (edict_t *edicts);
+void GSLogNewmap (void);
+
+extern char	*teamskins[];
+extern int	teamskins_precachem[];
+extern int	teamskins_precachef[];
+extern int	teamskins_precachecw[];
+extern int	teamskins_precachecb[];
+
 
 spawn_t	spawns[] = {
-	{"item_health", SP_item_health},
-	{"item_health_small", SP_item_health_small},
-	{"item_health_large", SP_item_health_large},
-	{"item_health_mega", SP_item_health_mega},
+	{"item_health", SP_none},
+	{"item_health_small", SP_none},
+	{"item_health_large", SP_none},
+	{"item_health_mega", SP_none},
 
 	{"info_player_start", SP_info_player_start},
 	{"info_player_deathmatch", SP_info_player_deathmatch},
@@ -179,7 +193,7 @@ spawn_t	spawns[] = {
 	{"target_crosslevel_target", SP_target_crosslevel_target},
 	{"target_laser", SP_target_laser},
 	{"target_help", SP_target_help},
-	{"target_actor", SP_target_actor},
+	{"target_actor", SP_none},
 	{"target_lightramp", SP_target_lightramp},
 	{"target_earthquake", SP_target_earthquake},
 	{"target_character", SP_target_character},
@@ -200,11 +214,11 @@ spawn_t	spawns[] = {
 	{"misc_explobox", SP_misc_explobox},
 	{"misc_banner", SP_misc_banner},
 	{"misc_satellite_dish", SP_misc_satellite_dish},
-	{"misc_actor", SP_misc_actor},
+	{"misc_actor", SP_none},
 	{"misc_gib_arm", SP_misc_gib_arm},
 	{"misc_gib_leg", SP_misc_gib_leg},
 	{"misc_gib_head", SP_misc_gib_head},
-	{"misc_insane", SP_misc_insane},
+	{"misc_insane", SP_none},
 	{"misc_deadsoldier", SP_misc_deadsoldier},
 	{"misc_viper", SP_misc_viper},
 	{"misc_viper_bomb", SP_misc_viper_bomb},
@@ -217,37 +231,51 @@ spawn_t	spawns[] = {
 	{"misc_easterchick", SP_misc_easterchick},
 	{"misc_easterchick2", SP_misc_easterchick2},
 
-	{"monster_berserk", SP_monster_berserk},
-	{"monster_gladiator", SP_monster_gladiator},
-	{"monster_gunner", SP_monster_gunner},
-	{"monster_infantry", SP_monster_infantry},
-	{"monster_soldier_light", SP_monster_soldier_light},
-	{"monster_soldier", SP_monster_soldier},
-	{"monster_soldier_ss", SP_monster_soldier_ss},
-	{"monster_tank", SP_monster_tank},
-	{"monster_tank_commander", SP_monster_tank},
-	{"monster_medic", SP_monster_medic},
-	{"monster_flipper", SP_monster_flipper},
-	{"monster_chick", SP_monster_chick},
-	{"monster_parasite", SP_monster_parasite},
-	{"monster_flyer", SP_monster_flyer},
-	{"monster_brain", SP_monster_brain},
-	{"monster_floater", SP_monster_floater},
-	{"monster_hover", SP_monster_hover},
-	{"monster_mutant", SP_monster_mutant},
-	{"monster_supertank", SP_monster_supertank},
-	{"monster_boss2", SP_monster_boss2},
-	{"monster_boss3_stand", SP_monster_boss3_stand},
-	{"monster_jorg", SP_monster_jorg},
+	{"monster_berserk", SP_none},
+	{"monster_gladiator", SP_none},
+	{"monster_gunner", SP_none},
+	{"monster_infantry", SP_none},
+	{"monster_soldier_light", SP_none},
+	{"monster_soldier", SP_none},
+	{"monster_soldier_ss", SP_none},
+	{"monster_tank", SP_none},
+	{"monster_tank_commander", SP_none},
+	{"monster_medic", SP_none},
+	{"monster_flipper", SP_none},
+	{"monster_chick", SP_none},
+	{"monster_parasite", SP_none},
+	{"monster_flyer", SP_none},
+	{"monster_brain", SP_none},
+	{"monster_floater", SP_none},
+	{"monster_hover", SP_none},
+	{"monster_mutant", SP_none},
+	{"monster_supertank", SP_none},
+	{"monster_boss2", SP_none},
+	{"monster_boss3_stand", SP_none},
+	{"monster_jorg", SP_none},
 
-	{"monster_commander_body", SP_monster_commander_body},
+	{"monster_commander_body", SP_none},
 
 	{"turret_breach", SP_turret_breach},
 	{"turret_base", SP_turret_base},
 	{"turret_driver", SP_turret_driver},
 
+	{"trigger_teleport", SP_trigger_teleport},
+	{"info_teleport_destination", SP_info_teleport_destination},
+	{"func_illusionary", SP_func_illusionary},
+
 	{NULL, NULL}
 };
+
+/*
+===============
+SP_none
+===============
+*/
+void SP_none (edict_t *ent)
+{
+	G_FreeEdict (ent);
+}
 
 /*
 ===============
@@ -595,9 +623,13 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	}
 #endif
 
+	arena_init (g_edicts);
+
 	G_FindTeams ();
 
 	PlayerTrail_Init ();
+
+	GSLogNewmap ();
 }
 
 
@@ -776,6 +808,8 @@ Only used for the world.
 */
 void SP_worldspawn (edict_t *ent)
 {
+	int	i;
+
 	ent->movetype = MOVETYPE_PUSH;
 	ent->solid = SOLID_BSP;
 	ent->inuse = true;			// since the world doesn't use G_Spawn()
@@ -821,6 +855,19 @@ void SP_worldspawn (edict_t *ent)
 		gi.configstring (CS_STATUSBAR, dm_statusbar);
 	else
 		gi.configstring (CS_STATUSBAR, single_statusbar);
+
+	teamskins_precachem[0] = gi.imageindex (va ("male/%s_i", teamskins[0]));
+	teamskins_precachef[0] = gi.imageindex (va ("female/%s_i", teamskins[0]));
+	teamskins_precachecw[0] = gi.imageindex (va ("crakhor/%s_i", teamskins[0]));
+	teamskins_precachecb[0] = gi.imageindex (va ("cyborg/%s_i", teamskins[0]));
+
+	for (i=1 ; i<=6 ; i++)
+	{
+		teamskins_precachem[i] = gi.imageindex (va ("male/%s_i", teamskins[i]));
+		teamskins_precachef[i] = gi.imageindex (va ("female/%s_i", teamskins[i]));
+		teamskins_precachecw[i] = gi.imageindex (va ("crakhor/%s_i", teamskins[i]));
+		teamskins_precachecb[i] = gi.imageindex (va ("cyborg/%s_i", teamskins[i]));
+	}
 
 	//---------------
 

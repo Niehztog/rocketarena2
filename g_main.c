@@ -28,6 +28,9 @@ cvar_t	*maxentities;
 cvar_t	*g_select_empty;
 cvar_t	*dedicated;
 
+cvar_t	*hostname;
+cvar_t	*hostport;
+
 cvar_t	*filterban;
 
 cvar_t	*sv_maxvelocity;
@@ -46,6 +49,9 @@ cvar_t	*bob_pitch;
 cvar_t	*bob_roll;
 
 cvar_t	*sv_cheats;
+
+cvar_t	*logfile;
+cvar_t	*netlog;
 
 cvar_t	*flood_msgs;
 cvar_t	*flood_persecond;
@@ -67,6 +73,8 @@ void WriteLevel (char *filename);
 void ReadLevel (char *filename);
 void InitGame (void);
 void G_RunFrame (void);
+void multi_arena_think (void);
+void GSLogShutdown (void);
 
 
 //===================================================================
@@ -75,6 +83,8 @@ void G_RunFrame (void);
 void ShutdownGame (void)
 {
 	gi.dprintf ("==== ShutdownGame ====\n");
+
+	GSLogShutdown ();
 
 	gi.FreeTags (TAG_LEVEL);
 	gi.FreeTags (TAG_GAME);
@@ -334,7 +344,6 @@ void ExitLevel (void)
 	char	command [256];
 
 	Com_sprintf (command, sizeof(command), "gamemap \"%s\"\n", level.changemap);
-	gi.AddCommandString (command);
 	level.changemap = NULL;
 	level.exitintermission = 0;
 	level.intermissiontime = 0;
@@ -348,8 +357,10 @@ void ExitLevel (void)
 			continue;
 		if (ent->health > ent->client->pers.max_health)
 			ent->health = ent->client->pers.max_health;
+		InitClientResp (ent->client);
 	}
 
+	gi.AddCommandString (command);
 }
 
 /*
@@ -413,6 +424,8 @@ void G_RunFrame (void)
 
 	// see if it is time to end a deathmatch
 	CheckDMRules ();
+
+	multi_arena_think ();
 
 	// see if needpass needs updated
 	CheckNeedPass ();

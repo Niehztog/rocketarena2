@@ -1,6 +1,7 @@
 // g_misc.c
 
 #include "g_local.h"
+#include "arena.h"
 
 
 /*QUAKED func_group (0 0 0) ?
@@ -1768,6 +1769,18 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 
 	if (!other->client)
 		return;
+
+	if (self->arena > 0)
+	{
+		if (other->client->teamnum == -1)
+		{
+			menu_centerprint (other, "You must join or create a team first");
+			return;
+		}
+		AddtoArena (other, self->arena, 1);
+		return;
+	}
+
 	dest = G_Find (NULL, FOFS(targetname), self->target);
 	if (!dest)
 	{
@@ -1776,6 +1789,7 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 	}
 
 	// unlink to make sure it can't possibly interfere with KillBox
+	CTFPlayerResetGrapple (other);
 	gi.unlinkentity (other);
 
 	VectorCopy (dest->s.origin, other->s.origin);
@@ -1788,8 +1802,11 @@ void teleporter_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_
 	other->client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 
 	// draw the teleport splash at source and on the player
-	self->owner->s.event = EV_PLAYER_TELEPORT;
-	other->s.event = EV_PLAYER_TELEPORT;
+	if (other->client->entered)
+	{
+		self->owner->s.event = EV_PLAYER_TELEPORT;
+		other->s.event = EV_PLAYER_TELEPORT;
+	}
 
 	// set angles
 	for (i=0 ; i<3 ; i++)
@@ -1814,7 +1831,7 @@ void SP_misc_teleporter (edict_t *ent)
 {
 	edict_t		*trig;
 
-	if (!ent->target)
+	if (!ent->target && !(ent->arena > 0))
 	{
 		gi.dprintf ("teleporter without a target.\n");
 		G_FreeEdict (ent);
@@ -1835,6 +1852,7 @@ void SP_misc_teleporter (edict_t *ent)
 	trig->touch = teleporter_touch;
 	trig->solid = SOLID_TRIGGER;
 	trig->target = ent->target;
+	trig->arena = ent->arena;
 	trig->owner = ent;
 	VectorCopy (ent->s.origin, trig->s.origin);
 	VectorSet (trig->mins, -8, -8, 8);

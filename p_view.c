@@ -1,6 +1,7 @@
 
 #include "g_local.h"
 #include "m_player.h"
+#include "arena.h"
 
 
 
@@ -485,6 +486,9 @@ void P_FallingDamage (edict_t *ent)
 	int		damage;
 	vec3_t	dir;
 
+	if (ent->client && !ent->client->inarena)
+		return;
+
 	if (ent->s.modelindex != 255)
 		return;		// not in the player model
 
@@ -540,7 +544,7 @@ void P_FallingDamage (edict_t *ent)
 			damage = 1;
 		VectorSet (dir, 0, 0, 1);
 
-		if (!deathmatch->value || !((int)dmflags->value & DF_NO_FALLING) )
+		if (arenas[ent->client->arenanum].fallingdamage)
 			T_Damage (ent, world, world, dir, ent->s.origin, vec3_origin, damage, 0, 0, MOD_FALLING);
 	}
 	else
@@ -781,6 +785,9 @@ void G_SetClientEvent (edict_t *ent)
 	if (ent->s.event)
 		return;
 
+	if (ent->client && !ent->client->inarena)
+		return;
+
 	if ( ent->groundentity && xyspeed > 225)
 	{
 		if ( (int)(current_client->bobtime+bobmove) != bobcycle )
@@ -952,10 +959,13 @@ void ClientEndServerFrame (edict_t *ent)
 	// If it wasn't updated here, the view position would lag a frame
 	// behind the body position when pushed -- "sinking into plats"
 	//
-	for (i=0 ; i<3 ; i++)
+	if (!current_client->track_target || current_client->inarena)
 	{
-		current_client->ps.pmove.origin[i] = ent->s.origin[i]*8.0;
-		current_client->ps.pmove.velocity[i] = ent->velocity[i]*8.0;
+		for (i=0 ; i<3 ; i++)
+		{
+			current_client->ps.pmove.origin[i] = ent->s.origin[i]*8.0;
+			current_client->ps.pmove.velocity[i] = ent->velocity[i]*8.0;
+		}
 	}
 
 	//
@@ -1034,13 +1044,17 @@ void ClientEndServerFrame (edict_t *ent)
 	// accurately determined
 	// FIXME: with client prediction, the contents
 	// should be determined by the client
-	SV_CalcBlend (ent);
-
-	// chase cam stuff
-	if (ent->client->resp.spectator)
-		G_SetSpectatorStats(ent);
+	if (ent->client->track_target && !ent->client->inarena)
+	{
+		ent->client->ps.blend[0] = ent->client->ps.blend[1] =
+			ent->client->ps.blend[2] = ent->client->ps.blend[3] = 0;
+	}
 	else
+	{
+		SV_CalcBlend (ent);
 		G_SetStats (ent);
+	}
+
 	G_CheckChaseStats(ent);
 
 	G_SetClientEvent (ent);
@@ -1057,6 +1071,9 @@ void ClientEndServerFrame (edict_t *ent)
 	// clear weapon kicks
 	VectorClear (ent->client->kick_origin);
 	VectorClear (ent->client->kick_angles);
+
+	if (MenuThink (ent))
+		return;
 
 	// if the scoreboard is up, update it
 	if (ent->client->showscores && !(level.framenum & 31) )

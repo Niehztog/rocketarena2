@@ -1052,41 +1052,14 @@ void SpawnItem (edict_t *ent, gitem_t *item)
 		}
 	}
 
-	// some items will be prevented in deathmatch
-	if (deathmatch->value)
+	// arenas hand out their loadout directly (see give_ammo/init_player) -
+	// map-placed pickups would only conflict with the configured loadout,
+	// so anything the map spawns that could actually be picked up is
+	// simply discarded
+	if (item->pickup)
 	{
-		if ( (int)dmflags->value & DF_NO_ARMOR )
-		{
-			if (item->pickup == Pickup_Armor || item->pickup == Pickup_PowerArmor)
-			{
-				G_FreeEdict (ent);
-				return;
-			}
-		}
-		if ( (int)dmflags->value & DF_NO_ITEMS )
-		{
-			if (item->pickup == Pickup_Powerup)
-			{
-				G_FreeEdict (ent);
-				return;
-			}
-		}
-		if ( (int)dmflags->value & DF_NO_HEALTH )
-		{
-			if (item->pickup == Pickup_Health || item->pickup == Pickup_Adrenaline || item->pickup == Pickup_AncientHead)
-			{
-				G_FreeEdict (ent);
-				return;
-			}
-		}
-		if ( (int)dmflags->value & DF_INFINITE_AMMO )
-		{
-			if ( (item->flags == IT_AMMO) || (strcmp(ent->classname, "weapon_bfg") == 0) )
-			{
-				G_FreeEdict (ent);
-				return;
-			}
-		}
+		G_FreeEdict (ent);
+		return;
 	}
 
 	if (coop->value && (strcmp(ent->classname, "key_power_cube") == 0))

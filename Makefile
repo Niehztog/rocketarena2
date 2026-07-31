@@ -1,12 +1,19 @@
 BUILD_DEBUG_DIR=debug
 BUILD_RELEASE_DIR=release
 
+# The real gamei386.so was a 32-bit build. Set M32=-m32 once a 32-bit
+# multilib toolchain (gcc-multilib/libc6-dev-i386 or equivalent) is
+# available to build a period-correct target; native (64-bit) is used
+# by default since that's what actually links in this environment.
+ARCH?=x86
+M32?=
+
 CC=gcc
-BASE_CFLAGS=-Dstricmp=strcasecmp
+BASE_CFLAGS=-Dstricmp=strcasecmp $(M32)
 RELEASE_CFLAGS=$(BASE_CFLAGS) -ffast-math -funroll-loops \
 	-fomit-frame-pointer -fexpensive-optimizations
 DEBUG_CFLAGS=$(BASE_CFLAGS) -g
-LDFLAGS=-ldl -lm
+LDFLAGS=-ldl -lm $(M32)
 
 SHLIBEXT=so
 
@@ -36,7 +43,6 @@ GAME_OBJS = \
 	$(BUILDDIR)/p_client.o \
 	$(BUILDDIR)/g_cmds.o \
 	$(BUILDDIR)/g_svcmds.o \
-	$(BUILDDIR)/g_chase.o \
 	$(BUILDDIR)/g_combat.o \
 	$(BUILDDIR)/g_func.o \
 	$(BUILDDIR)/g_items.o \
@@ -51,34 +57,20 @@ GAME_OBJS = \
 	$(BUILDDIR)/g_turret.o \
 	$(BUILDDIR)/g_utils.o \
 	$(BUILDDIR)/g_weapon.o \
-	$(BUILDDIR)/m_actor.o \
-	$(BUILDDIR)/m_berserk.o \
-	$(BUILDDIR)/m_boss2.o \
-	$(BUILDDIR)/m_boss3.o \
-	$(BUILDDIR)/m_boss31.o \
-	$(BUILDDIR)/m_boss32.o \
-	$(BUILDDIR)/m_brain.o \
-	$(BUILDDIR)/m_chick.o \
-	$(BUILDDIR)/m_flipper.o \
-	$(BUILDDIR)/m_float.o \
-	$(BUILDDIR)/m_flyer.o \
-	$(BUILDDIR)/m_gladiator.o \
-	$(BUILDDIR)/m_gunner.o \
-	$(BUILDDIR)/m_hover.o \
-	$(BUILDDIR)/m_infantry.o \
-	$(BUILDDIR)/m_insane.o \
-	$(BUILDDIR)/m_medic.o \
-	$(BUILDDIR)/m_move.o \
-	$(BUILDDIR)/m_mutant.o \
-	$(BUILDDIR)/m_parasite.o \
-	$(BUILDDIR)/m_soldier.o \
-	$(BUILDDIR)/m_supertank.o \
-	$(BUILDDIR)/m_tank.o \
 	$(BUILDDIR)/p_hud.o \
 	$(BUILDDIR)/p_trail.o \
 	$(BUILDDIR)/p_view.o \
 	$(BUILDDIR)/p_weapon.o \
-	$(BUILDDIR)/m_flash.o
+	$(BUILDDIR)/arena.o \
+	$(BUILDDIR)/maploop.o \
+	$(BUILDDIR)/menu.o \
+	$(BUILDDIR)/ra2menus.o \
+	$(BUILDDIR)/gslog.o \
+	$(BUILDDIR)/darray.o \
+	$(BUILDDIR)/hashtable.o \
+	$(BUILDDIR)/gbucket.o \
+	$(BUILDDIR)/md5.o \
+	$(BUILDDIR)/stats.o
 
 $(BUILDDIR)/game$(ARCH).$(SHLIBEXT) : $(GAME_OBJS)
 	$(CC) $(CFLAGS) $(SHLIBLDFLAGS) -o $@ $(GAME_OBJS)
@@ -93,9 +85,6 @@ $(BUILDDIR)/g_cmds.o :      g_cmds.c
 	$(DO_SHLIB_CC)
 
 $(BUILDDIR)/g_svcmds.o :    g_svcmds.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/g_chase.o :     g_chase.c
 	$(DO_SHLIB_CC)
 
 $(BUILDDIR)/g_combat.o :    g_combat.c
@@ -140,75 +129,6 @@ $(BUILDDIR)/g_utils.o :     g_utils.c
 $(BUILDDIR)/g_weapon.o :    g_weapon.c
 	$(DO_SHLIB_CC)
 
-$(BUILDDIR)/m_actor.o :     m_actor.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_berserk.o :   m_berserk.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_boss2.o :     m_boss2.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_boss3.o :     m_boss3.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_boss31.o :    m_boss31.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_boss32.o :    m_boss32.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_brain.o :     m_brain.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_chick.o :     m_chick.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_flipper.o :   m_flipper.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_float.o :     m_float.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_flyer.o :     m_flyer.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_gladiator.o : m_gladiator.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_gunner.o :    m_gunner.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_hover.o :     m_hover.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_infantry.o :  m_infantry.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_insane.o :    m_insane.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_medic.o :     m_medic.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_move.o :      m_move.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_mutant.o :    m_mutant.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_parasite.o :  m_parasite.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_soldier.o :   m_soldier.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_supertank.o : m_supertank.c
-	$(DO_SHLIB_CC)
-
-$(BUILDDIR)/m_tank.o :      m_tank.c
-	$(DO_SHLIB_CC)
-
 $(BUILDDIR)/p_hud.o :       p_hud.c
 	$(DO_SHLIB_CC)
 
@@ -224,7 +144,34 @@ $(BUILDDIR)/p_weapon.o :    p_weapon.c
 $(BUILDDIR)/q_shared.o :    q_shared.c
 	$(DO_SHLIB_CC)
 
-$(BUILDDIR)/m_flash.o :     m_flash.c
+$(BUILDDIR)/arena.o :       arena.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/maploop.o :     maploop.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/menu.o :        menu.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/ra2menus.o :    ra2menus.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/gslog.o :       gslog.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/darray.o :      darray.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/hashtable.o :   hashtable.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/gbucket.o :     gbucket.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/md5.o :         md5.c
+	$(DO_SHLIB_CC)
+
+$(BUILDDIR)/stats.o :       stats.c
 	$(DO_SHLIB_CC)
 
 #####

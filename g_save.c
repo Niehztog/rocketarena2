@@ -1,5 +1,6 @@
 
 #include "g_local.h"
+#include "arena.h"
 
 #define Function(f) {#f, f}
 
@@ -75,6 +76,8 @@ field_t fields[] = {
 
 	{"endfunc", FOFS(moveinfo.endfunc), F_FUNCTION, FFL_NOSPAWN},
 
+	{"arena", FOFS(arena), F_INT},
+
 	// temp spawn vars -- only valid when the spawn function is called
 	{"lip", STOFS(lip), F_INT, FFL_SPAWNTEMP},
 	{"distance", STOFS(distance), F_INT, FFL_SPAWNTEMP},
@@ -132,7 +135,10 @@ is loaded.
 */
 void InitGame (void)
 {
-	gi.dprintf ("==== InitGame ====\n");
+	cvar_t	*public;
+	int		i;
+
+	gi.dprintf ("==== InitGame %s====\n", GAMEVERSION);
 
 	gun_x = gi.cvar ("gun_x", "0", 0);
 	gun_y = gi.cvar ("gun_y", "0", 0);
@@ -154,7 +160,14 @@ void InitGame (void)
 
 	maxclients = gi.cvar ("maxclients", "4", CVAR_SERVERINFO | CVAR_LATCH);
 	maxspectators = gi.cvar ("maxspectators", "4", CVAR_SERVERINFO);
-	deathmatch = gi.cvar ("deathmatch", "0", CVAR_LATCH);
+
+	// arena play is always deathmatch, and it can't be turned off
+	gi.cvar_forceset ("deathmatch", "1");
+	deathmatch = gi.cvar ("deathmatch", "1", CVAR_SERVERINFO|CVAR_NOSET);
+
+	hostname = gi.cvar ("hostname", "", CVAR_SERVERINFO);
+	hostport = gi.cvar ("port", "27910", CVAR_SERVERINFO|CVAR_NOSET);
+
 	coop = gi.cvar ("coop", "0", CVAR_LATCH);
 	skill = gi.cvar ("skill", "1", CVAR_LATCH);
 	maxentities = gi.cvar ("maxentities", "1024", CVAR_LATCH);
@@ -169,6 +182,16 @@ void InitGame (void)
 	filterban = gi.cvar ("filterban", "1", 0);
 
 	g_select_empty = gi.cvar ("g_select_empty", "0", CVAR_ARCHIVE);
+
+	logfile = gi.cvar ("logfile", "0", CVAR_SERVERINFO);
+
+	// netlog forwards kill lines to a remote log collector -- private servers don't
+	public = gi.cvar ("public", "1", 0);
+	netlog = gi.cvar ("netlog", "", CVAR_SERVERINFO);
+	if (public->value == 0)
+		gi.cvar_set ("netlog", "");
+
+	GSLogStartup ();
 
 	run_pitch = gi.cvar ("run_pitch", "0.002", 0);
 	run_roll = gi.cvar ("run_roll", "0.005", 0);
@@ -200,6 +223,14 @@ void InitGame (void)
 	// initialize all clients for this game
 	game.maxclients = maxclients->value;
 	game.clients = gi.TagMalloc (game.maxclients * sizeof(game.clients[0]), TAG_GAME);
+
+	for (i=0 ; i<game.maxclients ; i++)
+	{
+		InitClientPersistant (&game.clients[i]);
+		InitClientResp (&game.clients[i]);
+		game.clients[i].showhelp = false;
+	}
+
 	globals.num_edicts = game.maxclients+1;
 }
 

@@ -1,6 +1,7 @@
 // g_combat.c
 
 #include "g_local.h"
+#include "arena.h"
 
 /*
 ============
@@ -75,7 +76,8 @@ void Killed (edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, v
 	if (targ->health < -999)
 		targ->health = -999;
 
-	targ->enemy = attacker;
+	if (targ != attacker)
+		targ->enemy = attacker;
 
 	if ((targ->svflags & SVF_MONSTER) && (targ->deadflag != DEAD_DEAD))
 	{
@@ -233,10 +235,11 @@ static int CheckPowerArmor (edict_t *ent, vec3_t point, vec3_t normal, int damag
 	return save;
 }
 
-static int CheckArmor (edict_t *ent, vec3_t point, vec3_t normal, int damage, int te_sparks, int dflags)
+static int CheckArmor (edict_t *ent, vec3_t point, vec3_t normal, int damage, int te_sparks, int dflags, edict_t *attacker)
 {
 	gclient_t	*client;
 	int			save;
+	int			take;
 	int			index;
 	gitem_t		*armor;
 
@@ -267,7 +270,24 @@ static int CheckArmor (edict_t *ent, vec3_t point, vec3_t normal, int damage, in
 	if (!save)
 		return 0;
 
-	client->pers.inventory[index] -= save;
+	// per-arena armor protection -- teammates' shots still spark off you
+	// normally, but don't actually eat into your armor
+	take = save;
+	if (OnSameTeam (ent, attacker) && !(dflags & DAMAGE_NO_PROTECTION))
+	{
+		switch (arenas[client->arenanum].armorprotect)
+		{
+		case 1:
+			take = 0;
+			break;
+		case 2:
+			if (ent != attacker)
+				take = 0;
+			break;
+		}
+	}
+
+	client->pers.inventory[index] -= take;
 	SpawnDamage (te_sparks, point, normal, save);
 
 	return save;
@@ -350,9 +370,16 @@ void M_ReactToDamage (edict_t *targ, edict_t *attacker)
 
 qboolean CheckTeamDamage (edict_t *targ, edict_t *attacker)
 {
-		//FIXME make the next line real and uncomment this block
-		// if ((ability to damage a teammate == OFF) && (targ's team == attacker's team))
-	return false;
+	if (!targ->client || !attacker->client)
+		return false;
+
+	if (targ == attacker)
+		return false;
+
+	if (targ->client->teamnum != attacker->client->teamnum)
+		return false;
+
+	return true;
 }
 
 void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir, vec3_t point, vec3_t normal, int damage, int knockback, int dflags, int mod)
@@ -361,34 +388,13 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	int			take;
 	int			save;
 	int			asave;
-	int			psave;
 	int			te_sparks;
 
 	if (!targ->takedamage)
 		return;
 
-	// friendly fire avoidance
-	// if enabled you can't hurt teammates (but you can hurt yourself)
-	// knockback still occurs
-	if ((targ != attacker) && ((deathmatch->value && ((int)(dmflags->value) & (DF_MODELTEAMS | DF_SKINTEAMS))) || coop->value))
-	{
-		if (OnSameTeam (targ, attacker))
-		{
-			if ((int)(dmflags->value) & DF_NO_FRIENDLY_FIRE)
-				damage = 0;
-			else
-				mod |= MOD_FRIENDLY_FIRE;
-		}
-	}
-	meansOfDeath = mod;
-
-	// easy mode takes half damage
-	if (skill->value == 0 && deathmatch->value == 0 && targ->client)
-	{
-		damage *= 0.5;
-		if (!damage)
-			damage = 1;
-	}
+	if (attacker->client && (attacker != targ))
+		targ->enemy = attacker;
 
 	client = targ->client;
 
@@ -398,10 +404,6 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		te_sparks = TE_SPARKS;
 
 	VectorNormalize(dir);
-
-// bonus damage for suprising a monster
-	if (!(dflags & DAMAGE_RADIUS) && (targ->svflags & SVF_MONSTER) && (attacker->client) && (!targ->enemy) && (targ->health > 0))
-		damage *= 2;
 
 	if (targ->flags & FL_NO_KNOCKBACK)
 		knockback = 0;
@@ -439,30 +441,33 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		SpawnDamage (te_sparks, point, normal, save);
 	}
 
-	// check for invincibility
-	if ((client && client->invincible_framenum > level.framenum ) && !(dflags & DAMAGE_NO_PROTECTION))
-	{
-		if (targ->pain_debounce_time < level.time)
-		{
-			gi.sound(targ, CHAN_ITEM, gi.soundindex("items/protect4.wav"), 1, ATTN_NORM, 0);
-			targ->pain_debounce_time = level.time + 2;
-		}
-		take = 0;
-		save = damage;
-	}
-
-	psave = CheckPowerArmor (targ, point, normal, take, dflags);
-	take -= psave;
-
-	asave = CheckArmor (targ, point, normal, take, te_sparks, dflags);
+	asave = CheckArmor (targ, point, normal, take, te_sparks, dflags, attacker);
 	take -= asave;
 
 	//treat cheat/powerup savings the same as armor
 	asave += save;
 
-	// team damage avoidance
-	if (!(dflags & DAMAGE_NO_PROTECTION) && CheckTeamDamage (targ, attacker))
-		return;
+	// a suspected bot's shots are redirected back onto itself instead of
+	// its victim
+	if (attacker->client && attacker->client->zbotscore)
+	{
+		targ = attacker;
+		client = attacker->client;
+	}
+	else if (OnSameTeam (targ, attacker) && !(dflags & DAMAGE_NO_PROTECTION))
+	{
+		switch (arenas[targ->client->arenanum].healthprotect)
+		{
+		case 1:
+			return;
+		case 2:
+			if (targ != attacker)
+				return;
+			break;
+		}
+		mod |= MOD_FRIENDLY_FIRE;
+	}
+	meansOfDeath = mod;
 
 // do the damage
 	if (take)
@@ -472,9 +477,33 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		else
 			SpawnDamage (te_sparks, point, normal, take);
 
+		// "Damage Scoring" -- 1pt per 100 damage dealt, capped at 1pt per hit
+		if (targ->client && attacker->client && (attacker != targ) && !OnSameTeam (targ, attacker) &&
+			arenas[attacker->client->arenanum].scorebydamage)
+		{
+			int		points;
+
+			points = asave;
+			if (points < 0)
+				points = 0;
+			if (targ->health < take)
+			{
+				if (targ->health >= 0)
+					points += targ->health;
+			}
+			else if (take >= 0)
+				points += take;
+
+			if (points > 500)
+				attacker->client->damagedealt += 100;
+			else
+				attacker->client->damagedealt += points;
+
+			attacker->client->resp.score = attacker->client->damagedealt / 100;
+		}
 
 		targ->health = targ->health - take;
-			
+
 		if (targ->health <= 0)
 		{
 			if ((targ->svflags & SVF_MONSTER) || (client))
@@ -484,18 +513,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 		}
 	}
 
-	if (targ->svflags & SVF_MONSTER)
-	{
-		M_ReactToDamage (targ, attacker);
-		if (!(targ->monsterinfo.aiflags & AI_DUCKED) && (take))
-		{
-			targ->pain (targ, attacker, knockback, take);
-			// nightmare mode monsters don't go into pain frames often
-			if (skill->value == 3)
-				targ->pain_debounce_time = level.time + 5;
-		}
-	}
-	else if (client)
+	if (client)
 	{
 		if (!(targ->flags & FL_GODMODE) && (take))
 			targ->pain (targ, attacker, knockback, take);
@@ -511,7 +529,6 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	// at the end of the frame
 	if (client)
 	{
-		client->damage_parmor += psave;
 		client->damage_armor += asave;
 		client->damage_blood += take;
 		client->damage_knockback += knockback;

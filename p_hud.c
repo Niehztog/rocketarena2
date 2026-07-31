@@ -1,6 +1,9 @@
 #include "g_local.h"
+#include "arena.h"
 
-
+void	Serverwide_ScoreboardMessage (edict_t *ent);
+void	Arena_ScoreboardMessage (edict_t *ent);
+void	Pickup_ScoreboardMessage (edict_t *ent);
 
 /*
 ======================================================================
@@ -12,6 +15,8 @@ INTERMISSION
 
 void MoveClientToIntermission (edict_t *ent)
 {
+	clear_menus (ent);
+
 	if (deathmatch->value || coop->value)
 		ent->client->showscores = true;
 	VectorCopy (level.intermission_origin, ent->s.origin);
@@ -133,6 +138,16 @@ void BeginIntermission (edict_t *targ)
 			continue;
 		MoveClientToIntermission (client);
 	}
+
+	// close out the online stats session for every arena that had one running
+	for (i=0 ; i<=num_arenas ; i++)
+	{
+		if (!arenas[i].statsptr)
+			continue;
+		SendGameSnapShot (arenas[i].statsptr, 0, 1);
+		FreeGame (arenas[i].statsptr);
+		arenas[i].statsptr = 0;
+	}
 }
 
 
@@ -157,19 +172,58 @@ void DeathmatchScoreboardMessage (edict_t *ent, edict_t *killer)
 	edict_t		*cl_ent;
 	char	*tag;
 
-	// sort the clients by score
+	// a player can ask to see the serverwide scoreboard even while
+	// sitting in an arena; once picked it stays picked
+	if (!ent->client->arenanum && ent->client->scoremode == 1)
+		ent->client->scoremode = 2;
+
+	if (ent->client->scoremode == 2)
+	{
+		Serverwide_ScoreboardMessage (ent);
+		return;
+	}
+
+	if (arenas[ent->client->arenanum].active)
+		Arena_ScoreboardMessage (ent);
+	else
+		Pickup_ScoreboardMessage (ent);
+}
+
+
+/*
+==================
+Pickup_ScoreboardMessage
+
+Free-for-all scoreboard, scoped to the players in ent's own arena
+(a "pickup" arena has no fixed teams).
+==================
+*/
+void Pickup_ScoreboardMessage (edict_t *ent)
+{
+	char	entry[1024];
+	char	string[1400];
+	int		stringlength;
+	int		i, j, k;
+	int		sorted[MAX_CLIENTS];
+	int		sortedscores[MAX_CLIENTS];
+	int		score, total;
+	int		x, y;
+	gclient_t	*cl;
+	edict_t		*cl_ent;
+	char	*tag;
+
+	// sort the clients in this arena by score
 	total = 0;
 	for (i=0 ; i<game.maxclients ; i++)
 	{
 		cl_ent = g_edicts + 1 + i;
-		if (!cl_ent->inuse || game.clients[i].resp.spectator)
+		if (!cl_ent->inuse || !cl_ent->client->arenanum ||
+			cl_ent->client->arenanum != ent->client->arenanum)
 			continue;
 		score = game.clients[i].resp.score;
 		for (j=0 ; j<total ; j++)
-		{
 			if (score > sortedscores[j])
 				break;
-		}
 		for (k=total ; k>j ; k--)
 		{
 			sorted[k] = sorted[k-1];
@@ -180,12 +234,15 @@ void DeathmatchScoreboardMessage (edict_t *ent, edict_t *killer)
 		total++;
 	}
 
-	// print level name and exit rules
 	string[0] = 0;
+	stringlength = 0;
 
-	stringlength = strlen(string);
+	Com_sprintf (entry, sizeof(entry), "xv 0 yv 8 string2 \"%s\" ",
+		arenas[ent->client->arenanum].name);
+	j = strlen(entry);
+	strcpy (string + stringlength, entry);
+	stringlength += j;
 
-	// add the clients in sorted order
 	if (total > 12)
 		total = 12;
 
@@ -194,21 +251,17 @@ void DeathmatchScoreboardMessage (edict_t *ent, edict_t *killer)
 		cl = &game.clients[sorted[i]];
 		cl_ent = g_edicts + 1 + sorted[i];
 
-		picnum = gi.imageindex ("i_fixme");
 		x = (i>=6) ? 160 : 0;
 		y = 32 + 32 * (i%6);
 
-		// add a dogtag
 		if (cl_ent == ent)
 			tag = "tag1";
-		else if (cl_ent == killer)
-			tag = "tag2";
 		else
 			tag = NULL;
 		if (tag)
 		{
 			Com_sprintf (entry, sizeof(entry),
-				"xv %i yv %i picn %s ",x+32, y, tag);
+				"xv %i yv %i picn %s ", x+32, y, tag);
 			j = strlen(entry);
 			if (stringlength + j > 1024)
 				break;
@@ -216,7 +269,6 @@ void DeathmatchScoreboardMessage (edict_t *ent, edict_t *killer)
 			stringlength += j;
 		}
 
-		// send the layout
 		Com_sprintf (entry, sizeof(entry),
 			"client %i %i %i %i %i %i ",
 			x, y, sorted[i], cl->resp.score, cl->ping, (level.framenum - cl->resp.enterframe)/600);
@@ -229,6 +281,113 @@ void DeathmatchScoreboardMessage (edict_t *ent, edict_t *killer)
 
 	gi.WriteByte (svc_layout);
 	gi.WriteString (string);
+	gi.unicast (ent, ent->client->scoremode == 2);
+}
+
+
+/*
+==================
+Arena_ScoreboardMessage
+
+Team scoreboard, scoped to ent's own arena - one column per team,
+with the team name and score as a header.
+==================
+*/
+void Arena_ScoreboardMessage (edict_t *ent)
+{
+	char	entry[1024];
+	char	string[1400];
+	int		stringlength;
+	int		i, t, y;
+	gclient_t	*cl;
+	edict_t		*cl_ent;
+	char	*tag;
+
+	string[0] = 0;
+	stringlength = 0;
+
+	for (t = 0; t < 2; t++)
+	{
+		Com_sprintf (entry, sizeof(entry), "xv %i yv 8 string2 \"%s\" ",
+			t ? 160 : 0, teams[arenas[ent->client->arenanum].teamnum[t]]->name);
+		strcpy (string + stringlength, entry);
+		stringlength += strlen(entry);
+
+		y = 32;
+		for (i=1 ; i<=game.maxclients ; i++)
+		{
+			cl_ent = g_edicts + i;
+			if (!cl_ent->inuse || cl_ent->client->arenanum != ent->client->arenanum)
+				continue;
+			if (cl_ent->client->teamnum != arenas[ent->client->arenanum].teamnum[t])
+				continue;
+
+			cl = cl_ent->client;
+
+			tag = (cl_ent == ent) ? "tag1" : NULL;
+			if (tag)
+			{
+				Com_sprintf (entry, sizeof(entry),
+					"xv %i yv %i picn %s ", (t?160:0)+32, y, tag);
+				strcpy (string + stringlength, entry);
+				stringlength += strlen(entry);
+			}
+
+			Com_sprintf (entry, sizeof(entry),
+				"client %i %i %i %i %i %i ",
+				t ? 160 : 0, y, cl_ent - g_edicts - 1, cl->resp.score, cl->ping,
+				(level.framenum - cl->resp.enterframe)/600);
+			if (stringlength + (int)strlen(entry) > 1024)
+				break;
+			strcpy (string + stringlength, entry);
+			stringlength += strlen(entry);
+
+			y += 32;
+		}
+	}
+
+	gi.WriteByte (svc_layout);
+	gi.WriteString (string);
+	gi.unicast (ent, ent->client->scoremode == 2);
+}
+
+
+/*
+==================
+Serverwide_ScoreboardMessage
+
+Overview scoreboard - one summary line per active arena on the server.
+==================
+*/
+void Serverwide_ScoreboardMessage (edict_t *ent)
+{
+	char	entry[1024];
+	char	string[1400];
+	int		stringlength;
+	int		i, y;
+
+	string[0] = 0;
+	stringlength = 0;
+
+	y = 8;
+	for (i = 1; i <= num_arenas; i++)
+	{
+		if (!arenas[i].active)
+			continue;
+
+		Com_sprintf (entry, sizeof(entry),
+			"xv 0 yv %i string2 \"%s\" ", y, arenas[i].name);
+		if (stringlength + (int)strlen(entry) > 1024)
+			break;
+		strcpy (string + stringlength, entry);
+		stringlength += strlen(entry);
+
+		y += 16;
+	}
+
+	gi.WriteByte (svc_layout);
+	gi.WriteString (string);
+	gi.unicast (ent, true);
 }
 
 
@@ -243,7 +402,7 @@ Note that it isn't that hard to overflow the 1400 byte message limit!
 void DeathmatchScoreboard (edict_t *ent)
 {
 	DeathmatchScoreboardMessage (ent, ent->enemy);
-	gi.unicast (ent, true);
+	gi.unicast (ent, ent->client->scoremode == 2);
 }
 
 
@@ -262,13 +421,19 @@ void Cmd_Score_f (edict_t *ent)
 	if (!deathmatch->value && !coop->value)
 		return;
 
-	if (ent->client->showscores)
-	{
-		ent->client->showscores = false;
-		return;
-	}
-
 	ent->client->showscores = true;
+
+	// cycle: arena/pickup view -> serverwide view -> back to arena/pickup
+	if (ent->client->scoremode == 2)
+		ent->client->scoremode = 0;
+	else if (!ent->client->arenanum)
+		ent->client->scoremode = 2;
+	else
+		ent->client->scoremode++;
+
+	if (!ent->client->arenanum && ent->client->scoremode == 1)
+		ent->client->scoremode = 2;
+
 	DeathmatchScoreboard (ent);
 }
 
@@ -360,6 +525,26 @@ void G_SetStats (edict_t *ent)
 	gitem_t		*item;
 	int			index, cells;
 	int			power_armor_type;
+	char		skinicon[MAX_QPATH];
+	int			image, i;
+
+	//
+	// player list icon - only show the real skin if it's one of the
+	// precached team skins, otherwise fall back to a generic icon
+	//
+	sprintf (skinicon, "%s_i", Info_ValueForKey (ent->client->pers.userinfo, "skin"));
+	image = gi.imageindex (skinicon);
+
+	ent->client->ps.stats[STAT_SKIN_ICON] = level.unknown_icon;
+	for (i = 0; i < 7; i++)
+	{
+		if (image == teamskins_precachem[i] || image == teamskins_precachef[i] ||
+			image == teamskins_precachecw[i] || image == teamskins_precachecb[i])
+		{
+			ent->client->ps.stats[STAT_SKIN_ICON] = image;
+			break;
+		}
+	}
 
 	//
 	// health
@@ -501,6 +686,44 @@ void G_SetStats (edict_t *ent)
 		ent->client->ps.stats[STAT_HELPICON] = 0;
 
 	ent->client->ps.stats[STAT_SPECTATOR] = 0;
+
+	//
+	// arena join queue - how many players are waiting on each side
+	//
+	if (!ent->client->arenanum)
+	{
+		ent->client->ps.stats[STAT_QUEUE1] = 0;
+		ent->client->ps.stats[STAT_QUEUE2] = 0;
+		ent->client->ps.stats[STAT_SHOWQUEUE] = 0;
+	}
+	else if (!arenas[ent->client->arenanum].active)
+	{
+		ent->client->ps.stats[STAT_SHOWQUEUE] = 0;
+	}
+	else
+	{
+		// while a round is actually being played, show how many are
+		// signed up to play (the roster); otherwise show the raw
+		// join queue instead
+		if (arenas[ent->client->arenanum].state == 2 ||
+			arenas[ent->client->arenanum].state == 5 ||
+			arenas[ent->client->arenanum].state == 6)
+		{
+			ent->client->ps.stats[STAT_QUEUE1] = count_players_queue (arenas[ent->client->arenanum].pickupteam[0]->queue);
+			ent->client->ps.stats[STAT_QUEUE2] = count_players_queue (arenas[ent->client->arenanum].pickupteam[1]->queue);
+		}
+		else
+		{
+			ent->client->ps.stats[STAT_QUEUE1] = count_queue (arenas[ent->client->arenanum].pickupteam[0]->queue);
+			ent->client->ps.stats[STAT_QUEUE2] = count_queue (arenas[ent->client->arenanum].pickupteam[1]->queue);
+		}
+
+		ent->client->ps.stats[STAT_QUEUE1_ICON] = game.queue_icon + 2;
+		ent->client->ps.stats[STAT_QUEUE2_ICON] = game.queue_icon + 3;
+		ent->client->ps.stats[STAT_SHOWQUEUE] = 1;
+	}
+
+	CTFSetIDView (ent);
 }
 
 /*

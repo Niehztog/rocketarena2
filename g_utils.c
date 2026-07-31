@@ -1,6 +1,7 @@
 // g_utils.c -- misc utility functions for game module
 
 #include "g_local.h"
+#include "arena.h"
 
 
 void G_ProjectSource (vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result)
@@ -180,7 +181,7 @@ void G_UseTargets (edict_t *ent, edict_t *activator)
 //
 	if ((ent->message) && !(activator->svflags & SVF_MONSTER))
 	{
-		gi.centerprintf (activator, "%s", ent->message);
+		menu_centerprint (activator, ent->message);
 		if (ent->noise_index)
 			gi.sound (activator, CHAN_AUTO, ent->noise_index, 1, ATTN_NORM, 0);
 		else
@@ -531,11 +532,40 @@ qboolean KillBox (edict_t *ent)
 {
 	trace_t		tr;
 
+	if (!ent->client)
+		return true;
+
+	ent->client->spawn_recheck = 0;
+
+	if (ent->client && !ent->client->entered)
+		return true;
+
 	while (1)
 	{
 		tr = gi.trace (ent->s.origin, ent->mins, ent->maxs, ent->s.origin, NULL, MASK_PLAYERSOLID);
 		if (!tr.ent)
 			break;
+
+		if (tr.ent->client && !tr.ent->takedamage && tr.ent->solid)
+		{
+			vec3_t	angle, forward;
+
+			tr.ent->solid = SOLID_NOT;
+			ent->solid = SOLID_NOT;
+
+			angle[PITCH] = 0;
+			angle[YAW] = rand() % 360;
+			angle[ROLL] = 0;
+			AngleVectors (angle, forward, NULL, NULL);
+			VectorScale (forward, 600, forward);
+
+			VectorAdd (tr.ent->velocity, forward, tr.ent->velocity);
+			VectorAdd (ent->velocity, forward, ent->velocity);
+
+			tr.ent->client->spawn_recheck = level.framenum + 5;
+			ent->client->spawn_recheck = level.framenum + 5;
+			continue;
+		}
 
 		// nail it
 		T_Damage (tr.ent, ent, ent, vec3_origin, ent->s.origin, vec3_origin, 100000, 0, DAMAGE_NO_PROTECTION, MOD_TELEFRAG);

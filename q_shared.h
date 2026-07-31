@@ -990,6 +990,14 @@ typedef enum
 #define STAT_CHASE				16
 #define STAT_SPECTATOR			17
 
+// arena.c/p_hud.c -- Rocket Arena 2 additions
+#define STAT_SKIN_ICON			18
+#define STAT_QUEUE1				19
+#define STAT_QUEUE1_ICON		20
+#define STAT_QUEUE2				21
+#define STAT_QUEUE2_ICON		22
+#define STAT_SHOWQUEUE			23
+
 #define	MAX_STATS				32
 
 

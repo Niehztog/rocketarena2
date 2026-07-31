@@ -1,4 +1,5 @@
 #include "g_local.h"
+#include "arena.h"
 
 
 void InitTrigger (edict_t *self)
@@ -27,6 +28,14 @@ void multi_trigger (edict_t *ent)
 {
 	if (ent->nextthink)
 		return;		// already been triggered
+
+	if (ent->arena)
+	{
+		if (ent->message)
+			gi.TagFree (ent->message);
+		ent->message = gi.TagMalloc (300, TAG_LEVEL);
+		sprintf (ent->message, "Go to Arena %d (%s)", ent->arena, getarenaname (ent->arena));
+	}
 
 	G_UseTargets (ent, ent->activator);
 

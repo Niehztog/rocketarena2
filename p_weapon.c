@@ -2,6 +2,7 @@
 
 #include "g_local.h"
 #include "m_player.h"
+#include "arena.h"
 
 
 static qboolean	is_quad;
@@ -279,6 +280,21 @@ void Think_Weapon (edict_t *ent)
 			is_silenced = 0;
 		ent->client->pers.weapon->weaponthink (ent);
 	}
+
+	// the offhand grapple hook fires independently of the current weapon
+	if (allow_grapple)
+	{
+		if (ent->client->hookbutton)
+		{
+			if (ent->client->fightstate == FIGHT_ALIVE && !ent->client->ctf_grapple)
+				CTFGrappleFire (ent, vec3_origin, 10, 0);
+		}
+		else
+		{
+			if (ent->client->ctf_grapple)
+				CTFResetGrapple (ent->client->ctf_grapple);
+		}
+	}
 }
 
 
@@ -362,6 +378,9 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 {
 	int		n;
 
+	if (ent->client && ent->client->fightstate != FIGHT_ALIVE)
+		return;
+
 	if(ent->deadflag || ent->s.modelindex != 255) // VWep animations screw up corpses
 	{
 		return;
@@ -396,7 +415,7 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 
 	if (ent->client->weaponstate == WEAPON_ACTIVATING)
 	{
-		if (ent->client->ps.gunframe == FRAME_ACTIVATE_LAST)
+		if (ent->client->ps.gunframe == FRAME_ACTIVATE_LAST || arenas[ent->client->arenanum].fastswitch)
 		{
 			ent->client->weaponstate = WEAPON_READY;
 			ent->client->ps.gunframe = FRAME_IDLE_FIRST;
@@ -410,7 +429,10 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 	if ((ent->client->newweapon) && (ent->client->weaponstate != WEAPON_FIRING))
 	{
 		ent->client->weaponstate = WEAPON_DROPPING;
-		ent->client->ps.gunframe = FRAME_DEACTIVATE_FIRST;
+		if (arenas[ent->client->arenanum].fastswitch)
+			ent->client->ps.gunframe = FRAME_DEACTIVATE_LAST;
+		else
+			ent->client->ps.gunframe = FRAME_DEACTIVATE_FIRST;
 
 		if ((FRAME_DEACTIVATE_LAST - FRAME_DEACTIVATE_FIRST) < 4)
 		{
@@ -432,10 +454,11 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 
 	if (ent->client->weaponstate == WEAPON_READY)
 	{
-		if ( ((ent->client->latched_buttons|ent->client->buttons) & BUTTON_ATTACK) )
+		if ( ((ent->client->latched_buttons|ent->client->buttons) & BUTTON_ATTACK) &&
+			ent->takedamage && arenas[ent->client->arenanum].state == ASTATE_FIGHTING )
 		{
 			ent->client->latched_buttons &= ~BUTTON_ATTACK;
-			if ((!ent->client->ammo_index) || 
+			if ((!ent->client->ammo_index) ||
 				( ent->client->pers.inventory[ent->client->ammo_index] >= ent->client->pers.weapon->quantity))
 			{
 				ent->client->ps.gunframe = FRAME_FIRE_FIRST;
@@ -760,8 +783,12 @@ void Weapon_RocketLauncher_Fire (edict_t *ent)
 	ent->client->kick_angles[0] = -1;
 
 	VectorSet(offset, 8, 8, ent->viewheight-8);
-	P_ProjectSource (ent->client, ent->s.origin, offset, forward, right, start);
-	fire_rocket (ent, start, forward, damage, 650, damage_radius, radius_damage);
+	if (ent->client->pers.hand == LEFT_HANDED)
+		offset[1] = -8;
+	else if (ent->client->pers.hand == CENTER_HANDED)
+		offset[1] = 0;
+	G_ProjectSource (ent->s.origin, offset, forward, right, start);
+	fire_rocket (ent, start, forward, damage, arenas[ent->client->arenanum].rocket_speed, damage_radius, radius_damage);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);
@@ -855,7 +882,8 @@ void Weapon_HyperBlaster_Fire (edict_t *ent)
 
 	ent->client->weapon_sound = gi.soundindex("weapons/hyprbl1a.wav");
 
-	if (!(ent->client->buttons & BUTTON_ATTACK))
+	if (!((ent->client->buttons & BUTTON_ATTACK) &&
+		ent->takedamage && arenas[ent->client->arenanum].state == ASTATE_FIGHTING))
 	{
 		ent->client->ps.gunframe++;
 	}
@@ -941,7 +969,8 @@ void Machinegun_Fire (edict_t *ent)
 	int			kick = 2;
 	vec3_t		offset;
 
-	if (!(ent->client->buttons & BUTTON_ATTACK))
+	if (!((ent->client->buttons & BUTTON_ATTACK) &&
+		ent->takedamage && arenas[ent->client->arenanum].state == ASTATE_FIGHTING))
 	{
 		ent->client->machinegun_shots = 0;
 		ent->client->ps.gunframe++;
@@ -1051,7 +1080,8 @@ void Chaingun_Fire (edict_t *ent)
 		return;
 	}
 	else if ((ent->client->ps.gunframe == 21) && (ent->client->buttons & BUTTON_ATTACK)
-		&& ent->client->pers.inventory[ent->client->ammo_index])
+		&& ent->client->pers.inventory[ent->client->ammo_index]
+		&& ent->takedamage && arenas[ent->client->arenanum].state == ASTATE_FIGHTING)
 	{
 		ent->client->ps.gunframe = 15;
 	}
