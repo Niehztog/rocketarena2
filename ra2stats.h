@@ -43,7 +43,8 @@ typedef enum {
 #define RA2_STATS_MAX_TEAMS 16
 
 typedef struct {
-    bool        inuse;
+    bool        inuse;                  // holds numbers worth writing out
+    bool        active;                 // still on a team, still counting
     int         slot;                   // client slot, 1-based, as the GameSpy pid was
     int         team;                   // global team index, -1 if none
     int         ping;

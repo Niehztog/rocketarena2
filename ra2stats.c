@@ -112,7 +112,6 @@ ra2_round_t *RA2_Stats_Begin(int arenanum)
 {
     ra2_round_t *r;
     const arena_t *a;
-    int     i;
 
     if (!stats_path[0])
         return NULL;
@@ -135,9 +134,6 @@ ra2_round_t *RA2_Stats_Begin(int arenanum)
     r->fallingdamage = a->fallingdamage;
     r->compmode = a->competition;
     r->damagescoring = a->scorebydamage;
-
-    for (i = 0; i < MAX_CLIENTS; i++)
-        r->players[i].team = -1;
 
     return r;
 }
@@ -225,8 +221,13 @@ RA2_Stats_NextRound
 */
 void RA2_Stats_NextRound(ra2_round_t *r)
 {
-    if (r)
-        r->round++;
+    if (!r)
+        return;
+
+    r->round++;
+
+    // a vote may have changed the arena since the last round started
+    RA2_Stats_ArenaInfo(r, r->arena);
 }
 
 /*
@@ -323,16 +324,24 @@ void RA2_Stats_ArenaInfo(ra2_round_t *r, int arenanum)
 =================
 slot_stats
 
-The GameSpy buckets were keyed by `ent - g_edicts + 1`, so the same 1-based
-client slot indexes the player table here.
+Finds the record currently counting for a client slot.  A slot can be handed
+to a different player mid-match, so records are retired rather than reused and
+the table is a pool rather than an array indexed by slot -- the same thing the
+GameSpy code got from allocating a fresh registration slot per player.
 =================
 */
 static ra2_pstats_t *slot_stats(ra2_round_t *r, int slot)
 {
-    if (!r || slot < 1 || slot > MAX_CLIENTS)
+    int     i;
+
+    if (!r || slot < 1)
         return NULL;
 
-    return &r->players[slot - 1];
+    for (i = 0; i < MAX_CLIENTS; i++)
+        if (r->players[i].active && r->players[i].slot == slot)
+            return &r->players[i];
+
+    return NULL;
 }
 
 /*
@@ -343,13 +352,31 @@ RA2_Stats_AddPlayer
 void RA2_Stats_AddPlayer(ra2_round_t *r, edict_t *ent, int team)
 {
     int     slot = ent - g_edicts;
-    ra2_pstats_t *p = slot_stats(r, slot);
+    ra2_pstats_t *p;
+    int     i;
+
+    if (!r || slot < 1)
+        return;
+
+    // whatever was counting under this slot keeps its numbers
+    p = slot_stats(r, slot);
+    if (p) {
+        p->active = false;
+        p->team = -1;
+    }
+
+    for (i = 0, p = NULL; i < MAX_CLIENTS; i++)
+        if (!r->players[i].inuse) {
+            p = &r->players[i];
+            break;
+        }
 
     if (!p)
         return;
 
     memset(p, 0, sizeof(*p));
     p->inuse = true;
+    p->active = true;
     p->slot = slot;
     p->team = team;
     p->ping = ent->client->ping;
@@ -368,8 +395,10 @@ void RA2_Stats_RemovePlayer(ra2_round_t *r, int slot)
 {
     ra2_pstats_t *p = slot_stats(r, slot);
 
-    if (p)
+    if (p) {
+        p->active = false;
         p->team = -1;
+    }
 }
 
 /*
@@ -381,7 +410,7 @@ void RA2_Stats_Add(ra2_round_t *r, int slot, ra2_stat_t stat, int delta)
 {
     ra2_pstats_t *p = slot_stats(r, slot);
 
-    if (p && p->inuse)
+    if (p)
         p->stat[stat] += delta;
 }
 
@@ -394,6 +423,6 @@ void RA2_Stats_Set(ra2_round_t *r, int slot, ra2_stat_t stat, int value)
 {
     ra2_pstats_t *p = slot_stats(r, slot);
 
-    if (p && p->inuse)
+    if (p)
         p->stat[stat] = value;
 }

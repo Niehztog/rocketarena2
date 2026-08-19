@@ -354,7 +354,7 @@ static const save_field_t clientfields[] = {
 
     O(pers.spectator),
 
-    O(scoremode),
+    I(scoremode),
     O(showinventory),
     O(showhelp),
     O(showhelpicon),
@@ -881,7 +881,7 @@ void ReadGame(const char *filename)
     read_fields(f, gamefields, &game);
 
     // should agree with server's version
-    if (game.maxclients != (int)game.maxclients) {
+    if (game.maxclients != (int)maxclients->value) {
         gzclose(f);
         gi.error("Savegame has bad maxclients");
     }

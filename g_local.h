@@ -25,9 +25,10 @@
 #define STAT_COUNTDOWN          16
 #define STAT_ARENASTATUS        17
 #define STAT_ROUNDINFO          18
-// 19 and 20 are free in RA2's layout, so q2pro's second powerup timer lands there
-#define STAT_TIMER2_ICON        19
-#define STAT_TIMER2             20
+// 19 and 20 belong to arena.h's STAT_LINEPOSITION/STAT_CTF_ID_VIEW; q2pro's
+// second powerup timer goes above RA2's own block, still inside MAX_STATS_OLD
+#define STAT_TIMER2_ICON        26
+#define STAT_TIMER2             27
 #define STAT_QUEUE1             21
 #define STAT_QUEUE2             22
 #define STAT_SHOWQUEUE          23

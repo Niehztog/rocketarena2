@@ -23,9 +23,10 @@ Build it the same way as the reconstruction: `make` for native, `make windows`
 for the MinGW cross builds. All six configurations build clean.
 
 **This is not the reconstruction.** The byte-exact reconstruction lives on
-`main-github`, where 722 of 730 functions still assemble to the original
-`gamex86.dll`. This tree has been reformatted, restructured and bug-fixed, and
-no longer matches the original binaries — don't use it for address matching.
+[`main`](https://github.com/Niehztog/rocketarena2/tree/main), where 722 of 730
+functions still assemble to the original `gamex86.dll`. This tree has been
+reformatted, restructured and bug-fixed, and no longer matches the original
+binaries — don't use it for address matching.
 
 ---
 

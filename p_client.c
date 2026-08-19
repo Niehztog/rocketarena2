@@ -200,8 +200,6 @@ static q_unused bool IsNeutral(edict_t *ent)
 /* gamei386.so 0x0001ed80-0x0001f4e9 */
 static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
 {
-    int     statsdone = 0;
-
     RA2_Stats_Add(arenas[self->client->resp.context].stats,
                   self - g_edicts, RA2_STAT_DEATHS, 1);
 
@@ -225,8 +223,11 @@ static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
                 send_sound_to_arena("ra/animality.wav", attacker->client->resp.context);
         }
 
-        if (!arenas[self->client->resp.context].scorebydamage)
+        if (!arenas[self->client->resp.context].scorebydamage) {
             self->client->resp.score--;
+            RA2_Stats_Add(arenas[self->client->resp.context].stats,
+                          self - g_edicts, RA2_STAT_SCORE, -1);
+        }
         self->enemy = NULL;
 
         RA2_Stats_Add(arenas[self->client->resp.context].stats,
@@ -289,15 +290,15 @@ static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
         gi.bprintf(PRINT_MEDIUM, "%s was killed by %s\n", self->client->pers.netname, attacker->client->pers.netname);
     }
 
-    if (!statsdone) {
-        RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
-                      attacker - g_edicts, RA2_STAT_OTHERKILLS, 1);
-    }
+    RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
+                  attacker - g_edicts, RA2_STAT_OTHERKILLS, 1);
 
 kill_done:
     if (OnSameTeam(attacker, self)) {
         if (!arenas[attacker->client->resp.context].scorebydamage) {
             attacker->client->resp.score--;
+            RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
+                          attacker - g_edicts, RA2_STAT_SCORE, -1);
         }
         stuffcmd(self, "say As long as you're helping them, just shoot yourself!\n");
     } else if (!arenas[attacker->client->resp.context].scorebydamage) {
@@ -315,6 +316,8 @@ plain_death:
         self->client->resp.score--;
         RA2_Stats_Add(arenas[self->client->resp.context].stats,
                       self - g_edicts, RA2_STAT_SUICIDES, 1);
+        RA2_Stats_Add(arenas[self->client->resp.context].stats,
+                      self - g_edicts, RA2_STAT_SCORE, -1);
     }
 }
 

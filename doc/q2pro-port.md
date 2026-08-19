@@ -5,11 +5,12 @@ This branch (`q2pro-enhancements`) is Rocket Arena 2 v2.25 with the whole of
 Q2PRO's baseq2 commit history replayed on top of it, and the dead GameSpy
 stats subsystem replaced with a local one.
 
-It is **not** the reconstruction. The reconstruction lives on `main-github`,
-where 722 of 730 functions still assemble byte-for-byte to the original
-`gamex86.dll`. That property is gone here by design: this tree has been
-reformatted, retyped, restructured and bug-fixed. Do not use it for
-address matching, and do not compare it against the original binaries.
+It is **not** the reconstruction. The reconstruction lives on
+[`main`](https://github.com/Niehztog/rocketarena2/tree/main), where 722 of 730
+functions still assemble byte-for-byte to the original `gamex86.dll`. That
+property is gone here by design: this tree has been reformatted, retyped,
+restructured and bug-fixed. Do not use it for address matching, and do not
+compare it against the original binaries.
 
 Why
 ---
@@ -188,7 +189,7 @@ Address annotations
 
 The `/* gamex86.dll 0x... */` comments above most functions are left in place,
 but they describe the **reconstruction**, not this tree. They are accurate on
-`main-github` and meaningless here. Treat them as a cross-reference to the
+`main` and meaningless here. Treat them as a cross-reference to the
 original function, nothing more.
 
 Building
@@ -209,11 +210,28 @@ verbatim from Q2PRO so the ABI matches whatever engine loads the library.
 Security
 --------
 
-The reconstruction deliberately keeps RA2's original bugs, including its
-security holes. This branch does not: Q2PRO's fixes to the shared code came
-across with everything else, and the format-string problems listed above are
-fixed, as are the nine format-string problems listed above. Removing the
-GameSpy SDK also removes the only code in the tree that opened outbound
-sockets on its own — nothing here contacts the network unless `netlog` is set.
-RA2's *own* game logic has not been audited, so this is safer than the
-reconstruction but not audited-safe.
+The reconstruction on `main` deliberately keeps RA2's original bugs, including
+its security holes -- reproducing a 1999 binary byte-for-byte means reproducing
+what it got wrong. This branch does not. Q2PRO's fixes to the shared code came
+across with everything else, and nine calls that handed player-controlled text
+to a `printf`-family function as its *format* argument now pass it as a `%s`
+operand instead: `gslog.c`'s kill log reached `fprintf` with a line built from
+two player names, so a player named `%n%n%n` controlled the format string.
+Removing the GameSpy SDK also removes the only code in the tree that opened
+outbound sockets on its own — nothing here contacts the network unless `netlog`
+is set.
+
+RA2's own game logic has been reviewed for memory-safety and correctness
+defects since the port landed, and fifteen were fixed. Three of them stopped
+the branch working at all: `game.maxclients` was never initialised, so the
+client array was allocated for zero entries; the `qboolean` -> `bool` retype
+shrank `arena_settings_t` from 168 to 96 bytes while `ra2menus.c` still punned
+the block as `int[42]`, putting four writes outside `arena_t`; and four
+`bool[7]` arrays were written through a stale `extern int[]` in another
+translation unit, 21 bytes out of bounds apiece on every map load. None of the
+three was visible to the compiler.
+
+That review was not exhaustive, and the tree has still not been run against a
+live server, so treat this as materially safer than the reconstruction rather
+than as audited. Known-unchanged: the vanilla files keep their original
+behaviour, and `shared_shared.c` is vendored verbatim and not pruned.

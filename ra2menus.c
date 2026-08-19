@@ -39,14 +39,6 @@ NumForProtect(char *s)
     return 0;
 }
 
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00051cd8-0x00051cde */
-int
-menuDoNothing(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
-{
-    return 2;
-}
-
 /* gamex86.dll 0x200294d0-0x20029560 (manual-confirmed) */
 /* gamei386.so 0x00051ce0-0x00051d80 */
 int
@@ -163,16 +155,6 @@ getarenaname(int arenanum)
             return spot->message;
 
     return va("Arena Number %d", arenanum);
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00051f70-0x00051f83 */
-int
-menuChangeOMode(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
-{
-    ChangeOMode(ent);
-
-    return 2;
 }
 
 /* gamex86.dll 0x20029720-0x200297e0 (padded+majority) */
@@ -352,22 +334,6 @@ menuRefreshTeamList(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
     return 2;
 }
 
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x000525b8-0x000525e6 */
-int
-menuChangeValueAZ(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
-{
-    if (arg)
-        ((menuitem_t *)item->it)->num++;
-    else
-        ((menuitem_t *)item->it)->num--;
-
-    if (((menuitem_t *)item->it)->num < 0)
-        ((menuitem_t *)item->it)->num = 0;
-
-    return 1;
-}
-
 /* gamex86.dll 0x20029c80-0x20029cb2 (manual-confirmed) */
 /* gamei386.so 0x000525e8-0x00052617 */
 int
@@ -428,22 +394,6 @@ menuChangeValue(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
 
     if (((menuitem_t *)item->it)->num == 0)
         ((menuitem_t *)item->it)->num = 1;
-
-    return 1;
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x000526a8-0x000526d7 */
-int
-menuChangeValue10(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
-{
-    if (arg)
-        ((menuitem_t *)item->it)->num += 10;
-    else
-        ((menuitem_t *)item->it)->num -= 10;
-
-    if (((menuitem_t *)item->it)->num <= 0)
-        ((menuitem_t *)item->it)->num = 10;
 
     return 1;
 }
@@ -515,7 +465,7 @@ menuApplyAdmin(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
     qmenu_t     *node;
     menuitem_t  *it;
     edict_t     *e;
-    char        *map;
+    char        *map = NULL;
 
     node = (qmenu_t *)menu->it;
 
@@ -530,6 +480,9 @@ menuApplyAdmin(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
         else if (!Q_stricmp(it->text, "Mapname:          "))
             map = it->value;
     }
+
+    if (!map)
+        return 0;
 
     e = G_Spawn();
     e->classname = "target_changelevel";
@@ -595,8 +548,8 @@ menuApplyArenaAdmin(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
 {
     qmenu_t     *node;
     menuitem_t  *it;
-    int         *settings;
-    int         arenanum;
+    int         *settings = NULL;
+    int         arenanum = 0;
     int         weapons;
 
     node = (qmenu_t *)menu->it;
@@ -649,6 +602,8 @@ menuApplyArenaAdmin(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
                 weapons |= (settings[2] & weapon_vals[8]) ? weapon_vals[8] : 0;
 
             settings[2] = weapons;
+        } else if (!settings) {
+            continue;       // no "Arena:" row, so there is no base to write to
         } else if (!Q_stricmp(it->text, "Players per team:      ")) {
             settings[0] = it->num;
         } else if (!Q_stricmp(it->text, "Initial Health:        ")) {
@@ -694,7 +649,8 @@ menuApplyArenaAdmin(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
         }
     }
 
-    check_teams(arenanum);
+    if (arenanum)
+        check_teams(arenanum);
 
     return 0;
 }
@@ -729,7 +685,7 @@ menuVote(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
 void
 Cmd_arenaadmin_f(edict_t *ent, unsigned mode)
 {
-    qmenu_t         *m;
+    qmenu_t         *m = NULL;
     menuselect_t    changevalue;
     menuselect_t    changevalue50;
     menuselect_t    changevalue50az;
@@ -831,6 +787,8 @@ Cmd_arenaadmin_f(edict_t *ent, unsigned mode)
         AddMenuItem(m, "", NULL, -1, NULL);
         break;
 
+    default:
+        return;
     }
 
     if (mode != 2) {
@@ -886,6 +844,9 @@ Cmd_arenaadmin_f(edict_t *ent, unsigned mode)
         AddMenuItem(m, "Damage Scoring:        ", vals[40] ? "YES" : "NO ", -1, changeyesno);
         AddMenuItem(m, "", NULL, -1, NULL);
     }
+
+    if (!m)
+        return;
 
     switch (mode) {
     case 0:

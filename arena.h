@@ -75,32 +75,30 @@ typedef struct arena_settings_s {
     int         fastswitch;
     int         armorprotect;
     int         healthprotect;
-    bool    fallingdamage;
-
-    bool    allow_voting_armor;
-    bool    allow_voting_health;
-    bool    allow_voting_minping;
-    bool    allow_voting_maxping;
-    bool    allow_voting_playersperteam;
-    bool    allow_voting_rounds;
-    bool    allow_voting_maxteams;
-    bool    allow_voting_armorprotect;
-    bool    allow_voting_healthprotect;
-    bool    allow_voting_shotgun;
-    bool    allow_voting_supershotgun;
-    bool    allow_voting_machinegun;
-    bool    allow_voting_chaingun;
-    bool    allow_voting_grenadelauncher;
-    bool    allow_voting_rocketlauncher;
-    bool    allow_voting_hyperblaster;
-    bool    allow_voting_railgun;
-    bool    allow_voting_bfg;
-    bool    allow_voting_fallingdamage;
-
-    bool    locked;
-    bool    competition;
-    bool    scorebydamage;
-    bool    changed;
+    int     fallingdamage;
+    int     allow_voting_armor;
+    int     allow_voting_health;
+    int     allow_voting_minping;
+    int     allow_voting_maxping;
+    int     allow_voting_playersperteam;
+    int     allow_voting_rounds;
+    int     allow_voting_maxteams;
+    int     allow_voting_armorprotect;
+    int     allow_voting_healthprotect;
+    int     allow_voting_shotgun;
+    int     allow_voting_supershotgun;
+    int     allow_voting_machinegun;
+    int     allow_voting_chaingun;
+    int     allow_voting_grenadelauncher;
+    int     allow_voting_rocketlauncher;
+    int     allow_voting_hyperblaster;
+    int     allow_voting_railgun;
+    int     allow_voting_bfg;
+    int     allow_voting_fallingdamage;
+    int     locked;
+    int     competition;
+    int     scorebydamage;
+    int     changed;
 } arena_settings_t;
 
 typedef struct arena_s {
@@ -145,35 +143,30 @@ typedef struct arena_s {
     int         fastswitch;
     int         armorprotect;
     int         healthprotect;
-    bool    fallingdamage;
-
-    bool    allow_voting_armor;
-    bool    allow_voting_health;
-    bool    allow_voting_minping;
-    bool    allow_voting_maxping;
-    bool    allow_voting_playersperteam;
-    bool    allow_voting_rounds;
-    bool    allow_voting_maxteams;
-    bool    allow_voting_armorprotect;
-    bool    allow_voting_healthprotect;
-    bool    allow_voting_shotgun;
-    bool    allow_voting_supershotgun;
-    bool    allow_voting_machinegun;
-    bool    allow_voting_chaingun;
-    bool    allow_voting_grenadelauncher;
-    bool    allow_voting_rocketlauncher;
-    bool    allow_voting_hyperblaster;
-    bool    allow_voting_railgun;
-    bool    allow_voting_bfg;
-    bool    allow_voting_fallingdamage;
-
-    bool    locked;
-
-    bool    competition;
-    bool    scorebydamage;
-
-    bool    changed;
-
+    int     fallingdamage;
+    int     allow_voting_armor;
+    int     allow_voting_health;
+    int     allow_voting_minping;
+    int     allow_voting_maxping;
+    int     allow_voting_playersperteam;
+    int     allow_voting_rounds;
+    int     allow_voting_maxteams;
+    int     allow_voting_armorprotect;
+    int     allow_voting_healthprotect;
+    int     allow_voting_shotgun;
+    int     allow_voting_supershotgun;
+    int     allow_voting_machinegun;
+    int     allow_voting_chaingun;
+    int     allow_voting_grenadelauncher;
+    int     allow_voting_rocketlauncher;
+    int     allow_voting_hyperblaster;
+    int     allow_voting_railgun;
+    int     allow_voting_bfg;
+    int     allow_voting_fallingdamage;
+    int     locked;
+    int     competition;
+    int     scorebydamage;
+    int     changed;
     float       proposetime;
 
     arena_settings_t    proposed;
@@ -209,10 +202,10 @@ extern  cvar_t      *admincode;
 
 extern  char        *teamskins[MAX_ARENA_SKINS];
 extern  char        *vwepmodels[4];
-extern  bool    teamskins_precachem[MAX_ARENA_SKINS];
-extern  bool    teamskins_precachef[MAX_ARENA_SKINS];
-extern  bool    teamskins_precachecw[MAX_ARENA_SKINS];
-extern  bool    teamskins_precachecb[MAX_ARENA_SKINS];
+extern  int    teamskins_precachem[MAX_ARENA_SKINS];
+extern  int    teamskins_precachef[MAX_ARENA_SKINS];
+extern  int    teamskins_precachecw[MAX_ARENA_SKINS];
+extern  int    teamskins_precachecb[MAX_ARENA_SKINS];
 
 extern  char        *omode_descriptions[4];
 
@@ -244,8 +237,6 @@ void        move_to_arena(edict_t *ent, int arenanum, int mode);
 void        ChangeOMode(edict_t *ent);
 
 int         getfreeskin(int arenanum);
-char        *mylcase(char *s);
-bool    checkvwepmodel(char *s);
 void        setteamskin(edict_t *ent, char *userinfo, int skinnum);
 
 void        SendTeamToArena(qmenu_t *team, int arenanum, bool observer, bool announce);

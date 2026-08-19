@@ -698,6 +698,15 @@ void load_config(int num_arenas)
 #endif
     strcat(path, arenacfg->string);
 
+    // every block below hangs off TAG_LEVEL memory the engine has already
+    // freed, so clear it before the read -- an unreadable arena.cfg returns
+    // early, and the previous level's pointers must not outlive it
+    map_loop = NULL;
+    map_block = NULL;
+    arena_blocks = NULL;
+    definition_blocks = NULL;
+    num_definition_blocks = 0;
+
     fp = fopen(path, "r");
     if (!fp) {
         gi.dprintf("Error: Couldn't read %s\n", path);
@@ -785,6 +794,8 @@ void load_motd(void)
     struct stat st;
     char        *buf;
     char        *p;
+    char        *end;
+    size_t      size;
     motd_t      *node;
     char        path[80];
 
@@ -806,28 +817,40 @@ void load_motd(void)
     } else
         gi.dprintf("Sucessfully read %s\n", path);
 
-#ifdef _WIN32
-    fstat(fileno(fp), &st);
-
-    buf = gi.TagMalloc(st.st_size + 2, TAG_LEVEL);
-    if (!buf) {
-        gi.dprintf("Error: Couldn't malloc %d\n", (int)st.st_size);
+    if (fstat(fileno(fp), &st)) {
+        gi.dprintf("Error: Couldn't stat %s\n", path);
+        fclose(fp);
         return;
     }
-#else
-    buf = gi.TagMalloc(2048, TAG_LEVEL);
-#endif
+
+    size = st.st_size + 2;
+
+    buf = gi.TagMalloc(size, TAG_LEVEL);
+    if (!buf) {
+        gi.dprintf("Error: Couldn't malloc %d\n", (int)st.st_size);
+        fclose(fp);
+        return;
+    }
 
     p = buf;
-    while ((p = fgets(p, 99999, fp)) > 0) {
-        if (p[strlen(p) - 1] == '\n')
-            p[strlen(p) - 1] = 0;
+    end = buf + size;
+
+    // one line per node, each terminated in place, so the running pointer has
+    // to stay inside the single allocation the whole file was sized for
+    while (p + 1 < end && fgets(p, end - p, fp)) {
+        size_t  len = strlen(p);
+
+        if (!len)
+            break;
+
+        if (p[len - 1] == '\n')
+            p[--len] = 0;
 
         node = gi.TagMalloc(sizeof(motd_t), TAG_LEVEL);
         node->line = p;
         add_to_queue((qmenu_t *)node, (qmenu_t *)&motd);
 
-        p += strlen(p) + 1;
+        p += len + 1;
     }
 
     fclose(fp);

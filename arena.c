@@ -22,10 +22,10 @@ char        *vwepmodels[4] = {
     "male", "female", "cyborg", "crakhor"
 };
 
-bool    teamskins_precachem[MAX_ARENA_SKINS];
-bool    teamskins_precachef[MAX_ARENA_SKINS];
-bool    teamskins_precachecw[MAX_ARENA_SKINS];
-bool    teamskins_precachecb[MAX_ARENA_SKINS];
+int    teamskins_precachem[MAX_ARENA_SKINS];
+int    teamskins_precachef[MAX_ARENA_SKINS];
+int    teamskins_precachecw[MAX_ARENA_SKINS];
+int    teamskins_precachecb[MAX_ARENA_SKINS];
 
 extern const char   dm_statusbar[];
 
@@ -439,8 +439,6 @@ void eyecam_think(edict_t *ent, usercmd_t *ucmd)
     vec3_t      forward;
     vec3_t      dest;
     vec3_t      zero = {0, 0, 0};
-    vec3_t      mins = {-16, -16, -24};
-    vec3_t      maxs = {16, 16, 32};
     int         i;
 
     target = ent->client->resp.track_target;
@@ -739,7 +737,7 @@ void move_to_arena(edict_t *ent, int arenanum, int mode)
     // clear the velocity and hold them in place briefly
     VectorClear(ent->velocity);
 
-    ent->client->ps.pmove.pm_time = 160 >> 3;   // hold time
+    ent->client->ps.pmove.pm_time = 160 >> PM_TIME_SHIFT;   // hold time
     ent->client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 
     // draw the teleport splash at source and on the player
@@ -829,35 +827,6 @@ int getfreeskin(int arenanum)
             return i;
 
     return rand() % MAX_ARENA_SKINS;
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00049a1c-0x00049a44 */
-char *mylcase(char *s)
-{
-    char    *p;
-    int     c;
-
-    for (p = s; *p; p++) {
-        c = *p;
-        if (c >= 'A' && c <= 'Z')
-            *p += 'a' - 'A';
-    }
-
-    return s;
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00049a44-0x00049aa1 */
-bool checkvwepmodel(char *s)
-{
-    int     i;
-
-    for (i = 0; i < 4; i++)
-        if (strstr(s, vwepmodels[i]))
-            return true;
-
-    return false;
 }
 
 /* gamex86.dll 0x20002910-0x20002cc0 (call-propagated) */
@@ -976,7 +945,6 @@ void SendTeamToArena(qmenu_t *team, int arenanum, bool observer, bool announce)
 /* gamei386.so 0x0004a058-0x0004a2b4 */
 int AddtoArena(edict_t *ent, int arenanum, int allow_partial, int skip_checks)
 {
-    team_t  *t;
     int     membercount;
 
     if (!skip_checks) {
@@ -1117,8 +1085,8 @@ void init_player(edict_t *ent)
     ent->client->resp.lastomode = FREEFLYING;
     ent->takedamage = DAMAGE_NO;
 
-    send_configstring(ent, game.num_items + 0x422, " Red");
-    send_configstring(ent, game.num_items + 0x423, "Blue");
+    send_configstring(ent, game.csr.items + game.num_items + 2, " Red");
+    send_configstring(ent, game.csr.items + game.num_items + 3, "Blue");
 }
 
 /* gamex86.dll 0x20003370-0x200033a0 (manual-confirmed) */
@@ -1210,17 +1178,17 @@ void show_countdown(int countdown, int arenanum)
             continue;
 
         if (arenas[arenanum].state == 0)
-            send_configstring(e, game.num_items + 0x420, "Waiting for match to start");
+            send_configstring(e, game.csr.items + game.num_items, "Waiting for match to start");
         else
-            send_configstring(e, game.num_items + 0x420, arenas[arenanum].vs);
+            send_configstring(e, game.csr.items + game.num_items, arenas[arenanum].vs);
 
         if (arenas[arenanum].rounds > 1)
-            send_configstring(e, game.num_items + 0x421, va("Round %d of %d", arenas[arenanum].round, arenas[arenanum].rounds));
+            send_configstring(e, game.csr.items + game.num_items + 1, va("Round %d of %d", arenas[arenanum].round, arenas[arenanum].rounds));
         else
-            send_configstring(e, game.num_items + 0x421, "");
+            send_configstring(e, game.csr.items + game.num_items + 1, "");
 
-        e->client->ps.stats[STAT_ARENASTATUS] = game.num_items + 0x420;
-        e->client->ps.stats[STAT_ROUNDINFO] = game.num_items + 0x421;
+        e->client->ps.stats[STAT_ARENASTATUS] = game.csr.items + game.num_items;
+        e->client->ps.stats[STAT_ROUNDINFO] = game.csr.items + game.num_items + 1;
         e->client->ps.stats[STAT_COUNTDOWN] = countdown;
 
         if (countdown == 15 || countdown == 10 || countdown == 5) {

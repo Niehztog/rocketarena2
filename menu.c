@@ -2,58 +2,6 @@
 
 #define MAXMENUITEMS    18
 
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00050ca0-0x00050cc1 */
-void
-PrintMenuItem(menuitem_t *item)
-{
-    gi.bprintf(PRINT_HIGH, "  %s %s %d\n", item->text, item->value, item->num);
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00050cc4-0x00050d11 */
-void
-PrintMenu(qmenu_t *menu)
-{
-    menuinfo_t  *info;
-    qmenu_t     *node;
-    menuitem_t  *item;
-
-    info = (menuinfo_t *)menu->it;
-    gi.bprintf(PRINT_HIGH, "%s\n", info->title);
-
-    node = (qmenu_t *)info;
-    while (node->next) {
-        node = node->next;
-        item = (menuitem_t *)node->it;
-        gi.bprintf(PRINT_HIGH, "  %s %s %d\n", item->text, item->value, item->num);
-    }
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00050d14-0x00050d7c */
-void
-PrintMenuQueue(edict_t *ent)
-{
-    menuinfo_t  *info;
-    qmenu_t     *menu, *node;
-    menuitem_t  *item;
-
-    menu = &ent->client->menuqueue;
-    while (menu->next) {
-        menu = menu->next;
-        info = (menuinfo_t *)menu->it;
-        gi.bprintf(PRINT_HIGH, "%s\n", info->title);
-
-        node = (qmenu_t *)info;
-        while (node->next) {
-            node = node->next;
-            item = (menuitem_t *)node->it;
-            gi.bprintf(PRINT_HIGH, "  %s %s %d\n", item->text, item->value, item->num);
-        }
-    }
-}
-
 /* gamex86.dll 0x2001f170-0x2001f1b0 (manual-confirmed) */
 /* gamei386.so 0x00050d7c-0x00050dd8 */
 char *
@@ -104,7 +52,7 @@ SendMenu(edict_t *ent)
 void
 SendStatusBar(edict_t *ent, const char *string, bool transmit)
 {
-    strncpy(ent->client->menutext, string, MAXSTATUSBAR);
+    Q_strlcpy(ent->client->menutext, string, sizeof(ent->client->menutext));
     ent->client->menutime = level.framenum + 1;
 
     if (transmit) {
@@ -212,50 +160,6 @@ DisplayMenu(edict_t *ent)
         sprintf(p, "yv %d string2 \"(More)\" ", y + 10);
 
     SendStatusBar(ent, string, false);
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00051564-0x0005172f */
-void
-DisplaySimpMenu(edict_t *ent)
-{
-    gclient_t   *cl;
-    menuinfo_t  *info;
-    qmenu_t     *node, *selected;
-    char        buf[MAXSTATUSBAR];
-
-    cl = ent->client;
-
-    if (!cl->showmenu) {
-        gi.centerprintf(ent, "");
-        return;
-    }
-
-    info = (menuinfo_t *)cl->curmenulink->it;
-    selected = cl->selected;
-
-    count_queue((qmenu_t *)info);
-
-    buf[0] = 0;
-    strcat(buf, HiPrint(info->title));
-    LoPrint(info->title);
-    strcat(buf, "\n");
-
-    node = (qmenu_t *)info;
-    while (node->next) {
-        node = node->next;
-        strcat(buf, "\n");
-        if (node == selected)
-            strcat(buf, "*");
-
-        strcat(buf, ((menuitem_t *)node->it)->text);
-        if (((menuitem_t *)node->it)->value)
-            strcat(buf, ((menuitem_t *)node->it)->value);
-        if (((menuitem_t *)node->it)->num >= 0)
-            sprintf(buf + strlen(buf), "%d", ((menuitem_t *)node->it)->num);
-    }
-
-    gi.centerprintf(ent, "%s", buf);
 }
 
 /* gamex86.dll 0x2001f650-0x2001f6d0 (aligned) */
@@ -451,50 +355,3 @@ clear_menus(edict_t *ent)
     DisplayMenu(ent);
 }
 
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00051b74-0x00051b9e */
-int
-MySelect(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
-{
-    gi.bprintf(PRINT_HIGH, "menu item %s selected by %s\n",
-               ((menuitem_t *)item->it)->text, ent->client->pers.netname);
-
-    return 0;
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00051ba0-0x00051bce */
-int
-MySelect2(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
-{
-    if (arg)
-        ((menuitem_t *)item->it)->num++;
-    else
-        ((menuitem_t *)item->it)->num--;
-
-    if (((menuitem_t *)item->it)->num == 0)
-        ((menuitem_t *)item->it)->num = 1;
-
-    return 1;
-}
-
-/* gamex86.dll: no real counterpart -- confirmed dead code */
-/* gamei386.so 0x00051bd0-0x00051c43 */
-int
-MySelect3(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg)
-{
-    qmenu_t     *node;
-    char        fragbuf[8], timebuf[8];
-
-    node = ((menuinfo_t *)menu->it)->items;
-    sprintf(fragbuf, "%d", ((menuitem_t *)node->it)->num);
-    node = node->next;
-    sprintf(timebuf, "%d", ((menuitem_t *)node->it)->num);
-
-    gi.bprintf(PRINT_HIGH, "Fraglimit is now %s. Timelimit is now %s\n", fragbuf, timebuf);
-
-    gi.cvar_set("fraglimit", fragbuf);
-    gi.cvar_set("timelimit", timebuf);
-
-    return 0;
-}

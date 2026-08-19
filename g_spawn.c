@@ -1,6 +1,7 @@
 
 
 #include "g_local.h"
+#include "arena.h"
 
 typedef struct {
     char    *name;
@@ -139,11 +140,6 @@ void SP_func_illusionary(edict_t *ent);
 void arena_init(edict_t *wsent);
 void GSLogNewmap(void);
 
-extern char *teamskins[];
-extern int  teamskins_precachem[];
-extern int  teamskins_precachef[];
-extern int  teamskins_precachecw[];
-extern int  teamskins_precachecb[];
 
 static const spawn_func_t spawn_funcs[] = {
     {"item_health", SP_none},
@@ -830,12 +826,12 @@ const char single_statusbar[] =
 "endif "
 
 // timer 2 (pent)
-"if 18 "
+"if 26 "
   "yb -76 "
   "xv 262 "
-  "num 2 19 "
+  "num 2 27 "
   "xv 296 "
-  "pic 18 "
+  "pic 26 "
   "yb -50 "
 "endif "
 

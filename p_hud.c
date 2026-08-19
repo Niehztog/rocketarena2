@@ -881,8 +881,8 @@ void G_SetStats(edict_t *ent)
             ent->client->ps.stats[STAT_QUEUE2] = count_queue(arenas[ent->client->resp.context].pickupteam[1]->arenalink.it);
         }
 
-        ent->client->ps.stats[STAT_QUEUE1_ICON] = game.num_items + 0x422;
-        ent->client->ps.stats[STAT_QUEUE2_ICON] = game.num_items + 0x423;
+        ent->client->ps.stats[STAT_QUEUE1_ICON] = game.csr.items + game.num_items + 2;
+        ent->client->ps.stats[STAT_QUEUE2_ICON] = game.csr.items + game.num_items + 3;
         ent->client->ps.stats[STAT_SHOWQUEUE] = 1;
     } else {
         ent->client->ps.stats[STAT_SHOWQUEUE] = 0;

@@ -798,26 +798,10 @@ static void Cmd_Say_f(edict_t *ent, bool team, bool arg0, bool bcast)
     if (gi.argc() < 2 && !arg0)
         return;
 
-    // Q2PRO's cvar-driven flood protection runs ahead of Rocket Arena's own
-    // hardcoded spam counter; both stay in place
+    // flood protection is cvar-driven, its mute expires, and the server
+    // enforces it rather than asking the client to disconnect itself
     if (FloodProtect(ent))
         return;
-
-    if (ent->client->spamcount == -1)
-        return;
-
-    if (level.time < ent->client->spamtime + 2.0f) {
-        ent->client->spamcount++;
-        if (ent->client->spamcount > 5) {
-            ent->client->spamcount = -1;
-            gi.bprintf(PRINT_CHAT, "%s: Sorry guys, I talk too much\n", ent->client->pers.netname);
-            stuffcmd(ent, "disconnect\n");
-            return;
-        }
-    } else {
-        ent->client->spamcount = 1;
-    }
-    ent->client->spamtime = level.time;
 
     if (team)
         Q_snprintf(text, sizeof(text), "(%s): ", ent->client->pers.netname);

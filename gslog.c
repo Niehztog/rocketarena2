@@ -52,11 +52,15 @@ struct sockaddr_in net_name_to_address(char *name)
     portstr = strtok(NULL, "");
 
     if (portstr) {
-        sin.sin_port = atoi(portstr);
-        if (sin.sin_port <= 0 || sin.sin_port >= 65536) {
+        int port = atoi(portstr);
+
+        if (port <= 0 || port > 65535) {
             fprintf(stderr, "net_name_to_address: %s: invalid port number\n", portstr);
-            exit(1);
+            free(s);
+            return sin;
         }
+
+        sin.sin_port = port;
     } else
         sin.sin_port = 0;
 
@@ -71,7 +75,8 @@ struct sockaddr_in net_name_to_address(char *name)
 #else
             fprintf(stderr, "%s: %s", s, "net_name_to_addr");
 #endif
-            exit(1);
+            free(s);
+            return sin;
         }
     }
 
@@ -152,6 +157,9 @@ void GSSendLine(char *line)
     unsigned short      port;
 
     addr = net_name_to_address(netlog->string);
+    if (!addr.sin_addr.s_addr)
+        return;
+
     port = ntohs(addr.sin_port);
 
     sock = net_open_socket();

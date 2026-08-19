@@ -31,15 +31,11 @@ void        add_to_front_queue(qmenu_t *node, qmenu_t *head);
 
 int         count_queue(qmenu_t *head);
 
-void        PrintMenuItem(menuitem_t *item);
-void        PrintMenu(qmenu_t *menu);
-void        PrintMenuQueue(edict_t *ent);
 char        *LoPrint(char *string);
 char        *HiPrint(char *string);
 void        SendMenu(edict_t *ent);
 void        SendStatusBar(edict_t *ent, const char *string, bool transmit);
 void        DisplayMenu(edict_t *ent);
-void        DisplaySimpMenu(edict_t *ent);
 qmenu_t     *CreateQMenu(edict_t *ent, char *title);
 qmenu_t     *AddMenuItem(qmenu_t *menu, char *text, char *value, int num, menuselect_t select);
 void        FinishMenu(edict_t *ent, qmenu_t *menu, bool show);
@@ -48,8 +44,5 @@ void        MenuPrev(edict_t *ent);
 void        UseMenu(edict_t *ent, int arg);
 bool    MenuThink(edict_t *ent);
 void        clear_menus(edict_t *ent);
-int         MySelect(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg);
-int         MySelect2(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg);
-int         MySelect3(edict_t *ent, qmenu_t *menu, qmenu_t *item, int arg);
 
 #endif // _MENU_H
