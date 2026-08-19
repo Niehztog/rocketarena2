@@ -1,20 +1,31 @@
-# Rocket Arena 2 on the Q2PRO game API
+# Rocket Arena 2 — Q2PRO enhancements
 
-This branch (`feature/q2pro-port`) is Rocket Arena 2 v2.25 with every commit
-Q2PRO has made to id's `baseq2` game source — 188 of them — replayed on top of
-it. That brings in the modern game API, frame-number timers, the rewritten
-savegame system, and twenty years of accumulated crash and overflow fixes,
-while keeping RA2's cvars, commands, spawn classnames and arena logic intact.
+This branch (`q2pro-enhancements`) takes Rocket Arena 2 v2.25 and brings it up
+to date, in two steps.
 
-**It is not the reconstruction.** The byte-exact reconstruction lives on
-`main-github`; this tree has been reformatted and restructured and no longer
-matches the original binaries. Don't use it for address matching.
+**Every commit Q2PRO has made to id's `baseq2` game source is replayed on top
+of it** — 188 of them, from the 3.20 import to current master. That brings in
+the modern game API, frame-number timers, the rewritten savegame system,
+protocol extensions, and twenty years of accumulated crash, overflow and
+out-of-bounds fixes. RA2's own code comes through intact: all 43 cvars, all 39
+client commands, all 111 spawn classnames and the grapple.
+
+**The GameSpy stats SDK is gone.** Six third-party files uploaded per-round
+statistics to `gamestats.gamespy.com`, offline for years — and still paid for
+a DNS lookup and a connect attempt at the start of every round. The numbers it
+collected are now written locally instead, one JSON object per round, by a
+small module that links nothing beyond libc.
 
 * [doc/q2pro-port.md](doc/q2pro-port.md) — how the replay was done, what was
-  carried across by hand, and what was checked.
+  carried across by hand, what replaced GameSpy, and what was checked.
 
 Build it the same way as the reconstruction: `make` for native, `make windows`
-for the MinGW cross builds.
+for the MinGW cross builds. All six configurations build clean.
+
+**This is not the reconstruction.** The byte-exact reconstruction lives on
+`main-github`, where 722 of 730 functions still assemble to the original
+`gamex86.dll`. This tree has been reformatted, restructured and bug-fixed, and
+no longer matches the original binaries — don't use it for address matching.
 
 ---
 

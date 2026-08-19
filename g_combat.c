@@ -3,7 +3,7 @@
 
 #include "g_local.h"
 #include "arena.h"
-#include "gbucket.h"
+#include "ra2stats.h"
 
 /*
 ============
@@ -463,10 +463,9 @@ void T_Damage(edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_t
             attacker->client->resp.damagedealt += points > 500 ? 100 : points;
             attacker->client->resp.score = attacker->client->resp.damagedealt / 100;
 
-            if (arenas[attacker->client->resp.context].statsptr)
-                bopfuncs[BOP_PLAYER_INT](arenas[attacker->client->resp.context].statsptr,
-                                         "score", bucketfuncs[BUCKET_SET],
-                                         attacker->client->resp.score, (attacker - g_edicts) + 1);
+            RA2_Stats_Set(arenas[attacker->client->resp.context].stats,
+                          attacker - g_edicts, RA2_STAT_SCORE,
+                          attacker->client->resp.score);
         }
         targ->health = targ->health - take;
 

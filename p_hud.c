@@ -2,6 +2,7 @@
 
 #include "g_local.h"
 #include "arena.h"
+#include "ra2stats.h"
 
 void    Serverwide_ScoreboardMessage(edict_t *ent);
 void    Arena_ScoreboardMessage(edict_t *ent);
@@ -148,11 +149,8 @@ void BeginIntermission(edict_t *targ)
     }
 
     for (i = 0; i <= num_arenas; i++) {
-        if (!arenas[i].statsptr)
-            continue;
-        SendGameSnapShot(arenas[i].statsptr, NULL, 1);
-        FreeGame(arenas[i].statsptr);
-        arenas[i].statsptr = 0;
+        RA2_Stats_End(arenas[i].stats);
+        arenas[i].stats = NULL;
     }
 
     if (!n)

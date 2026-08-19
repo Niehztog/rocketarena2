@@ -1,8 +1,9 @@
 Rocket Arena 2 on the Q2PRO game API
 ====================================
 
-This branch (`feature/q2pro-port`) is Rocket Arena 2 v2.25 with the whole of
-Q2PRO's baseq2 commit history replayed on top of it.
+This branch (`q2pro-enhancements`) is Rocket Arena 2 v2.25 with the whole of
+Q2PRO's baseq2 commit history replayed on top of it, and the dead GameSpy
+stats subsystem replaced with a local one.
 
 It is **not** the reconstruction. The reconstruction lives on `main-github`,
 where 722 of 730 functions still assemble byte-for-byte to the original
@@ -107,6 +108,51 @@ were carried across by hand:
   passes a runtime string as a format — `gi.centerprintf(e, s)` and friends —
   and two where a `void *` is printed with `%s`. All nine are fixed.
 
+GameSpy
+-------
+
+RA2 v2.25 shipped with GameSpy's `gstats` SDK — `gstats.c`, `gbucket.c/.h`,
+`darray.c/.h`, `hashtable.c/.h`, `md5c.c`/`md5.h`, `nonport.c/.h` — six
+third-party files that accumulated per-round numbers in a tagged-value store,
+authenticated with an MD5 challenge-response handshake, and uploaded the
+result to `gamestats.gamespy.com` over an XOR-obfuscated wire protocol.
+
+That host has been offline for years. The code was not idle in its absence:
+every round start called `NewGame()`, which resolved the hostname, tried to
+connect, and on failure wrote the round into an on-disk retry cache that
+nothing ever drained. The whole subsystem is gone from this branch, along with
+`ValidatePlayer()`, which read a `pid`/`pass` pair out of client userinfo to
+authenticate against a GameSpy account that no longer exists.
+
+**RA2's own local logging does not cover what it recorded.** `gslog.c`'s
+StdLog (`logfile 2`) writes one line per kill, suicide, connect and
+disconnect, plus map changes — but it is server-wide and arena-blind. It has
+no notion of which arena an event happened in, no team names or team scores,
+and no round boundaries. The GameSpy pipeline had all four, per arena and per
+round.
+
+So the numbers are kept, and written locally instead. `ra2stats.c` accumulates
+the same counters the buckets did — score, deaths, suicides, and the
+grenade/rocket/rail/other kill breakdown per player, score per team, plus the
+arena settings and round number — and appends one JSON object per round to a
+file in the game directory:
+
+    statsfile   0 = off, 1 = on (default 1)
+    statsname   file name (default ra2stats.jsonl)
+
+One object per line, appended, never rewritten: safe against a server dying
+mid-match, greppable, and readable by anything that can parse JSON. Player and
+team names come straight off the network, so everything outside printable
+ASCII is `\u`-escaped — a stray quote in a player name can't corrupt the file.
+No new libraries are linked in; the game still depends on nothing but libc,
+libm, and Winsock for `netlog`.
+
+`gslog.c` is untouched and still does what it did. It is not GameSpy code
+despite the `GS` prefix — the two systems are unrelated and different
+vintages. Its Winsock startup used to live in the SDK's `NetShutdown()`; since
+`netlog` is now the only socket user left, `GSNetStartup`/`GSNetShutdown` live
+in `gslog.c` itself.
+
 What is checked
 ---------------
 
@@ -114,7 +160,8 @@ What is checked
   is the only addition.
 * All 111 RA2 spawn classnames are present, plus `monster_makron`, which
   Q2PRO added.
-* All 43 RA2 cvars and all 39 RA2 client commands are present.
+* All 43 RA2 cvars and all 39 RA2 client commands are present, plus
+  `statsfile`/`statsname` for the local stats log.
 * `g_ptrs.c` regenerates byte-identical from Q2PRO's `genptr.py` over this
   tree.
 * RA2 added exactly one savegame field over vanilla (`arena`); it is in the
@@ -128,12 +175,13 @@ Warnings
 --------
 
 Compiled with `-Wall -Wextra` plus Q2PRO's own warning set, the original tree
-produces 200 warnings and this one produces 43. No category is above its
+produces 200 warnings and this one produces 26. No category is above its
 original count. What is gone: 117 pointer-to-int casts, 17 non-exhaustive
-switches, 8 ignored return values, and all of the strict-aliasing and
-uninitialised-use reports. What remains is pre-existing RA2 code that the port
-does not touch — the `if (it = FindItem(...))` idiom, the GameSpy SDK's
-function-pointer casts, and a handful of dead locals.
+switches, 8 ignored return values, all of the strict-aliasing and
+uninitialised-use reports, and — with the SDK itself — 12 function-pointer
+casts, two sequence-point violations, two out-of-bounds array subscripts and a
+format overflow. What remains is pre-existing RA2 code that the port does not
+touch: the `if (it = FindItem(...))` idiom and a handful of dead locals.
 
 Address annotations
 -------------------
@@ -164,5 +212,8 @@ Security
 The reconstruction deliberately keeps RA2's original bugs, including its
 security holes. This branch does not: Q2PRO's fixes to the shared code came
 across with everything else, and the format-string problems listed above are
-fixed. RA2's *own* logic has not been audited, so this is safer than the
+fixed, as are the nine format-string problems listed above. Removing the
+GameSpy SDK also removes the only code in the tree that opened outbound
+sockets on its own — nothing here contacts the network unless `netlog` is set.
+RA2's *own* game logic has not been audited, so this is safer than the
 reconstruction but not audited-safe.

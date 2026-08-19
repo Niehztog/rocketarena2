@@ -1,6 +1,6 @@
 #include "g_local.h"
 #include "arena.h"
-#include "gbucket.h"
+#include "ra2stats.h"
 
 extern int  votetries_setting;
 bool    broken = false;
@@ -41,11 +41,6 @@ void        load_motd(void);
 void        show_observer_menu(edict_t *ent);
 void        show_arena_menu(edict_t *ent);
 void        show_teamconfirm_menu(edict_t *ent, int arenanum);
-
-int         ServerOpInt(void *gamep, char *key, bucketop_t op, int value, int owner);
-char        *ServerOpString(void *gamep, char *key, bucketop_t op, char *value, int owner);
-int         PlayerOpInt(void *gamep, char *key, bucketop_t op, int value, int player);
-char        *PlayerOpString(void *gamep, char *key, bucketop_t op, char *value, int player);
 
 /* gamex86.dll 0x20001000-0x20001030 (call-propagated) */
 /* gamei386.so 0x00047b50-0x00047b77 */
@@ -238,53 +233,6 @@ void give_ammo(edict_t *e)
     }
 }
 
-/* gamex86.dll 0x20001590-0x20001670 (manual-confirmed) */
-/* gamei386.so 0x00048110-0x000481e8 */
-void
-ValidatePlayer(edict_t *ent, void *gamep)
-{
-    char    *pid;
-    char    *pass;
-    char    auth[36];
-    int     pidnum;
-
-    pid = Info_ValueForKey(ent->client->pers.userinfo, "pid");
-    pass = Info_ValueForKey(ent->client->pers.userinfo, "pass");
-
-    if (!pid[0] || !pass[0])
-        return;
-
-    pidnum = atoi(pid);
-
-    GenerateAuth(GetChallenge(gamep), pass, auth);
-
-    bopfuncs[BOP_PLAYER_INT](gamep, "pid", bucketfuncs[BUCKET_SET],
-                             pidnum, ent - g_edicts + 1);
-    ((bucketopstrfn_t)bopfuncs[BOP_PLAYER_STRING])(gamep, "auth",
-            bucketfuncs[BUCKET_SET], auth, ent - g_edicts + 1);
-}
-
-/* gamex86.dll 0x20001670-0x200017cc (manual-confirmed) */
-/* gamei386.so 0x000481e8-0x000483e4 */
-void
-NewStatsPlayer(void *gamep, edict_t *ent, int team)
-{
-    NewPlayer(gamep, ent - g_edicts + 1, ent->client->pers.netname);
-
-    bopfuncs[BOP_PLAYER_INT](gamep, "team", bucketfuncs[BUCKET_SET],
-                             GetTeamIndex(gamep, team), ent - g_edicts + 1);
-    bopfuncs[BOP_PLAYER_INT](gamep, "score", bucketfuncs[BUCKET_SET], 0,
-                             ent - g_edicts + 1);
-    bopfuncs[BOP_PLAYER_INT](gamep, "ping", bucketfuncs[BUCKET_SET],
-                             ent->client->ping, ent - g_edicts + 1);
-    bopfuncs[BOP_PLAYER_INT](gamep, "deaths", bucketfuncs[BUCKET_SET], 0,
-                             ent - g_edicts + 1);
-    bopfuncs[BOP_PLAYER_INT](gamep, "suicides", bucketfuncs[BUCKET_SET], 0,
-                             ent - g_edicts + 1);
-
-    ValidatePlayer(ent, gamep);
-}
-
 /* gamex86.dll 0x200017d0-0x200019f0 (padded) */
 /* gamei386.so 0x000483e4-0x00048661 */
 team_t *add_to_team(edict_t *ent, char *teamname)
@@ -307,8 +255,8 @@ team_t *add_to_team(edict_t *ent, char *teamname)
             if (arenas[t->arenanum].locked)
                 return NULL;
 
-            if (t->fighting && arenas[t->arenanum].statsptr)
-                NewStatsPlayer(arenas[t->arenanum].statsptr, ent, i);
+            if (t->fighting)
+                RA2_Stats_AddPlayer(arenas[t->arenanum].stats, ent, i);
         }
 
         add_to_queue(&ent->client->resp.teammember, &teams[i]);
@@ -378,9 +326,9 @@ void remove_from_team(edict_t *ent)
                ent->client->pers.netname, ent->client->resp.teamnum,
                TEAM(&teams[ent->client->resp.teamnum])->name);
 
-    if (TEAM(&teams[ent->client->resp.teamnum])->fighting &&
-        arenas[ent->client->resp.context].statsptr)
-        RemovePlayer(arenas[ent->client->resp.context].statsptr, ent - g_edicts + 1);
+    if (TEAM(&teams[ent->client->resp.teamnum])->fighting)
+        RA2_Stats_RemovePlayer(arenas[ent->client->resp.context].stats,
+                               ent - g_edicts);
 
     remove_from_queue(node, NULL);
 
@@ -981,12 +929,10 @@ void SendTeamToArena(qmenu_t *team, int arenanum, bool observer, bool announce)
             TEAM(team)->skin = -1;
     }
 
-    if (!observer && announce && arenas[arenanum].statsptr) {
+    if (!observer && announce && arenas[arenanum].stats) {
         statsteam = team - teams;
 
-        NewTeam(arenas[arenanum].statsptr, statsteam, TEAM(team)->name);
-        bopfuncs[BOP_TEAM_INT](arenas[arenanum].statsptr, "score",
-                               bucketfuncs[BUCKET_SET], 0, statsteam);
+        RA2_Stats_AddTeam(arenas[arenanum].stats, statsteam, TEAM(team)->name);
     }
 
     while (mnode->next) {
@@ -1007,7 +953,7 @@ void SendTeamToArena(qmenu_t *team, int arenanum, bool observer, bool announce)
             give_ammo(ent);
 
             if (statsteam != -1)
-                NewStatsPlayer(arenas[arenanum].statsptr, ent, statsteam);
+                RA2_Stats_AddPlayer(arenas[arenanum].stats, ent, statsteam);
         }
     }
 
@@ -1719,28 +1665,6 @@ void check_voting(int arenanum)
     check_teams(arenanum);
 }
 
-/* gamex86.dll 0x200042b0-0x20004457 (manual-confirmed) */
-/* gamei386.so 0x0004b9c4-0x0004bba6 */
-void set_server_bucket_info(int arenanum)
-{
-    void    *game = arenas[arenanum].statsptr;
-
-    SETSTR(game, "hostname", hostname->string);
-    SETSTR(game, "gamever", GAMEVERSION);
-    SETSTR(game, "mapname", level.mapname);
-    SETINT(game, "hostport", (int)hostport->value);
-    SETINT(game, "arena", arenanum);
-    SETINT(game, "rounds", arenas[arenanum].rounds);
-    SETINT(game, "round", 1);
-    SETINT(game, "armor", arenas[arenanum].armor);
-    SETINT(game, "health", arenas[arenanum].health);
-    SETINT(game, "armorprotect", arenas[arenanum].armorprotect);
-    SETINT(game, "healthprotect", arenas[arenanum].healthprotect);
-    SETINT(game, "fallingdamage", arenas[arenanum].fallingdamage);
-    SETINT(game, "compmode", arenas[arenanum].competition);
-    SETINT(game, "damagescoring", arenas[arenanum].scorebydamage);
-}
-
 /* gamex86.dll 0x20004460-0x20004a70 (manual-confirmed) */
 /* gamei386.so 0x0004bba8-0x0004c4e8 */
 void arena_think(int arenanum)
@@ -1787,12 +1711,8 @@ void arena_think(int arenanum)
                 }
 
                 if (arena->idarena == 1) {
-                    if (arena->statsptr)
-                        FreeGame(arena->statsptr);
-                    if (netlog->string[0] && !IsStatsConnected())
-                        InitStatsConnection((int)hostport->value);
-                    arena->statsptr = NewGame(1);
-                    set_server_bucket_info(arenanum);
+                    RA2_Stats_End(arena->stats);
+                    arena->stats = RA2_Stats_Begin(arenanum);
                 }
 
                 arena->state = ASTATE_COUNTDOWN;
@@ -1827,12 +1747,8 @@ void arena_think(int arenanum)
         }
 
         if (arena->idarena == 1) {
-            if (arena->statsptr)
-                FreeGame(arena->statsptr);
-            if (netlog->string[0] && !IsStatsConnected())
-                InitStatsConnection((int)hostport->value);
-            arena->statsptr = NewGame(1);
-            set_server_bucket_info(arenanum);
+            RA2_Stats_End(arena->stats);
+            arena->stats = RA2_Stats_Begin(arenanum);
         }
 
         arena->state = ASTATE_COUNTDOWN;
@@ -1862,28 +1778,21 @@ void arena_think(int arenanum)
 
         if (winner == -1) {
             sprintf(arena->msg, "It was a tie!");
-            if (arena->statsptr)
-                SendGameSnapShot(arena->statsptr, NULL, 0);
+            RA2_Stats_Write(arena->stats);
         } else {
-            if (arena->statsptr)
-                bopfuncs[BOP_TEAM_INT](arena->statsptr, "score",
-                                       bucketfuncs[BUCKET_ADD], 1, winner);
+            RA2_Stats_TeamScore(arena->stats, winner, 1);
 
             if (++((team_t *)teams[winner].it)->wins > arenas[arenanum].rounds / 2) {
                 Q_snprintf(arena->msg, sizeof(arena->msg), "%s has won the match!!",
                            ((team_t *)teams[winner].it)->name);
                 arena->round = arena->rounds;
 
-                if (arena->statsptr) {
-                    SendGameSnapShot(arena->statsptr, NULL, 1);
-                    FreeGame(arena->statsptr);
-                    arena->statsptr = NULL;
-                }
+                RA2_Stats_End(arena->stats);
+                arena->stats = NULL;
             } else {
                 Q_snprintf(arena->msg, sizeof(arena->msg), "%s has won the round!",
                            ((team_t *)teams[winner].it)->name);
-                if (arena->statsptr)
-                    SendGameSnapShot(arena->statsptr, NULL, 0);
+                RA2_Stats_Write(arena->stats);
             }
         }
 
@@ -1921,9 +1830,7 @@ void arena_think(int arenanum)
         }
 
         if (arena->round < arenas[arenanum].rounds) {
-            if (arena->statsptr)
-                bopfuncs[BOP_SERVER_INT](arena->statsptr, "round",
-                                         bucketfuncs[BUCKET_ADD], 1, 0);
+            RA2_Stats_NextRound(arena->stats);
 
             arena->round++;
             arena->state = ASTATE_COUNTDOWN;
@@ -1962,12 +1869,6 @@ void arena_init(edict_t *wsent)
     if (!wsent)
         return;
 
-    strcpy(gcd_gamename, "ra2");
-    strcpy(gcd_secret_key, "9z3312");
-
-    if (netlog->string[0] && !IsStatsConnected())
-        InitStatsConnection((int)hostport->value);
-
     teams = gi.TagMalloc(MAX_TEAMS * sizeof(qmenu_t), TAG_LEVEL);
     memset(teams, 0, MAX_TEAMS * sizeof(qmenu_t));
     memset(arenas, 0, sizeof(arenas));
@@ -1985,7 +1886,7 @@ void arena_init(edict_t *wsent)
 
     for (i = 0; i <= num_arenas; i++) {
         arenas[i].state = ASTATE_ROUNDEND;
-        arenas[i].statsptr = NULL;
+        arenas[i].stats = NULL;
         arenas[i].active = idmap;
         arenas[i].numteams = 2;
         arenas[i]._arena_unidentified0 = 0;

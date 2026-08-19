@@ -191,7 +191,7 @@ typedef struct arena_s {
     int         round;
     team_t      *pickupteam[2];
 
-    void        *statsptr;
+    struct ra2_round_s  *stats;     // NULL when statsfile is off
 } arena_t;
 
 extern  int         votetries_setting;
@@ -304,27 +304,8 @@ void        GSLogNewmap(void);
 void        GSLogEnter(edict_t *ent);
 void        GSLogExit(edict_t *ent);
 void        GSLogDeath(edict_t *self, edict_t *inflictor, edict_t *attacker);
-
-void        *NewGame(int mode);
-void        NewPlayer(void *gamep, int index, char *name);
-void        NewTeam(void *gamep, int index, char *name);
-void        NewStatsPlayer(void *gamep, edict_t *ent, int team);
-void        ValidatePlayer(edict_t *ent, void *gamep);
-void        RemovePlayer(void *gamep, int index);
-void        RemoveTeam(void *gamep, int teamnum);
-int         GetPlayerIndex(void *gamep, int index);
-int         GetTeamIndex(void *gamep, int index);
-void        set_server_bucket_info(int arenanum);
-int         SendGameSnapShot(void *game, char *gamedata, int done);
-void        FreeGame(void *game);
-int         InitStatsConnection(int port);
-void        CloseStatsConnection(void);
 #ifdef _WIN32
-int         NetShutdown(int mode);
+bool        GSNetStartup(void);
+void        GSNetShutdown(void);
 #endif
-bool    IsStatsConnected(void);
-char        *GetChallenge(void *game);
-char        *GenerateAuth(char *cdkey, char *challenge, char *outbuf);
 
-extern char gcd_gamename[256];
-extern char gcd_secret_key[256];

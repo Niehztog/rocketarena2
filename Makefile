@@ -102,7 +102,6 @@ targets: $(TARGETS)
 
 GAME_OBJS = \
 	$(BUILDDIR)/arena.o \
-	$(BUILDDIR)/darray.o \
 	$(BUILDDIR)/g_ai.o \
 	$(BUILDDIR)/g_cmds.o \
 	$(BUILDDIR)/g_combat.o \
@@ -121,19 +120,15 @@ GAME_OBJS = \
 	$(BUILDDIR)/g_turret.o \
 	$(BUILDDIR)/g_utils.o \
 	$(BUILDDIR)/g_weapon.o \
-	$(BUILDDIR)/gbucket.o \
 	$(BUILDDIR)/gslog.o \
-	$(BUILDDIR)/gstats.o \
-	$(BUILDDIR)/hashtable.o \
 	$(BUILDDIR)/maploop.o \
-	$(BUILDDIR)/md5c.o \
 	$(BUILDDIR)/menu.o \
-	$(BUILDDIR)/nonport.o \
 	$(BUILDDIR)/p_client.o \
 	$(BUILDDIR)/p_hud.o \
 	$(BUILDDIR)/p_trail.o \
 	$(BUILDDIR)/p_view.o \
 	$(BUILDDIR)/p_weapon.o \
+	$(BUILDDIR)/ra2stats.o \
 	$(BUILDDIR)/ra2menus.o \
 	$(BUILDDIR)/shared_m_flash.o \
 	$(BUILDDIR)/shared_shared.o

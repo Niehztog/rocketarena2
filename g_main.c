@@ -2,6 +2,7 @@
 
 #include "g_local.h"
 #include "arena.h"
+#include "ra2stats.h"
 
 char    *get_next_map(char *current);       // maploop.c
 
@@ -78,13 +79,14 @@ static void ShutdownGame(void)
     gi.dprintf("==== ShutdownGame ====\n");
 
     GSLogShutdown();
+    RA2_Stats_Shutdown();
 
     memset(&game, 0, sizeof(game));
 
     gi.FreeTags(TAG_LEVEL);
     gi.FreeTags(TAG_GAME);
 #ifdef _WIN32
-    NetShutdown(0);
+    GSNetShutdown();
 #endif
 }
 
@@ -143,6 +145,7 @@ static void InitGame(void)
         gi.cvar_set("netlog", "");
 
     GSLogStartup();
+    RA2_Stats_Init();
 
     coop = gi.cvar("coop", "0", CVAR_LATCH);
     skill = gi.cvar("skill", "1", CVAR_LATCH);
@@ -213,7 +216,7 @@ static void InitGame(void)
     globals.num_edicts = game.maxclients + 1;
 
 #ifdef _WIN32
-    if (!NetShutdown(1))
+    if (!GSNetStartup())
         gi.cvar_set("netlog", "");
 #endif
 }

@@ -8,6 +8,34 @@ FILE        *StdLogFile;
 
 static fd_set   global_fds;
 
+#ifdef _WIN32
+/*
+=================
+GSNetStartup / GSNetShutdown
+
+Winsock init for the netlog forwarding below.  RA2 did this inside the GameSpy
+SDK's NetShutdown(); that SDK is gone, and netlog is the only socket user
+left, so it lives here.
+=================
+*/
+bool GSNetStartup(void)
+{
+    WSADATA wsaData;
+
+    if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {
+        gi.dprintf("WS Error: %d\n", WSAGetLastError());
+        return false;
+    }
+
+    return true;
+}
+
+void GSNetShutdown(void)
+{
+    WSACleanup();
+}
+#endif
+
 /* gamex86.dll 0x2001b120-0x2001b230 (shape-matched(ratio=0.59)+size-corrected) */
 /* gamei386.so 0x00054144-0x00054248 */
 struct sockaddr_in net_name_to_address(char *name)
@@ -298,25 +326,3 @@ void GSLogExit(edict_t *ent)
 
     GSCloseLog();
 }
-
-#ifdef _WIN32
-
-/* gamex86.dll 0x2001b930-0x2001b984 (manual-confirmed) */
-/* gamei386.so: no symbol -- not compiled into the Unix build */
-int NetShutdown(int mode)
-{
-    WSADATA wsaData;
-
-    if (mode == 1) {
-        if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {
-            gi.dprintf("WS Error: %d\n", WSAGetLastError());
-            return 0;
-        }
-    } else if (mode == 0) {
-        WSACleanup();
-    }
-
-    return 1;
-}
-
-#endif

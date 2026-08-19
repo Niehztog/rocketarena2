@@ -2,7 +2,7 @@
 #include "g_local.h"
 #include "m_player.h"
 #include "arena.h"
-#include "gbucket.h"
+#include "ra2stats.h"
 
 
 void SP_misc_teleporter_dest(edict_t *ent);
@@ -202,9 +202,8 @@ static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
 {
     int     statsdone = 0;
 
-    if (arenas[self->client->resp.context].statsptr)
-        bopfuncs[BOP_PLAYER_INT](arenas[self->client->resp.context].statsptr, "deaths", bucketfuncs[BUCKET_ADD], 1,
-                                 self - g_edicts + 1);
+    RA2_Stats_Add(arenas[self->client->resp.context].stats,
+                  self - g_edicts, RA2_STAT_DEATHS, 1);
 
     if (attacker == self) {
         if (inflictor->s.modelindex == gi.modelindex("models/objects/grenade/tris.md2") ||
@@ -230,9 +229,8 @@ static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
             self->client->resp.score--;
         self->enemy = NULL;
 
-        if (arenas[self->client->resp.context].statsptr)
-            bopfuncs[BOP_PLAYER_INT](arenas[self->client->resp.context].statsptr, "suicides", bucketfuncs[BUCKET_ADD], 1,
-                                     self - g_edicts + 1);
+        RA2_Stats_Add(arenas[self->client->resp.context].stats,
+                      self - g_edicts, RA2_STAT_SUICIDES, 1);
 
         return;
     }
@@ -257,18 +255,16 @@ static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
     if (inflictor->s.modelindex == gi.modelindex("models/objects/grenade/tris.md2") ||
         inflictor->s.modelindex == gi.modelindex("models/objects/grenade2/tris.md2")) {
         gi.bprintf(PRINT_MEDIUM, "%s takes %s's pill\n", self->client->pers.netname, attacker->client->pers.netname);
-        if (arenas[attacker->client->resp.context].statsptr)
-            bopfuncs[BOP_PLAYER_INT](arenas[attacker->client->resp.context].statsptr, "grenadekills", bucketfuncs[BUCKET_ADD], 1,
-                                     attacker - g_edicts + 1);
+        RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
+                      attacker - g_edicts, RA2_STAT_GRENADEKILLS, 1);
         goto kill_done;
     } else if (inflictor->s.modelindex == gi.modelindex("models/objects/rocket/tris.md2")) {
         if (self->health < -40)
             gi.bprintf(PRINT_MEDIUM, "%s was splattered by %s's rocket\n", self->client->pers.netname, attacker->client->pers.netname);
         else
             gi.bprintf(PRINT_MEDIUM, "%s trips over %s's rocket\n", self->client->pers.netname, attacker->client->pers.netname);
-        if (arenas[attacker->client->resp.context].statsptr)
-            bopfuncs[BOP_PLAYER_INT](arenas[attacker->client->resp.context].statsptr, "rocketkills", bucketfuncs[BUCKET_ADD], 1,
-                                     attacker - g_edicts + 1);
+        RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
+                      attacker - g_edicts, RA2_STAT_ROCKETKILLS, 1);
         goto kill_done;
     } else if (inflictor->s.modelindex == gi.modelindex("models/objects/laser/tris.md2")) {
         gi.bprintf(PRINT_MEDIUM, "%s was blasted by %s\n", self->client->pers.netname, attacker->client->pers.netname);
@@ -284,9 +280,8 @@ static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
         gi.bprintf(PRINT_MEDIUM, "%s was shredded by %s\n", self->client->pers.netname, attacker->client->pers.netname);
     } else if (attacker->client->pers.weapon == FindItem("railgun")) {
         gi.bprintf(PRINT_MEDIUM, "%s rides %s's rail\n", self->client->pers.netname, attacker->client->pers.netname);
-        if (arenas[attacker->client->resp.context].statsptr)
-            bopfuncs[BOP_PLAYER_INT](arenas[attacker->client->resp.context].statsptr, "railkills", bucketfuncs[BUCKET_ADD], 1,
-                                     attacker - g_edicts + 1);
+        RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
+                      attacker - g_edicts, RA2_STAT_RAILKILLS, 1);
         goto kill_done;
     } else if (attacker->client->pers.weapon == FindItem("Grapple")) {
         gi.bprintf(PRINT_MEDIUM, "%s was caught by %s's grapple\n", self->client->pers.netname, attacker->client->pers.netname);
@@ -295,9 +290,8 @@ static void ClientObituary(edict_t *self, edict_t *inflictor, edict_t *attacker)
     }
 
     if (!statsdone) {
-        if (arenas[attacker->client->resp.context].statsptr)
-            bopfuncs[BOP_PLAYER_INT](arenas[attacker->client->resp.context].statsptr, "otherkills", bucketfuncs[BUCKET_ADD], 1,
-                                     attacker - g_edicts + 1);
+        RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
+                      attacker - g_edicts, RA2_STAT_OTHERKILLS, 1);
     }
 
 kill_done:
@@ -308,9 +302,8 @@ kill_done:
         stuffcmd(self, "say As long as you're helping them, just shoot yourself!\n");
     } else if (!arenas[attacker->client->resp.context].scorebydamage) {
         attacker->client->resp.score++;
-        if (arenas[attacker->client->resp.context].statsptr)
-            bopfuncs[BOP_PLAYER_INT](arenas[attacker->client->resp.context].statsptr, "score", bucketfuncs[BUCKET_ADD], 1,
-                                     attacker - g_edicts + 1);
+        RA2_Stats_Add(arenas[attacker->client->resp.context].stats,
+                      attacker - g_edicts, RA2_STAT_SCORE, 1);
     }
 
     return;
@@ -320,9 +313,8 @@ plain_death:
 
     if (!arenas[self->client->resp.context].scorebydamage) {
         self->client->resp.score--;
-        if (arenas[self->client->resp.context].statsptr)
-            bopfuncs[BOP_PLAYER_INT](arenas[self->client->resp.context].statsptr, "suicides", bucketfuncs[BUCKET_ADD], 1,
-                                     self - g_edicts + 1);
+        RA2_Stats_Add(arenas[self->client->resp.context].stats,
+                      self - g_edicts, RA2_STAT_SUICIDES, 1);
     }
 }
 
