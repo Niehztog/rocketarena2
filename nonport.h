@@ -9,8 +9,8 @@ void SocketShutDown (void);
 #ifndef _WIN32
 char *_strdup (const char *src);
 #else
-#define strcasecmp	_stricmp
-#define strncasecmp	_strnicmp
+#define strcasecmp  _stricmp
+#define strncasecmp _strnicmp
 #endif
 
 #endif

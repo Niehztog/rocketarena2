@@ -2,7 +2,7 @@
 
 #include <winsock.h>
 
-#define close(s)	closesocket(s)
+#define close(s)    closesocket(s)
 
 #else
 
@@ -14,6 +14,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define WSAGetLastError()	errno
+#define WSAGetLastError()   errno
 
 #endif

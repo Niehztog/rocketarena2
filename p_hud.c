@@ -1,8 +1,11 @@
-#include "g_local.h"
 
-void	Serverwide_ScoreboardMessage (edict_t *ent);
-void	Arena_ScoreboardMessage (edict_t *ent);
-void	Pickup_ScoreboardMessage (edict_t *ent);
+
+#include "g_local.h"
+#include "arena.h"
+
+void    Serverwide_ScoreboardMessage(edict_t *ent);
+void    Arena_ScoreboardMessage(edict_t *ent);
+void    Pickup_ScoreboardMessage(edict_t *ent);
 
 /*
 ======================================================================
@@ -14,153 +17,149 @@ INTERMISSION
 
 /* gamex86.dll 0x20022810-0x20022990 (shape-matched(ratio=0.99)) */
 /* gamei386.so 0x0003e640-0x0003e850 */
-void MoveClientToIntermission (edict_t *ent)
+void MoveClientToIntermission(edict_t *ent)
 {
-	clear_menus (ent);
+    clear_menus(ent);
 
-	if (deathmatch->value || coop->value)
-		ent->client->scoremode = 2;
+    if (deathmatch->value || coop->value)
+        ent->client->scoremode = 2;
 
-	VectorCopy (level.intermission_origin, ent->s.origin);
-	ent->client->ps.pmove.origin[0] = level.intermission_origin[0]*8;
-	ent->client->ps.pmove.origin[1] = level.intermission_origin[1]*8;
-	ent->client->ps.pmove.origin[2] = level.intermission_origin[2]*8;
-	VectorCopy (level.intermission_angle, ent->client->ps.viewangles);
-	ent->client->ps.pmove.pm_type = PM_FREEZE;
-	ent->client->ps.gunindex = 0;
-	ent->client->ps.blend[3] = 0;
-	ent->client->ps.rdflags &= ~RDF_UNDERWATER;
+    VectorCopy(level.intermission_origin, ent->s.origin);
+    ent->client->ps.pmove.origin[0] = COORD2SHORT(level.intermission_origin[0]);
+    ent->client->ps.pmove.origin[1] = COORD2SHORT(level.intermission_origin[1]);
+    ent->client->ps.pmove.origin[2] = COORD2SHORT(level.intermission_origin[2]);
+    VectorCopy(level.intermission_angle, ent->client->ps.viewangles);
+    ent->client->ps.pmove.pm_type = PM_FREEZE;
+    ent->client->ps.gunindex = 0;
+    ent->client->ps.blend[3] = 0;
+    ent->client->ps.rdflags &= ~RDF_UNDERWATER;
 
-	// clean up powerup info
-	ent->client->quad_framenum = 0;
-	ent->client->invincible_framenum = 0;
-	ent->client->breather_framenum = 0;
-	ent->client->enviro_framenum = 0;
-	ent->client->grenade_blew_up = false;
-	ent->client->grenade_time = 0;
+    // clean up powerup info
+    ent->client->quad_framenum = 0;
+    ent->client->invincible_framenum = 0;
+    ent->client->breather_framenum = 0;
+    ent->client->enviro_framenum = 0;
+    ent->client->grenade_blew_up = false;
+    ent->client->grenade_framenum = 0;
 
-	ent->viewheight = 0;
-	ent->s.modelindex = 0;
-	ent->s.modelindex2 = 0;
-	ent->s.modelindex3 = 0;
-	ent->s.modelindex = 0;
-	ent->s.effects = 0;
-	ent->s.sound = 0;
-	ent->solid = SOLID_NOT;
+    ent->watertype = 0;
+    ent->waterlevel = 0;
+    ent->viewheight = 0;
+    ent->s.modelindex = 0;
+    ent->s.modelindex2 = 0;
+    ent->s.modelindex3 = 0;
+    ent->s.modelindex4 = 0;
+    ent->s.effects = 0;
+    ent->s.renderfx = 0;
+    ent->s.sound = 0;
+    ent->s.event = 0;
+    ent->s.solid = 0;
+    ent->solid = SOLID_NOT;
+    ent->svflags = SVF_NOCLIENT;
+    gi.unlinkentity(ent);
 
-	// add the layout
+    // add the layout
 
-	if (deathmatch->value || coop->value)
-	{
-		DeathmatchScoreboardMessage (ent, NULL);
-		gi.unicast (ent, true);
-	}
+    if (deathmatch->value || coop->value) {
+        DeathmatchScoreboardMessage(ent, NULL);
+        gi.unicast(ent, true);
+    }
 
 }
 
 /* gamex86.dll 0x20022990-0x20022c84 (manual-confirmed) */
 /* gamei386.so 0x0003e850-0x0003ed1e */
-void BeginIntermission (edict_t *targ)
+void BeginIntermission(edict_t *targ)
 {
-	int		i, n;
-	edict_t	*ent, *client;
+    int     i, n;
+    edict_t *ent, *client;
 
-	if (level.intermissiontime)
-		return;		// already activated
+    if (level.intermission_framenum)
+        return;     // already activated
 
-	game.autosaved = false;
+    game.autosaved = false;
 
-	// respawn any dead clients
-	for (i=0 ; i<maxclients->value ; i++)
-	{
-		client = g_edicts + 1 + i;
-		if (!client->inuse)
-			continue;
-		if (client->health <= 0)
-			respawn(client);
-	}
+    // respawn any dead clients
+    for (i = 0; i < game.maxclients; i++) {
+        client = g_edicts + 1 + i;
+        if (!client->inuse)
+            continue;
+        if (client->health <= 0)
+            respawn(client);
+    }
 
-	level.intermissiontime = level.time;
-	level.changemap = targ->map;
+    level.intermission_framenum = level.framenum;
+    level.changemap = targ->map;
 
-	if (strstr(level.changemap, "*"))
-	{
-		if (coop->value)
-		{
-			for (i=0 ; i<maxclients->value ; i++)
-			{
-				client = g_edicts + 1 + i;
-				if (!client->inuse)
-					continue;
-				// strip players of all keys between units
-				for (n = 0; n < MAX_ITEMS; n++)
-				{
-					if (itemlist[n].flags & IT_KEY)
-						client->client->pers.inventory[n] = 0;
-				}
-			}
-		}
-	}
-	else
-	{
-		if (!deathmatch->value)
-		{
-			level.exitintermission = 1;		// go immediately to the next level
-			return;
-		}
-	}
+    if (strchr(level.changemap, '*')) {
+        if (coop->value) {
+            for (i = 0; i < game.maxclients; i++) {
+                client = g_edicts + 1 + i;
+                if (!client->inuse)
+                    continue;
+                // strip players of all keys between units
+                for (n = 0; n < game.num_items; n++) {
+                    if (itemlist[n].flags & IT_KEY)
+                        client->client->pers.inventory[n] = 0;
+                }
+                client->client->pers.power_cubes = 0;
+            }
+        }
+    } else {
+        if (!deathmatch->value) {
+            level.exitintermission = 1;     // go immediately to the next level
+            return;
+        }
+    }
 
-	level.exitintermission = 0;
+    level.exitintermission = 0;
 
-	// find an intermission spot
-	ent = G_Find (NULL, FOFS(classname), "info_player_intermission");
-	if (!ent)
-	{	// the map creator forgot to put in an intermission point...
-		ent = G_Find (NULL, FOFS(classname), "info_player_start");
-		if (!ent)
-			ent = G_Find (NULL, FOFS(classname), "info_player_deathmatch");
-	}
-	else
-	{	// chose one of four spots
-		i = rand() & 3;
-		while (i--)
-		{
-			ent = G_Find (ent, FOFS(classname), "info_player_intermission");
-			if (!ent)	// wrap around the list
-				ent = G_Find (ent, FOFS(classname), "info_player_intermission");
-		}
-	}
+    // find an intermission spot
+    ent = G_Find(NULL, FOFS(classname), "info_player_intermission");
+    if (!ent) {
+        // the map creator forgot to put in an intermission point...
+        ent = G_Find(NULL, FOFS(classname), "info_player_start");
+        if (!ent)
+            ent = G_Find(NULL, FOFS(classname), "info_player_deathmatch");
+    } else {
+        // chose one of four spots
+        i = Q_rand() & 3;
+        while (i--) {
+            ent = G_Find(ent, FOFS(classname), "info_player_intermission");
+            if (!ent)   // wrap around the list
+                ent = G_Find(ent, FOFS(classname), "info_player_intermission");
+        }
+    }
 
-	VectorCopy (ent->s.origin, level.intermission_origin);
-	VectorCopy (ent->s.angles, level.intermission_angle);
+    if (ent) {
+        VectorCopy(ent->s.origin, level.intermission_origin);
+        VectorCopy(ent->s.angles, level.intermission_angle);
+    }
 
-	// move all clients to the intermission point
-	n = 0;
-	for (i=0 ; i<maxclients->value ; i++)
-	{
-		client = g_edicts + 1 + i;
-		if (!client->inuse)
-			continue;
-		n++;
-		MoveClientToIntermission (client);
-		gi.dprintf ("%s\n", client->client->pers.netname);
-	}
+    // move all clients to the intermission point
+    n = 0;
+    for (i = 0; i < game.maxclients; i++) {
+        client = g_edicts + 1 + i;
+        if (!client->inuse)
+            continue;
+        n++;
+        MoveClientToIntermission(client);
+        gi.dprintf("%s\n", client->client->pers.netname);
+    }
 
-	for (i=0 ; i<=num_arenas ; i++)
-	{
-		if (!arenas[i].statsptr)
-			continue;
-		SendGameSnapShot (arenas[i].statsptr, NULL, 1);
-		FreeGame (arenas[i].statsptr);
-		arenas[i].statsptr = 0;
-	}
+    for (i = 0; i <= num_arenas; i++) {
+        if (!arenas[i].statsptr)
+            continue;
+        SendGameSnapShot(arenas[i].statsptr, NULL, 1);
+        FreeGame(arenas[i].statsptr);
+        arenas[i].statsptr = 0;
+    }
 
-	if (!n)
-		level.exitintermission = 1;
-	else
-		gi.dprintf ("%d Clients on level change\n", n);
+    if (!n)
+        level.exitintermission = 1;
+    else
+        gi.dprintf("%d Clients on level change\n", n);
 }
-
 
 /*
 ==================
@@ -170,95 +169,90 @@ Serverwide_ScoreboardMessage
 */
 /* gamex86.dll 0x20022c90-0x20022fb0 (manual-confirmed) */
 /* gamei386.so 0x0003ed20-0x0003f158 */
-void Serverwide_ScoreboardMessage (edict_t *ent)
+void Serverwide_ScoreboardMessage(edict_t *ent)
 {
-	char	entry[1024];
-	char	string[1400];
-	int		stringlength;
-	int		i, j, k;
-	int		sorted[MAX_CLIENTS];
-	int		sortedscores[MAX_CLIENTS];
-	int		score, total;
-	int		y;
-	char	teamname[100];
-	char	line[1024];
-	gclient_t	*cl;
-	edict_t		*cl_ent;
+    char    entry[1024];
+    char    string[1400];
+    int     stringlength;
+    int     i, j, k;
+    int     sorted[MAX_CLIENTS];
+    int     sortedscores[MAX_CLIENTS];
+    int     score, total;
+    int     y;
+    char    teamname[100];
+    char    line[1024];
+    gclient_t   *cl;
+    edict_t     *cl_ent;
 
-	total = 0;
-	for (i = 0; i < game.maxclients; i++)
-	{
-		cl_ent = g_edicts + 1 + i;
-		if (!cl_ent->inuse)
-			continue;
+    total = 0;
+    for (i = 0; i < game.maxclients; i++) {
+        cl_ent = g_edicts + 1 + i;
+        if (!cl_ent->inuse)
+            continue;
 
-		score = game.clients[i].resp.score;
+        score = game.clients[i].resp.score;
 
-		for (j = 0; j < total; j++)
-			if (score > sortedscores[j])
-				break;
+        for (j = 0; j < total; j++)
+            if (score > sortedscores[j])
+                break;
 
-		for (k = total; k > j; k--)
-		{
-			sorted[k] = sorted[k - 1];
-			sortedscores[k] = sortedscores[k - 1];
-		}
+        for (k = total; k > j; k--) {
+            sorted[k] = sorted[k - 1];
+            sortedscores[k] = sortedscores[k - 1];
+        }
 
-		sorted[j] = i;
-		sortedscores[j] = score;
-		total++;
-	}
+        sorted[j] = i;
+        sortedscores[j] = score;
+        total++;
+    }
 
-	string[0] = 0;
-	stringlength = strlen (string);
+    string[0] = 0;
+    stringlength = strlen(string);
 
-	Com_sprintf (entry, sizeof (entry),
-		"xv 0 yv 32 string2 \"Frags Ping   Name        Team       A\" xv 0 yv 40 string2 \""
-		"\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b"
-		"\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\" ");
-	j = strlen (entry);
-	if (stringlength + j < 1024)
-	{
-		strcpy (string + stringlength, entry);
-		stringlength += j;
-	}
+    Q_snprintf(entry, sizeof(entry),
+               "xv 0 yv 32 string2 \"Frags Ping   Name        Team       A\" xv 0 yv 40 string2 \""
+               "\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b"
+               "\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\x9b\" ");
+    j = strlen(entry);
+    if (stringlength + j < 1024) {
+        strcpy(string + stringlength, entry);
+        stringlength += j;
+    }
 
-	if (total > 23)
-		total = 23;
+    if (total > 23)
+        total = 23;
 
-	for (i = 0; i < total; i++)
-	{
-		cl = &game.clients[sorted[i]];
-		cl_ent = g_edicts + 1 + sorted[i];
+    for (i = 0; i < total; i++) {
+        cl = &game.clients[sorted[i]];
+        cl_ent = g_edicts + 1 + sorted[i];
 
-		if (cl->resp.teamnum > -1)
-			strncpy (teamname, ((team_t *)teams[cl->resp.teamnum].it)->name,
-				sizeof (teamname));
-		else
-			sprintf (teamname, "None");
-		teamname[sizeof (teamname) - 1] = 0;
+        if (cl->resp.teamnum > -1)
+            strncpy(teamname, ((team_t *)teams[cl->resp.teamnum].it)->name,
+                    sizeof(teamname));
+        else
+            sprintf(teamname, "None");
+        teamname[sizeof(teamname) - 1] = 0;
 
-		Com_sprintf (line, sizeof (line), "%3i %4i %12.12s %12.12s %1i",
-			cl->resp.score, cl->ping, cl->pers.netname, teamname, cl->resp.context);
+        Q_snprintf(line, sizeof(line), "%3i %4i %12.12s %12.12s %1i",
+                   cl->resp.score, cl->ping, cl->pers.netname, teamname, cl->resp.context);
 
-		if (cl_ent == ent)
-			HiPrint (line);
+        if (cl_ent == ent)
+            HiPrint(line);
 
-		y = i * 8 + 48;
+        y = i * 8 + 48;
 
-		Com_sprintf (entry, sizeof (entry), "xv 8 yv %i string2 \"%s\"", y, line);
+        Q_snprintf(entry, sizeof(entry), "xv 8 yv %i string2 \"%s\"", y, line);
 
-		j = strlen (entry);
-		if (stringlength + j > 1024)
-			break;
-		strcpy (string + stringlength, entry);
-		stringlength += j;
-	}
+        j = strlen(entry);
+        if (stringlength + j > 1024)
+            break;
+        strcpy(string + stringlength, entry);
+        stringlength += j;
+    }
 
-	gi.WriteByte (svc_layout);
-	gi.WriteString (string);
+    gi.WriteByte(svc_layout);
+    gi.WriteString(string);
 }
-
 
 /*
 ==================
@@ -268,153 +262,145 @@ Arena_ScoreboardMessage
 */
 /* gamex86.dll 0x20022fb0-0x20023490 (manual-confirmed) */
 /* gamei386.so 0x0003f158-0x0003f96f */
-void Arena_ScoreboardMessage (edict_t *ent)
+void Arena_ScoreboardMessage(edict_t *ent)
 {
-	char	entry[1024];
-	char	string[1400];
-	int		sortedteams[MAX_TEAMS];
-	int		teamscores[MAX_TEAMS];
-	int		sortedplayers[MAX_CLIENTS];
-	int		playerscores[MAX_CLIENTS];
-	int		teampings[MAX_TEAMS];
-	char	line[1024];
-	int		stringlength;
-	int		i, j, k;
-	int		score;
-	int		total;
-	edict_t	*cl_ent;
-	int		totalplayers;
-	int		arenanum;
-	int		ping;
-	int		row;
-	int		n;
-	qmenu_t	*node;
-	team_t	*t;
-	gclient_t	*cl;
+    char    entry[1024];
+    char    string[1400];
+    int     sortedteams[MAX_TEAMS];
+    int     teamscores[MAX_TEAMS];
+    int     sortedplayers[MAX_CLIENTS];
+    int     playerscores[MAX_CLIENTS];
+    int     teampings[MAX_TEAMS];
+    char    line[1024];
+    int     stringlength;
+    int     i, j, k;
+    int     score;
+    int     total;
+    edict_t *cl_ent;
+    int     totalplayers;
+    int     arenanum;
+    int     ping;
+    int     row;
+    int     n;
+    qmenu_t *node;
+    team_t  *t;
+    gclient_t   *cl;
 
-	arenanum = ent->client->resp.context;
+    arenanum = ent->client->resp.context;
 
-	for (total = 0, i = 0; i < MAX_TEAMS; i++)
-	{
-		if (!teams[i].it)
-			continue;
-		if (((team_t *)teams[i].it)->arenanum != arenanum)
-			continue;
-		if (((team_t *)teams[i].it)->outofline)
-			continue;
+    for (total = 0, i = 0; i < MAX_TEAMS; i++) {
+        if (!teams[i].it)
+            continue;
+        if (((team_t *)teams[i].it)->arenanum != arenanum)
+            continue;
+        if (((team_t *)teams[i].it)->outofline)
+            continue;
 
-		node = &teams[i];
-		score = 0;
-		k = 0;
-		ping = 0;
-		while (node->next)
-		{
-			node = node->next;
-			cl_ent = node->it;
-			cl = cl_ent->client;
-			score += cl->resp.score;
-			ping += cl->ping;
-			k++;
-		}
+        node = &teams[i];
+        score = 0;
+        k = 0;
+        ping = 0;
+        while (node->next) {
+            node = node->next;
+            cl_ent = node->it;
+            cl = cl_ent->client;
+            score += cl->resp.score;
+            ping += cl->ping;
+            k++;
+        }
 
-		if (!k)
-			continue;
+        if (!k)
+            continue;
 
-		ping /= k;
+        ping /= k;
 
-		for (j = 0; j < total; j++)
-			if (score > teamscores[j])
-				break;
+        for (j = 0; j < total; j++)
+            if (score > teamscores[j])
+                break;
 
-		for (k = total; k > j; k--)
-		{
-			sortedteams[k] = sortedteams[k - 1];
-			teamscores[k] = teamscores[k - 1];
-			teampings[k] = teampings[k - 1];
-		}
+        for (k = total; k > j; k--) {
+            sortedteams[k] = sortedteams[k - 1];
+            teamscores[k] = teamscores[k - 1];
+            teampings[k] = teampings[k - 1];
+        }
 
-		sortedteams[j] = i;
-		teamscores[j] = score;
-		teampings[j] = ping;
-		total++;
-	}
+        sortedteams[j] = i;
+        teamscores[j] = score;
+        teampings[j] = ping;
+        total++;
+    }
 
-	string[0] = 0;
-	stringlength = strlen (string);
+    string[0] = 0;
+    stringlength = strlen(string);
 
-	Com_sprintf (entry, sizeof (entry), "xv 0 yv 40 string2 \"Teams\" xv 160 string2 \"Players\" ");
-	j = strlen (entry);
-	strcpy (string + stringlength, entry);
-	stringlength += j;
+    Q_snprintf(entry, sizeof(entry), "xv 0 yv 40 string2 \"Teams\" xv 160 string2 \"Players\" ");
+    j = strlen(entry);
+    strcpy(string + stringlength, entry);
+    stringlength += j;
 
-	row = 1;
-	total = total > 20 ? 20 : total;
+    row = 1;
+    total = total > 20 ? 20 : total;
 
-	for (n = 0; n < total; n++)
-	{
-		t = teams[sortedteams[n]].it;
+    for (n = 0; n < total; n++) {
+        t = teams[sortedteams[n]].it;
 
-		Com_sprintf (line, sizeof (line), "%-2d %-3d %.11s", teamscores[n], teampings[n], t->name);
-		if (t->fighting)
-			HiPrint (line);
+        Q_snprintf(line, sizeof(line), "%-2d %-3d %.11s", teamscores[n], teampings[n], t->name);
+        if (t->fighting)
+            HiPrint(line);
 
-		Com_sprintf (entry, sizeof (entry), "xv 0 yv %d string2 \"%s\" ", row * 8 + 40, line);
-		j = strlen (entry);
-		if (stringlength + j > 1024)
-			break;
-		strcpy (string + stringlength, entry);
-		stringlength += j;
+        Q_snprintf(entry, sizeof(entry), "xv 0 yv %d string2 \"%s\" ", row * 8 + 40, line);
+        j = strlen(entry);
+        if (stringlength + j > 1024)
+            break;
+        strcpy(string + stringlength, entry);
+        stringlength += j;
 
-		totalplayers = 0;
-		node = t->arenalink.it;
+        totalplayers = 0;
+        node = t->arenalink.it;
 
-		while (node->next)
-		{
-			node = node->next;
-			cl_ent = node->it;
-			score = cl_ent->client->resp.score;
+        while (node->next) {
+            node = node->next;
+            cl_ent = node->it;
+            score = cl_ent->client->resp.score;
 
-			for (j = 0; j < totalplayers; j++)
-				if (score > playerscores[j])
-					break;
+            for (j = 0; j < totalplayers; j++)
+                if (score > playerscores[j])
+                    break;
 
-			for (k = totalplayers; k > j; k--)
-			{
-				sortedplayers[k] = sortedplayers[k - 1];
-				playerscores[k] = playerscores[k - 1];
-			}
+            for (k = totalplayers; k > j; k--) {
+                sortedplayers[k] = sortedplayers[k - 1];
+                playerscores[k] = playerscores[k - 1];
+            }
 
-			sortedplayers[j] = cl_ent - g_edicts - 1;
-			playerscores[j] = score;
-			totalplayers++;
-		}
+            sortedplayers[j] = cl_ent - g_edicts - 1;
+            playerscores[j] = score;
+            totalplayers++;
+        }
 
-		totalplayers = totalplayers > 20 ? 20 : totalplayers;
+        totalplayers = totalplayers > 20 ? 20 : totalplayers;
 
-		for (i = 0; i < totalplayers; i++)
-		{
-			cl_ent = g_edicts + 1 + sortedplayers[i];
-			cl = &game.clients[sortedplayers[i]];
+        for (i = 0; i < totalplayers; i++) {
+            cl_ent = g_edicts + 1 + sortedplayers[i];
+            cl = &game.clients[sortedplayers[i]];
 
-			Com_sprintf (line, sizeof (line), "%-2d %-3d %.11s",
-				cl->resp.score, cl->ping, cl->pers.netname);
-			if (cl_ent->takedamage)
-				HiPrint (line);
+            Q_snprintf(line, sizeof(line), "%-2d %-3d %.11s",
+                       cl->resp.score, cl->ping, cl->pers.netname);
+            if (cl_ent->takedamage)
+                HiPrint(line);
 
-			Com_sprintf (entry, sizeof (entry), "xv 160 yv %d string2 \"%s\" ", row * 8 + 40, line);
-			j = strlen (entry);
-			if (stringlength + j > 1024)
-				break;
-			strcpy (string + stringlength, entry);
-			stringlength += j;
-			row++;
-		}
-	}
+            Q_snprintf(entry, sizeof(entry), "xv 160 yv %d string2 \"%s\" ", row * 8 + 40, line);
+            j = strlen(entry);
+            if (stringlength + j > 1024)
+                break;
+            strcpy(string + stringlength, entry);
+            stringlength += j;
+            row++;
+        }
+    }
 
-	gi.WriteByte (svc_layout);
-	gi.WriteString (string);
+    gi.WriteByte(svc_layout);
+    gi.WriteString(string);
 }
-
 
 /*
 ==================
@@ -424,157 +410,149 @@ Pickup_ScoreboardMessage
 */
 /* gamex86.dll 0x20023490-0x20023a10 (manual-confirmed) */
 /* gamei386.so 0x0003f970-0x00040152 */
-void Pickup_ScoreboardMessage (edict_t *ent)
+void Pickup_ScoreboardMessage(edict_t *ent)
 {
-	char	entry[1024];
-	char	string[1400];
-	int		redsorted[MAX_CLIENTS];
-	int		redscores[MAX_CLIENTS];
-	int		bluesorted[MAX_CLIENTS];
-	int		bluescores[MAX_CLIENTS];
-	char	line[1024];
-	int		stringlength;
-	int		i, j, k;
-	int		score;
-	int		redtotal;
-	edict_t		*cl_ent;
-	int		bluewins;
-	int		redwins;
-	int		bluetotal;
-	gclient_t	*cl;
+    char    entry[1024];
+    char    string[1400];
+    int     redsorted[MAX_CLIENTS];
+    int     redscores[MAX_CLIENTS];
+    int     bluesorted[MAX_CLIENTS];
+    int     bluescores[MAX_CLIENTS];
+    char    line[1024];
+    int     stringlength;
+    int     i, j, k;
+    int     score;
+    int     redtotal;
+    edict_t     *cl_ent;
+    int     bluewins;
+    int     redwins;
+    int     bluetotal;
+    gclient_t   *cl;
 
-	bluewins = 0;
-	redwins = 0;
-	redtotal = 0;
+    bluewins = 0;
+    redwins = 0;
+    redtotal = 0;
 
-	for (i = 0; i < game.maxclients; i++)
-	{
-		cl_ent = &g_edicts[i + 1];
-		if (!cl_ent->inuse)
-			continue;
-		if (cl_ent->client->resp.context != ent->client->resp.context)
-			continue;
-		if (((team_t *)teams[cl_ent->client->resp.teamnum].it)->side)
-			continue;
+    for (i = 0; i < game.maxclients; i++) {
+        cl_ent = &g_edicts[i + 1];
+        if (!cl_ent->inuse)
+            continue;
+        if (cl_ent->client->resp.context != ent->client->resp.context)
+            continue;
+        if (((team_t *)teams[cl_ent->client->resp.teamnum].it)->side)
+            continue;
 
-		score = game.clients[i].resp.score;
+        score = game.clients[i].resp.score;
 
-		for (j = 0; j < redtotal; j++)
-			if (score > redscores[j])
-				break;
+        for (j = 0; j < redtotal; j++)
+            if (score > redscores[j])
+                break;
 
-		for (k = redtotal; k > j; k--)
-		{
-			redsorted[k] = redsorted[k - 1];
-			redscores[k] = redscores[k - 1];
-		}
+        for (k = redtotal; k > j; k--) {
+            redsorted[k] = redsorted[k - 1];
+            redscores[k] = redscores[k - 1];
+        }
 
-		redsorted[j] = i;
-		redscores[j] = score;
-		redwins = ((team_t *)teams[cl_ent->client->resp.teamnum].it)->wins;
-		redtotal++;
-	}
+        redsorted[j] = i;
+        redscores[j] = score;
+        redwins = ((team_t *)teams[cl_ent->client->resp.teamnum].it)->wins;
+        redtotal++;
+    }
 
-	bluetotal = 0;
+    bluetotal = 0;
 
-	for (i = 0; i < game.maxclients; i++)
-	{
-		cl_ent = &g_edicts[i + 1];
-		if (!cl_ent->inuse)
-			continue;
-		if (cl_ent->client->resp.context != ent->client->resp.context)
-			continue;
-		if (((team_t *)teams[cl_ent->client->resp.teamnum].it)->side != 1)
-			continue;
+    for (i = 0; i < game.maxclients; i++) {
+        cl_ent = &g_edicts[i + 1];
+        if (!cl_ent->inuse)
+            continue;
+        if (cl_ent->client->resp.context != ent->client->resp.context)
+            continue;
+        if (((team_t *)teams[cl_ent->client->resp.teamnum].it)->side != 1)
+            continue;
 
-		score = game.clients[i].resp.score;
+        score = game.clients[i].resp.score;
 
-		for (j = 0; j < bluetotal; j++)
-			if (score > bluescores[j])
-				break;
+        for (j = 0; j < bluetotal; j++)
+            if (score > bluescores[j])
+                break;
 
-		for (k = bluetotal; k > j; k--)
-		{
-			bluesorted[k] = bluesorted[k - 1];
-			bluescores[k] = bluescores[k - 1];
-		}
+        for (k = bluetotal; k > j; k--) {
+            bluesorted[k] = bluesorted[k - 1];
+            bluescores[k] = bluescores[k - 1];
+        }
 
-		bluesorted[j] = i;
-		bluescores[j] = score;
-		bluewins = ((team_t *)teams[cl_ent->client->resp.teamnum].it)->wins;
-		bluetotal++;
-	}
+        bluesorted[j] = i;
+        bluescores[j] = score;
+        bluewins = ((team_t *)teams[cl_ent->client->resp.teamnum].it)->wins;
+        bluetotal++;
+    }
 
-	string[0] = 0;
-	stringlength = strlen (string);
+    string[0] = 0;
+    stringlength = strlen(string);
 
-	if (redwins < 0)
-		redwins = 0;
-	if (bluewins < 0)
-		bluewins = 0;
+    if (redwins < 0)
+        redwins = 0;
+    if (bluewins < 0)
+        bluewins = 0;
 
-	Com_sprintf (entry, sizeof (entry),
-		"xv 0 yv 40 string2 \"Team Red  : %d\" xv 160 yv 40 string2 \"Team Blue : %d\" ",
-		redwins, bluewins);
-	j = strlen (entry);
-	strcpy (string + stringlength, entry);
-	stringlength += j;
+    Q_snprintf(entry, sizeof(entry),
+               "xv 0 yv 40 string2 \"Team Red  : %d\" xv 160 yv 40 string2 \"Team Blue : %d\" ",
+               redwins, bluewins);
+    j = strlen(entry);
+    strcpy(string + stringlength, entry);
+    stringlength += j;
 
-	redtotal = redtotal > 20 ? 20 : redtotal;
-	bluetotal = bluetotal > 20 ? 20 : bluetotal;
+    redtotal = redtotal > 20 ? 20 : redtotal;
+    bluetotal = bluetotal > 20 ? 20 : bluetotal;
 
-	for (i = 0; i < redtotal || i < bluetotal; i++)
-	{
-		if (i < redtotal)
-		{
-			cl_ent = g_edicts + 1 + redsorted[i];
-			cl = &game.clients[redsorted[i]];
+    for (i = 0; i < redtotal || i < bluetotal; i++) {
+        if (i < redtotal) {
+            cl_ent = g_edicts + 1 + redsorted[i];
+            cl = &game.clients[redsorted[i]];
 
-			strcpy (line, cl->pers.netname);
-			if (!cl_ent->takedamage)
-				LoPrint (line);
-			else
-				HiPrint (line);
+            strcpy(line, cl->pers.netname);
+            if (!cl_ent->takedamage)
+                LoPrint(line);
+            else
+                HiPrint(line);
 
-			Com_sprintf (entry, sizeof (entry),
-				"xv 0 yv %d string2 \"%2d %3d %.12s\" ", i * 8 + 48, cl->resp.score,
-				cl->ping, line);
+            Q_snprintf(entry, sizeof(entry),
+                       "xv 0 yv %d string2 \"%2d %3d %.12s\" ", i * 8 + 48, cl->resp.score,
+                       cl->ping, line);
 
-			j = strlen (entry);
-			if (stringlength + j > 1024)
-				break;
-			strcpy (string + stringlength, entry);
-			stringlength += j;
-		}
+            j = strlen(entry);
+            if (stringlength + j > 1024)
+                break;
+            strcpy(string + stringlength, entry);
+            stringlength += j;
+        }
 
-		if (i < bluetotal)
-		{
-			cl_ent = g_edicts + 1 + bluesorted[i];
-			cl = &game.clients[bluesorted[i]];
+        if (i < bluetotal) {
+            cl_ent = g_edicts + 1 + bluesorted[i];
+            cl = &game.clients[bluesorted[i]];
 
-			strcpy (line, cl->pers.netname);
-			if (!cl_ent->takedamage)
-				LoPrint (line);
-			else
-				HiPrint (line);
+            strcpy(line, cl->pers.netname);
+            if (!cl_ent->takedamage)
+                LoPrint(line);
+            else
+                HiPrint(line);
 
-			Com_sprintf (entry, sizeof (entry),
-				"xv 160 yv %d string2 \"%2d %3d %.12s\" ", i * 8 + 48, cl->resp.score,
-				cl->ping, line);
+            Q_snprintf(entry, sizeof(entry),
+                       "xv 160 yv %d string2 \"%2d %3d %.12s\" ", i * 8 + 48, cl->resp.score,
+                       cl->ping, line);
 
-			j = strlen (entry);
-			if (stringlength + j > 1024)
-				break;
-			strcpy (string + stringlength, entry);
-			stringlength += j;
-		}
+            j = strlen(entry);
+            if (stringlength + j > 1024)
+                break;
+            strcpy(string + stringlength, entry);
+            stringlength += j;
+        }
 
-	}
+    }
 
-	gi.WriteByte (svc_layout);
-	gi.WriteString (string);
+    gi.WriteByte(svc_layout);
+    gi.WriteString(string);
 }
-
 
 /*
 ==================
@@ -584,23 +562,21 @@ DeathmatchScoreboardMessage
 */
 /* gamex86.dll 0x20023a10-0x20023a80 (manual-confirmed) */
 /* gamei386.so 0x00040154-0x000401be */
-void DeathmatchScoreboardMessage (edict_t *ent, edict_t *killer)
+void DeathmatchScoreboardMessage(edict_t *ent, edict_t *killer)
 {
-	if (!ent->client->resp.context && ent->client->scoremode == 1)
-		ent->client->scoremode = 2;
+    if (!ent->client->resp.context && ent->client->scoremode == 1)
+        ent->client->scoremode = 2;
 
-	if (ent->client->scoremode == 2)
-	{
-		Serverwide_ScoreboardMessage (ent);
-		return;
-	}
+    if (ent->client->scoremode == 2) {
+        Serverwide_ScoreboardMessage(ent);
+        return;
+    }
 
-	if (arenas[ent->client->resp.context].idarena)
-		Pickup_ScoreboardMessage (ent);
-	else
-		Arena_ScoreboardMessage (ent);
+    if (arenas[ent->client->resp.context].idarena)
+        Pickup_ScoreboardMessage(ent);
+    else
+        Arena_ScoreboardMessage(ent);
 }
-
 
 /*
 ==================
@@ -612,16 +588,15 @@ Note that it isn't that hard to overflow the 1400 byte message limit!
 */
 /* gamex86.dll 0x20023a80-0x20023ac0 (aligned) */
 /* gamei386.so 0x000401c0-0x00040244 */
-void DeathmatchScoreboard (edict_t *ent)
+static void DeathmatchScoreboard(edict_t *ent)
 {
-	DeathmatchScoreboardMessage (ent, ent->enemy);
+    DeathmatchScoreboardMessage(ent, ent->enemy);
 
-	if (ent->client->scoremode == 2)
-		gi.unicast (ent, true);
-	else
-		gi.unicast (ent, false);
+    if (ent->client->scoremode == 2)
+        gi.unicast(ent, true);
+    else
+        gi.unicast(ent, false);
 }
-
 
 /*
 ==================
@@ -632,24 +607,23 @@ Display the scoreboard
 */
 /* gamex86.dll 0x20023ac0-0x20023b60 (manual-confirmed) */
 /* gamei386.so 0x00040244-0x00040357 */
-void Cmd_Score_f (edict_t *ent)
+void Cmd_Score_f(edict_t *ent)
 {
-	ent->client->showinventory = false;
-	ent->client->showhelp = false;
+    ent->client->showinventory = false;
+    ent->client->showhelp = false;
 
-	if (!deathmatch->value && !coop->value)
-		return;
+    if (!deathmatch->value && !coop->value)
+        return;
 
-	if (ent->client->scoremode == 2)
-		ent->client->scoremode = 0;
-	else if (!ent->client->resp.context)
-		ent->client->scoremode = 2;
-	else
-		ent->client->scoremode++;
+    if (ent->client->scoremode == 2)
+        ent->client->scoremode = 0;
+    else if (!ent->client->resp.context)
+        ent->client->scoremode = 2;
+    else
+        ent->client->scoremode++;
 
-	DeathmatchScoreboard (ent);
+    DeathmatchScoreboard(ent);
 }
-
 
 /*
 ==================
@@ -660,42 +634,41 @@ Draw help computer.
 */
 /* gamex86.dll 0x20023b60-0x20023c30 (padded) */
 /* gamei386.so 0x00040358-0x0004042e */
-void HelpComputer (edict_t *ent)
+static void HelpComputer(edict_t *ent)
 {
-	char	string[1024];
-	char	*sk;
+    char    string[1024];
+    char    *sk;
 
-	if (skill->value == 0)
-		sk = "easy";
-	else if (skill->value == 1)
-		sk = "medium";
-	else if (skill->value == 2)
-		sk = "hard";
-	else
-		sk = "hard+";
+    if (skill->value == 0)
+        sk = "easy";
+    else if (skill->value == 1)
+        sk = "medium";
+    else if (skill->value == 2)
+        sk = "hard";
+    else
+        sk = "hard+";
 
-	// send the layout
-	Com_sprintf (string, sizeof(string),
-		"xv 32 yv 8 picn help "			// background
-		"xv 202 yv 12 string2 \"%s\" "		// skill
-		"xv 0 yv 24 cstring2 \"%s\" "		// level name
-		"xv 0 yv 54 cstring2 \"%s\" "		// help 1
-		"xv 0 yv 110 cstring2 \"%s\" "		// help 2
-		"xv 50 yv 164 string2 \" kills     goals    secrets\" "
-		"xv 50 yv 172 string2 \"%3i/%3i     %i/%i       %i/%i\" ", 
-		sk,
-		level.level_name,
-		game.helpmessage1,
-		game.helpmessage2,
-		level.killed_monsters, level.total_monsters, 
-		level.found_goals, level.total_goals,
-		level.found_secrets, level.total_secrets);
+    // send the layout
+    Q_snprintf(string, sizeof(string),
+               "xv 32 yv 8 picn help "         // background
+               "xv 202 yv 12 string2 \"%s\" "      // skill
+               "xv 0 yv 24 cstring2 \"%s\" "       // level name
+               "xv 0 yv 54 cstring2 \"%s\" "       // help 1
+               "xv 0 yv 110 cstring2 \"%s\" "      // help 2
+               "xv 50 yv 164 string2 \" kills     goals    secrets\" "
+               "xv 50 yv 172 string2 \"%3i/%3i     %i/%i       %i/%i\" ",
+               sk,
+               level.level_name,
+               game.helpmessage1,
+               game.helpmessage2,
+               level.killed_monsters, level.total_monsters,
+               level.found_goals, level.total_goals,
+               level.found_secrets, level.total_secrets);
 
-	gi.WriteByte (svc_layout);
-	gi.WriteString (string);
-	gi.unicast (ent, true);
+    gi.WriteByte(svc_layout);
+    gi.WriteString(string);
+    gi.unicast(ent, true);
 }
-
 
 /*
 ==================
@@ -706,29 +679,26 @@ Display the current help message
 */
 /* gamex86.dll 0x20023c30-0x20023cb0 (shape-matched(ratio=0.87)) */
 /* gamei386.so 0x00040430-0x00040592 */
-void Cmd_Help_f (edict_t *ent)
+void Cmd_Help_f(edict_t *ent)
 {
-	// this is for backwards compatability
-	if (deathmatch->value)
-	{
-		Cmd_Score_f (ent);
-		return;
-	}
+    // this is for backwards compatability
+    if (deathmatch->value) {
+        Cmd_Score_f(ent);
+        return;
+    }
 
-	ent->client->showinventory = false;
-	ent->client->scoremode = 0;
+    ent->client->showinventory = false;
+    ent->client->scoremode = 0;
 
-	if (ent->client->showhelp && (ent->client->pers.game_helpchanged == game.helpchanged))
-	{
-		ent->client->showhelp = false;
-		return;
-	}
+    if (ent->client->showhelp && (ent->client->pers.game_helpchanged == game.helpchanged)) {
+        ent->client->showhelp = false;
+        return;
+    }
 
-	ent->client->showhelp = true;
-	ent->client->pers.helpchanged = 0;
-	HelpComputer (ent);
+    ent->client->showhelp = true;
+    ent->client->pers.helpchanged = 0;
+    HelpComputer(ent);
 }
-
 
 //=======================================================================
 
@@ -739,211 +709,195 @@ G_SetStats
 */
 /* gamex86.dll 0x20023cb0-0x200242f0 (manual-confirmed) */
 /* gamei386.so 0x00040594-0x00040ca9 */
-void G_SetStats (edict_t *ent)
+void G_SetStats(edict_t *ent)
 {
-	gitem_t		*item;
-	int			index, cells;
-	int			power_armor_type;
-	int			image, i, icon;
-	char		skinicon[256];
+    const gitem_t   *item;
+    int         index, cells;
+    int         power_armor_type;
+    int         image, i, icon;
+    char        skinicon[256];
 
-	//
-	// skin icon
-	//
-	sprintf (skinicon, "%s_i", Info_ValueForKey (ent->client->pers.userinfo, "skin"));
-	image = gi.imageindex (skinicon);
+    //
+    // skin icon
+    //
+    sprintf(skinicon, "%s_i", Info_ValueForKey(ent->client->pers.userinfo, "skin"));
+    image = gi.imageindex(skinicon);
 
-	icon = level.pic_health;
-	for (i = 0; i < 7; i++)
-	{
-		if (teamskins_precachem[i] == image || teamskins_precachef[i] == image ||
-			teamskins_precachecw[i] == image || teamskins_precachecb[i] == image)
-		{
-			icon = image;
-			break;
-		}
-	}
-	ent->client->ps.stats[STAT_SKIN_ICON] = icon;
+    icon = level.pic_health;
+    for (i = 0; i < 7; i++) {
+        if (teamskins_precachem[i] == image || teamskins_precachef[i] == image ||
+            teamskins_precachecw[i] == image || teamskins_precachecb[i] == image) {
+            icon = image;
+            break;
+        }
+    }
+    ent->client->ps.stats[STAT_SKIN_ICON] = icon;
 
-	//
-	// health
-	//
-	ent->client->ps.stats[STAT_HEALTH] = ent->health;
+    //
+    // health
+    //
+    ent->client->ps.stats[STAT_HEALTH] = ent->health;
 
+    //
+    // ammo
+    //
+    if (!ent->client->ammo_index /* || !ent->client->pers.inventory[ent->client->ammo_index] */) {
+        ent->client->ps.stats[STAT_AMMO_ICON] = 0;
+        ent->client->ps.stats[STAT_AMMO] = 0;
+    } else {
+        item = &itemlist[ent->client->ammo_index];
+        ent->client->ps.stats[STAT_AMMO_ICON] = gi.imageindex(item->icon);
+        ent->client->ps.stats[STAT_AMMO] = ent->client->pers.inventory[ent->client->ammo_index];
+    }
 
-	//
-	// ammo
-	//
-	if (!ent->client->ammo_index /* || !ent->client->pers.inventory[ent->client->ammo_index] */)
-	{
-		ent->client->ps.stats[STAT_AMMO_ICON] = 0;
-		ent->client->ps.stats[STAT_AMMO] = 0;
-	}
-	else
-	{
-		item = &itemlist[ent->client->ammo_index];
-		ent->client->ps.stats[STAT_AMMO_ICON] = gi.imageindex (item->icon);
-		ent->client->ps.stats[STAT_AMMO] = ent->client->pers.inventory[ent->client->ammo_index];
-	}
-	
-	//
-	// armor
-	//
-	power_armor_type = PowerArmorType (ent);
-	if (power_armor_type)
-	{
-		cells = ent->client->pers.inventory[ITEM_INDEX(FindItem ("cells"))];
-		if (cells == 0)
-		{	// ran out of cells for power armor
-			ent->flags &= ~FL_POWER_ARMOR;
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/power2.wav"), 1, ATTN_NORM, 0);
-			power_armor_type = 0;;
-		}
-	}
+    //
+    // armor
+    //
+    power_armor_type = PowerArmorType(ent);
+    if (power_armor_type) {
+        cells = ent->client->pers.inventory[ITEM_INDEX(FindItem("cells"))];
+        if (cells == 0) {
+            // ran out of cells for power armor
+            ent->flags &= ~FL_POWER_ARMOR;
+            gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/power2.wav"), 1, ATTN_NORM, 0);
+            power_armor_type = 0;
+        }
+    }
 
-	index = ArmorIndex (ent);
-	if (power_armor_type && (!index || (level.framenum & 8) ) )
-	{	// flash between power armor and other armor icon
-		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageindex ("i_powershield");
-		ent->client->ps.stats[STAT_ARMOR] = cells;
-	}
-	else if (index)
-	{
-		item = GetItemByIndex (index);
-		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageindex (item->icon);
-		ent->client->ps.stats[STAT_ARMOR] = ent->client->pers.inventory[index];
-	}
-	else
-	{
-		ent->client->ps.stats[STAT_ARMOR_ICON] = 0;
-		ent->client->ps.stats[STAT_ARMOR] = 0;
-	}
+    index = ArmorIndex(ent);
+    if (power_armor_type && (!index || (level.framenum & 8))) {
+        // flash between power armor and other armor icon
+        if (power_armor_type == POWER_ARMOR_SHIELD)
+            ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageindex("i_powershield");
+        else
+            ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageindex("i_powerscreen");
+        ent->client->ps.stats[STAT_ARMOR] = cells;
+    } else if (index) {
+        item = GetItemByIndex(index);
+        ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageindex(item->icon);
+        ent->client->ps.stats[STAT_ARMOR] = ent->client->pers.inventory[index];
+    } else {
+        ent->client->ps.stats[STAT_ARMOR_ICON] = 0;
+        ent->client->ps.stats[STAT_ARMOR] = 0;
+    }
 
-	//
-	// pickup message
-	//
-	if (level.time > ent->client->pickup_msg_time)
-	{
-		ent->client->ps.stats[STAT_PICKUP_ICON] = 0;
-		ent->client->ps.stats[STAT_PICKUP_STRING] = 0;
-	}
+    //
+    // pickup message
+    //
+    if (level.framenum > ent->client->pickup_msg_framenum) {
+        ent->client->ps.stats[STAT_PICKUP_ICON] = 0;
+        ent->client->ps.stats[STAT_PICKUP_STRING] = 0;
+    }
 
-	//
-	// timers
-	//
-	if (ent->client->quad_framenum > level.framenum)
-	{
-		ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex ("p_quad");
-		ent->client->ps.stats[STAT_TIMER] = (ent->client->quad_framenum - level.framenum)/10;
-	}
-	else if (ent->client->invincible_framenum > level.framenum)
-	{
-		ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex ("p_invulnerability");
-		ent->client->ps.stats[STAT_TIMER] = (ent->client->invincible_framenum - level.framenum)/10;
-	}
-	else if (ent->client->enviro_framenum > level.framenum)
-	{
-		ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex ("p_envirosuit");
-		ent->client->ps.stats[STAT_TIMER] = (ent->client->enviro_framenum - level.framenum)/10;
-	}
-	else if (ent->client->breather_framenum > level.framenum)
-	{
-		ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex ("p_rebreather");
-		ent->client->ps.stats[STAT_TIMER] = (ent->client->breather_framenum - level.framenum)/10;
-	}
-	else
-	{
-		ent->client->ps.stats[STAT_TIMER_ICON] = 0;
-		ent->client->ps.stats[STAT_TIMER] = 0;
-	}
+    //
+    // timer 1 (quad, enviro, breather)
+    //
+    if (ent->client->quad_framenum > level.framenum) {
+        ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex("p_quad");
+        ent->client->ps.stats[STAT_TIMER] = (ent->client->quad_framenum - level.framenum) / 10;
+    } else if (ent->client->enviro_framenum > level.framenum) {
+        ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex("p_envirosuit");
+        ent->client->ps.stats[STAT_TIMER] = (ent->client->enviro_framenum - level.framenum) / 10;
+    } else if (ent->client->breather_framenum > level.framenum) {
+        ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex("p_rebreather");
+        ent->client->ps.stats[STAT_TIMER] = (ent->client->breather_framenum - level.framenum) / 10;
+    } else {
+        ent->client->ps.stats[STAT_TIMER_ICON] = 0;
+        ent->client->ps.stats[STAT_TIMER] = 0;
+    }
 
-	//
-	// selected item
-	//
-	if (ent->client->pers.selected_item == -1)
-		ent->client->ps.stats[STAT_SELECTED_ICON] = 0;
-	else
-		ent->client->ps.stats[STAT_SELECTED_ICON] = gi.imageindex (itemlist[ent->client->pers.selected_item].icon);
+    //
+    // timer 2 (pent)
+    //
+    ent->client->ps.stats[STAT_TIMER2_ICON] = 0;
+    ent->client->ps.stats[STAT_TIMER2] = 0;
+    if (ent->client->invincible_framenum > level.framenum) {
+        if (ent->client->ps.stats[STAT_TIMER_ICON]) {
+            ent->client->ps.stats[STAT_TIMER2_ICON] = gi.imageindex("p_invulnerability");
+            ent->client->ps.stats[STAT_TIMER2] = (ent->client->invincible_framenum - level.framenum) / 10;
+        } else {
+            ent->client->ps.stats[STAT_TIMER_ICON] = gi.imageindex("p_invulnerability");
+            ent->client->ps.stats[STAT_TIMER] = (ent->client->invincible_framenum - level.framenum) / 10;
+        }
+    }
 
-	ent->client->ps.stats[STAT_SELECTED_ITEM] = ent->client->pers.selected_item;
+    //
+    // selected item
+    //
+    if (ent->client->pers.selected_item == -1)
+        ent->client->ps.stats[STAT_SELECTED_ICON] = 0;
+    else
+        ent->client->ps.stats[STAT_SELECTED_ICON] = gi.imageindex(itemlist[ent->client->pers.selected_item].icon);
 
-	//
-	// layouts
-	//
-	ent->client->ps.stats[STAT_LAYOUTS] = 0;
+    ent->client->ps.stats[STAT_SELECTED_ITEM] = ent->client->pers.selected_item;
 
-	if (deathmatch->value)
-	{
-		if (ent->client->pers.health <= 0 || level.intermissiontime
-			|| ent->client->scoremode)
-			ent->client->ps.stats[STAT_LAYOUTS] |= 1;
-		if (ent->client->showinventory && ent->client->pers.health > 0)
-			ent->client->ps.stats[STAT_LAYOUTS] |= 2;
-	}
-	else
-	{
-		if (ent->client->scoremode || ent->client->showhelp)
-			ent->client->ps.stats[STAT_LAYOUTS] |= 1;
-		if (ent->client->showinventory && ent->client->pers.health > 0)
-			ent->client->ps.stats[STAT_LAYOUTS] |= 2;
-	}
+    //
+    // layouts
+    //
+    ent->client->ps.stats[STAT_LAYOUTS] = 0;
 
-	//
-	// frags
-	//
-	ent->client->ps.stats[STAT_FRAGS] = ent->client->resp.score;
+    if (deathmatch->value) {
+        if (ent->client->pers.health <= 0 || level.intermission_framenum
+            || ent->client->scoremode)
+            ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_LAYOUT;
+        if (ent->client->showinventory && ent->client->pers.health > 0)
+            ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_INVENTORY;
+    } else {
+        if (ent->client->scoremode || ent->client->showhelp)
+            ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_LAYOUT;
+        if (ent->client->showinventory && ent->client->pers.health > 0)
+            ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_INVENTORY;
+    }
 
-	//
-	// help icon / current weapon if not shown
-	//
-	if (ent->client->pers.helpchanged && (level.framenum&8) )
-		ent->client->ps.stats[STAT_HELPICON] = gi.imageindex ("i_help");
-	else if ( (ent->client->pers.hand == CENTER_HANDED || ent->client->ps.fov > 91)
-		&& ent->client->pers.weapon)
-		ent->client->ps.stats[STAT_HELPICON] = gi.imageindex (ent->client->pers.weapon->icon);
-	else
-		ent->client->ps.stats[STAT_HELPICON] = 0;
+    //
+    // frags
+    //
+    ent->client->ps.stats[STAT_FRAGS] = ent->client->resp.score;
 
-	//
-	// join queue
-	//
-	if (!ent->client->resp.context)
-	{
-		ent->client->ps.stats[STAT_COUNTDOWN] = 0;
-		ent->client->ps.stats[STAT_ARENASTATUS] = 0;
-		ent->client->ps.stats[STAT_SHOWQUEUE] = 0;
-	}
-	else if (arenas[ent->client->resp.context].idarena)
-	{
-		if (arenas[ent->client->resp.context].state == 2 ||
-			arenas[ent->client->resp.context].state == 5 ||
-			arenas[ent->client->resp.context].state == 6)
-		{
-			ent->client->ps.stats[STAT_QUEUE1] = count_players_queue (arenas[ent->client->resp.context].pickupteam[0]->arenalink.it);
-			ent->client->ps.stats[STAT_QUEUE2] = count_players_queue (arenas[ent->client->resp.context].pickupteam[1]->arenalink.it);
-		}
-		else
-		{
-			ent->client->ps.stats[STAT_QUEUE1] = count_queue (arenas[ent->client->resp.context].pickupteam[0]->arenalink.it);
-			ent->client->ps.stats[STAT_QUEUE2] = count_queue (arenas[ent->client->resp.context].pickupteam[1]->arenalink.it);
-		}
+    //
+    // help icon / current weapon if not shown
+    //
+    if (ent->client->pers.helpchanged && (level.framenum & 8))
+        ent->client->ps.stats[STAT_HELPICON] = gi.imageindex("i_help");
+    else if ((ent->client->pers.hand == CENTER_HANDED || ent->client->ps.fov > 91)
+             && ent->client->pers.weapon)
+        ent->client->ps.stats[STAT_HELPICON] = gi.imageindex(ent->client->pers.weapon->icon);
+    else
+        ent->client->ps.stats[STAT_HELPICON] = 0;
 
-		ent->client->ps.stats[STAT_QUEUE1_ICON] = game.num_items + 0x422;
-		ent->client->ps.stats[STAT_QUEUE2_ICON] = game.num_items + 0x423;
-		ent->client->ps.stats[STAT_SHOWQUEUE] = 1;
-	}
-	else
-	{
-		ent->client->ps.stats[STAT_SHOWQUEUE] = 0;
-	}
+    //
+    // join queue
+    //
+    if (!ent->client->resp.context) {
+        ent->client->ps.stats[STAT_COUNTDOWN] = 0;
+        ent->client->ps.stats[STAT_ARENASTATUS] = 0;
+        ent->client->ps.stats[STAT_SHOWQUEUE] = 0;
+    } else if (arenas[ent->client->resp.context].idarena) {
+        if (arenas[ent->client->resp.context].state == 2 ||
+            arenas[ent->client->resp.context].state == 5 ||
+            arenas[ent->client->resp.context].state == 6) {
+            ent->client->ps.stats[STAT_QUEUE1] = count_players_queue(arenas[ent->client->resp.context].pickupteam[0]->arenalink.it);
+            ent->client->ps.stats[STAT_QUEUE2] = count_players_queue(arenas[ent->client->resp.context].pickupteam[1]->arenalink.it);
+        } else {
+            ent->client->ps.stats[STAT_QUEUE1] = count_queue(arenas[ent->client->resp.context].pickupteam[0]->arenalink.it);
+            ent->client->ps.stats[STAT_QUEUE2] = count_queue(arenas[ent->client->resp.context].pickupteam[1]->arenalink.it);
+        }
 
-	CTFSetIDView (ent);
+        ent->client->ps.stats[STAT_QUEUE1_ICON] = game.num_items + 0x422;
+        ent->client->ps.stats[STAT_QUEUE2_ICON] = game.num_items + 0x423;
+        ent->client->ps.stats[STAT_SHOWQUEUE] = 1;
+    } else {
+        ent->client->ps.stats[STAT_SHOWQUEUE] = 0;
+    }
+
+    CTFSetIDView(ent);
 }
 
 /* gamex86.dll 0x2001fe80-0x2001fe90 (manual-confirmed) */
 /* gamei386.so 0x00040cac-0x00040cad */
-void G_CheckChaseStats (edict_t *ent)
+void G_CheckChaseStats(edict_t *ent)
 {
+
 }
 
 /*
@@ -953,7 +907,7 @@ G_SetSpectatorStats
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x00040cb0-0x00040cbe */
-void G_SetSpectatorStats (edict_t *ent)
+void G_SetSpectatorStats(edict_t *ent)
 {
-	G_SetStats (ent);
+    G_SetStats(ent);
 }

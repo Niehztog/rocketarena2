@@ -1,8 +1,8 @@
 typedef struct
 {
-	unsigned long	state[4];
-	unsigned long	count[2];
-	unsigned char	buffer[64];
+    unsigned long   state[4];
+    unsigned long   count[2];
+    unsigned char   buffer[64];
 } MD5_CTX;
 
 void MD5Init (MD5_CTX *context);

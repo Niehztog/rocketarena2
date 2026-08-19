@@ -7,12 +7,12 @@
 unsigned long current_time (void)
 {
 #ifdef _WIN32
-	return GetTickCount ();
+    return GetTickCount ();
 #else
-	struct timeval	tv;
+    struct timeval  tv;
 
-	gettimeofday (&tv, NULL);
-	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    gettimeofday (&tv, NULL);
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 #endif
 }
 
@@ -21,9 +21,9 @@ unsigned long current_time (void)
 void msleep (unsigned long ms)
 {
 #ifdef _WIN32
-	Sleep (ms);
+    Sleep (ms);
 #else
-	usleep (ms * 1000);
+    usleep (ms * 1000);
 #endif
 }
 
@@ -32,9 +32,9 @@ void msleep (unsigned long ms)
 void SocketStartUp (void)
 {
 #ifdef _WIN32
-	WSADATA		data;
+    WSADATA     data;
 
-	WSAStartup (MAKEWORD (1, 1), &data);
+    WSAStartup (MAKEWORD (1, 1), &data);
 #endif
 }
 
@@ -43,7 +43,7 @@ void SocketStartUp (void)
 void SocketShutDown (void)
 {
 #ifdef _WIN32
-	WSACleanup ();
+    WSACleanup ();
 #endif
 }
 
@@ -53,12 +53,12 @@ void SocketShutDown (void)
 /* gamei386.so 0x00055d40-0x00055d6d */
 char *_strdup (const char *src)
 {
-	char	*ret;
+    char    *ret;
 
-	ret = (char *)malloc (strlen (src) + 1);
-	strcpy (ret, src);
+    ret = (char *)malloc (strlen (src) + 1);
+    strcpy (ret, src);
 
-	return ret;
+    return ret;
 }
 
 #endif

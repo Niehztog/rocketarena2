@@ -1,19 +1,15 @@
+
 // g_ai.c
 
 #include "g_local.h"
 
-qboolean FindTarget (edict_t *self);
-extern cvar_t	*maxclients;
+static q_unused bool ai_checkattack(edict_t *self, float dist);
 
-qboolean ai_checkattack (edict_t *self, float dist);
-
-qboolean	enemy_vis;
-qboolean	enemy_infront;
-int			enemy_range;
-float		enemy_yaw;
+static bool     enemy_vis;
+static int      enemy_range;
+static float    enemy_yaw;
 
 //============================================================================
-
 
 /*
 =================
@@ -30,36 +26,31 @@ In coop games, sight_client will cycle between the clients.
 */
 /* gamex86.dll 0x20005b40-0x20005bd0 (shape-matched(ratio=0.67)) */
 /* gamei386.so 0x0001ddf8-0x0001de8a */
-void AI_SetSightClient (void)
+void AI_SetSightClient(void)
 {
-	edict_t	*ent;
-	int		start, check;
+    edict_t *ent;
+    int     start, check;
 
-	if (level.sight_client == NULL)
-		start = 1;
-	else
-		start = level.sight_client - g_edicts;
+    if (level.sight_client == NULL)
+        start = 1;
+    else
+        start = level.sight_client - g_edicts;
 
-	check = start;
-	while (1)
-	{
-		check++;
-		if (check > game.maxclients)
-			check = 1;
-		ent = &g_edicts[check];
-		if (ent->inuse
-			&& ent->health > 0
-			&& !(ent->flags & FL_NOTARGET) )
-		{
-			level.sight_client = ent;
-			return;		// got one
-		}
-		if (check == start)
-		{
-			level.sight_client = NULL;
-			return;		// nobody to see
-		}
-	}
+    check = start;
+    while (1) {
+        check++;
+        if (check > game.maxclients)
+            check = 1;
+        ent = &g_edicts[check];
+        if (ent->inuse && ent->health > 0 && !(ent->flags & FL_NOTARGET)) {
+            level.sight_client = ent;
+            return;     // got one
+        }
+        if (check == start) {
+            level.sight_client = NULL;
+            return;     // nobody to see
+        }
+    }
 }
 
 //============================================================================
@@ -74,10 +65,9 @@ This replaces the QC functions: ai_forward, ai_back, ai_pain, and ai_painforward
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001de8c-0x0001de8d */
-void ai_move (edict_t *self, float dist)
+void ai_move(edict_t *self, float dist)
 {
 }
-
 
 /*
 =============
@@ -89,10 +79,10 @@ Distance is for slight position adjustments needed by the animations
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001de90-0x0001de91 */
-void ai_stand (edict_t *self, float dist)
+void ai_stand(edict_t *self, float dist)
 {
-}
 
+}
 
 /*
 =============
@@ -103,10 +93,10 @@ The monster is walking it's beat
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001de94-0x0001de95 */
-void ai_walk (edict_t *self, float dist)
+void ai_walk(edict_t *self, float dist)
 {
-}
 
+}
 
 /*
 =============
@@ -118,10 +108,9 @@ Use this call with a distnace of 0 to replace ai_face
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001de98-0x0001de99 */
-void ai_charge (edict_t *self, float dist)
+void ai_charge(edict_t *self, float dist)
 {
 }
-
 
 /*
 =============
@@ -133,10 +122,9 @@ Distance is for slight position adjustments needed by the animations
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001de9c-0x0001de9d */
-void ai_turn (edict_t *self, float dist)
+void ai_turn(edict_t *self, float dist)
 {
 }
-
 
 /*
 
@@ -157,9 +145,9 @@ A yaw angle of the intended direction, which will be turned towards at up
 to 45 deg / state.  If the enemy is in view and hunt_time is not active,
 this will be the exact line towards the enemy.
 
-.pausetime
+.pause_framenum
 A monster will leave it's stand state and head towards it's .movetarget when
-time > .pausetime.
+time > .pause_framenum.
 
 walkmove(angle, speed) primitive is all or nothing
 */
@@ -169,28 +157,28 @@ walkmove(angle, speed) primitive is all or nothing
 range
 
 returns the range catagorization of an entity reletive to self
-0	melee range, will become hostile even if back is turned
-1	visibility and infront, or visibility and show hostile
-2	infront and show hostile
-3	only triggered by damage
+0   melee range, will become hostile even if back is turned
+1   visibility and infront, or visibility and show hostile
+2   infront and show hostile
+3   only triggered by damage
 =============
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001dea0-0x0001df31 */
-int range (edict_t *self, edict_t *other)
+int range(edict_t *self, edict_t *other)
 {
-	vec3_t	v;
-	float	len;
+    vec3_t  v;
+    float   len;
 
-	VectorSubtract (self->s.origin, other->s.origin, v);
-	len = VectorLength (v);
-	if (len < MELEE_DISTANCE)
-		return RANGE_MELEE;
-	if (len < 500)
-		return RANGE_NEAR;
-	if (len < 1000)
-		return RANGE_MID;
-	return RANGE_FAR;
+    VectorSubtract(self->s.origin, other->s.origin, v);
+    len = VectorLength(v);
+    if (len < MELEE_DISTANCE)
+        return RANGE_MELEE;
+    if (len < 500)
+        return RANGE_NEAR;
+    if (len < 1000)
+        return RANGE_MID;
+    return RANGE_FAR;
 }
 
 /*
@@ -202,23 +190,22 @@ returns 1 if the entity is visible to self, even if not infront ()
 */
 /* gamex86.dll 0x20005bd0-0x20005c70 (shape-matched(ratio=1.00)) */
 /* gamei386.so 0x0001df34-0x0001dfcd */
-qboolean visible (edict_t *self, edict_t *other)
+bool visible(edict_t *self, edict_t *other)
 {
-	vec3_t	spot1;
-	vec3_t	spot2;
-	trace_t	trace;
+    vec3_t  spot1;
+    vec3_t  spot2;
+    trace_t trace;
 
-	VectorCopy (self->s.origin, spot1);
-	spot1[2] += self->viewheight;
-	VectorCopy (other->s.origin, spot2);
-	spot2[2] += other->viewheight;
-	trace = gi.trace (spot1, vec3_origin, vec3_origin, spot2, self, MASK_OPAQUE);
-	
-	if (trace.fraction == 1.0)
-		return true;
-	return false;
+    VectorCopy(self->s.origin, spot1);
+    spot1[2] += self->viewheight;
+    VectorCopy(other->s.origin, spot2);
+    spot2[2] += other->viewheight;
+    trace = gi.trace(spot1, vec3_origin, vec3_origin, spot2, self, MASK_OPAQUE);
+
+    if (trace.fraction == 1.0f)
+        return true;
+    return false;
 }
-
 
 /*
 =============
@@ -229,87 +216,82 @@ returns 1 if the entity is in front (in sight) of self
 */
 /* gamex86.dll 0x20005c70-0x20005d00 (shape-matched(ratio=1.00)) */
 /* gamei386.so 0x0001dfd0-0x0001e05f */
-qboolean infront (edict_t *self, edict_t *other)
+bool infront(edict_t *self, edict_t *other)
 {
-	vec3_t	vec;
-	float	dot;
-	vec3_t	forward;
-	
-	AngleVectors (self->s.angles, forward, NULL, NULL);
-	VectorSubtract (other->s.origin, self->s.origin, vec);
-	VectorNormalize (vec);
-	dot = DotProduct (vec, forward);
-	
-	if (dot > 0.3)
-		return true;
-	return false;
-}
+    vec3_t  vec;
+    float   dot;
+    vec3_t  forward;
 
+    AngleVectors(self->s.angles, forward, NULL, NULL);
+    VectorSubtract(other->s.origin, self->s.origin, vec);
+    VectorNormalize(vec);
+    dot = DotProduct(vec, forward);
+
+    if (dot > 0.3f)
+        return true;
+    return false;
+}
 
 //============================================================================
 
 /* gamex86.dll 0x20005d00-0x20005d90 (shape-matched(ratio=1.00)) */
 /* gamei386.so 0x0001e060-0x0001e0f3 */
-void HuntTarget (edict_t *self)
+static void HuntTarget(edict_t *self)
 {
-	vec3_t	vec;
+    vec3_t  vec;
 
-	self->goalentity = self->enemy;
-	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
-		self->monsterinfo.stand (self);
-	else
-		self->monsterinfo.run (self);
-	VectorSubtract (self->enemy->s.origin, self->s.origin, vec);
-	self->ideal_yaw = vectoyaw(vec);
-	// wait a while before first attack
-	if (!(self->monsterinfo.aiflags & AI_STAND_GROUND))
-		AttackFinished (self, 1);
+    self->goalentity = self->enemy;
+    if (self->monsterinfo.aiflags & AI_STAND_GROUND)
+        self->monsterinfo.stand(self);
+    else
+        self->monsterinfo.run(self);
+    VectorSubtract(self->enemy->s.origin, self->s.origin, vec);
+    self->ideal_yaw = vectoyaw(vec);
+    // wait a while before first attack
+    if (!(self->monsterinfo.aiflags & AI_STAND_GROUND))
+        AttackFinished(self, 1);
 }
 
 /* gamex86.dll 0x20005d90-0x20005eb0 (padded) */
 /* gamei386.so 0x0001e0f4-0x0001e353 */
-void FoundTarget (edict_t *self)
+void FoundTarget(edict_t *self)
 {
-	// let other monsters see this monster for a while
-	if (self->enemy->client)
-	{
-		level.sight_entity = self;
-		level.sight_entity_framenum = level.framenum;
-		level.sight_entity->light_level = 128;
-	}
+    // let other monsters see this monster for a while
+    if (self->enemy->client) {
+        level.sight_entity = self;
+        level.sight_entity_framenum = level.framenum;
+        level.sight_entity->light_level = 128;
+    }
 
-	self->show_hostile = level.time + 1;		// wake up other monsters
+    self->show_hostile = level.framenum + 1 * BASE_FRAMERATE;   // wake up other monsters
 
-	VectorCopy(self->enemy->s.origin, self->monsterinfo.last_sighting);
-	self->monsterinfo.trail_time = level.time;
+    VectorCopy(self->enemy->s.origin, self->monsterinfo.last_sighting);
+    self->monsterinfo.trail_framenum = level.framenum;
 
-	if (!self->combattarget)
-	{
-		HuntTarget (self);
-		return;
-	}
+    if (!self->combattarget) {
+        HuntTarget(self);
+        return;
+    }
 
-	self->goalentity = self->movetarget = G_PickTarget(self->combattarget);
-	if (!self->movetarget)
-	{
-		self->goalentity = self->movetarget = self->enemy;
-		HuntTarget (self);
-		gi.dprintf("%s at %s, combattarget %s not found\n", self->classname, vtos(self->s.origin), self->combattarget);
-		return;
-	}
+    self->goalentity = self->movetarget = G_PickTarget(self->combattarget);
+    if (!self->movetarget) {
+        self->goalentity = self->movetarget = self->enemy;
+        HuntTarget(self);
+        gi.dprintf("%s at %s, combattarget %s not found\n", self->classname, vtos(self->s.origin), self->combattarget);
+        return;
+    }
 
-	// clear out our combattarget, these are a one shot deal
-	self->combattarget = NULL;
-	self->monsterinfo.aiflags |= AI_COMBAT_POINT;
+    // clear out our combattarget, these are a one shot deal
+    self->combattarget = NULL;
+    self->monsterinfo.aiflags |= AI_COMBAT_POINT;
 
-	// clear the targetname, that point is ours!
-	self->movetarget->targetname = NULL;
-	self->monsterinfo.pausetime = 0;
+    // clear the targetname, that point is ours!
+    self->movetarget->targetname = NULL;
+    self->monsterinfo.pause_framenum = 0;
 
-	// run for it
-	self->monsterinfo.run (self);
+    // run for it
+    self->monsterinfo.run(self);
 }
-
 
 /*
 ===========
@@ -330,11 +312,12 @@ slower noticing monsters.
 */
 /* gamex86.dll 0x20005eb0-0x20005ec0 (call-propagated) */
 /* gamei386.so 0x0001e354-0x0001e35a */
-qboolean FindTarget (edict_t *self)
+bool FindTarget(edict_t *self)
 {
-	return true;
-}
 
+
+    return true;
+}
 
 //=============================================================================
 
@@ -346,109 +329,93 @@ FacingIdeal
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001e35c-0x0001e3a8 */
-qboolean FacingIdeal(edict_t *self)
+bool FacingIdeal(edict_t *self)
 {
-	float	delta;
+    float   delta;
 
-	delta = anglemod(self->s.angles[YAW] - self->ideal_yaw);
-	if (delta > 45 && delta < 315)
-		return false;
-	return true;
+    delta = anglemod(self->s.angles[YAW] - self->ideal_yaw);
+    if (delta > 45 && delta < 315)
+        return false;
+    return true;
 }
-
 
 //=============================================================================
 
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001e3a8-0x0001e601 */
-qboolean M_CheckAttack (edict_t *self)
+bool M_CheckAttack(edict_t *self)
 {
-	vec3_t	spot1, spot2;
-	float	chance;
-	trace_t	tr;
+    vec3_t  spot1, spot2;
+    float   chance;
+    trace_t tr;
 
-	if (self->enemy->health > 0)
-	{
-	// see if any entities are in the way of the shot
-		VectorCopy (self->s.origin, spot1);
-		spot1[2] += self->viewheight;
-		VectorCopy (self->enemy->s.origin, spot2);
-		spot2[2] += self->enemy->viewheight;
+    if (self->enemy->health > 0) {
+        // see if any entities are in the way of the shot
+        VectorCopy(self->s.origin, spot1);
+        spot1[2] += self->viewheight;
+        VectorCopy(self->enemy->s.origin, spot2);
+        spot2[2] += self->enemy->viewheight;
 
-		tr = gi.trace (spot1, NULL, NULL, spot2, self, CONTENTS_SOLID|CONTENTS_MONSTER|CONTENTS_SLIME|CONTENTS_LAVA|CONTENTS_WINDOW);
+        tr = gi.trace(spot1, NULL, NULL, spot2, self, CONTENTS_SOLID | CONTENTS_MONSTER | CONTENTS_SLIME | CONTENTS_LAVA | CONTENTS_WINDOW);
 
-		// do we have a clear shot?
-		if (tr.ent != self->enemy)
-			return false;
-	}
-	
-	// melee attack
-	if (enemy_range == RANGE_MELEE)
-	{
-		// don't always melee in easy mode
-		if (skill->value == 0 && (rand()&3) )
-			return false;
-		if (self->monsterinfo.melee)
-			self->monsterinfo.attack_state = AS_MELEE;
-		else
-			self->monsterinfo.attack_state = AS_MISSILE;
-		return true;
-	}
-	
+        // do we have a clear shot?
+        if (tr.ent != self->enemy)
+            return false;
+    }
+
+    // melee attack
+    if (enemy_range == RANGE_MELEE) {
+        // don't always melee in easy mode
+        if (skill->value == 0 && (Q_rand() & 3))
+            return false;
+        if (self->monsterinfo.melee)
+            self->monsterinfo.attack_state = AS_MELEE;
+        else
+            self->monsterinfo.attack_state = AS_MISSILE;
+        return true;
+    }
+
 // missile attack
-	if (!self->monsterinfo.attack)
-		return false;
-		
-	if (level.time < self->monsterinfo.attack_finished)
-		return false;
-		
-	if (enemy_range == RANGE_FAR)
-		return false;
+    if (!self->monsterinfo.attack)
+        return false;
 
-	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
-	{
-		chance = 0.4;
-	}
-	else if (enemy_range == RANGE_MELEE)
-	{
-		chance = 0.2;
-	}
-	else if (enemy_range == RANGE_NEAR)
-	{
-		chance = 0.1;
-	}
-	else if (enemy_range == RANGE_MID)
-	{
-		chance = 0.02;
-	}
-	else
-	{
-		return false;
-	}
+    if (level.framenum < self->monsterinfo.attack_finished)
+        return false;
 
-	if (skill->value == 0)
-		chance *= 0.5;
-	else if (skill->value >= 2)
-		chance *= 2;
+    if (enemy_range == RANGE_FAR)
+        return false;
 
-	if (random () < chance)
-	{
-		self->monsterinfo.attack_state = AS_MISSILE;
-		self->monsterinfo.attack_finished = level.time + 2*random();
-		return true;
-	}
+    if (self->monsterinfo.aiflags & AI_STAND_GROUND)
+        chance = 0.4f;
+    else if (enemy_range == RANGE_MELEE)
+        chance = 0.2f;
+    else if (enemy_range == RANGE_NEAR)
+        chance = 0.1f;
+    else if (enemy_range == RANGE_MID)
+        chance = 0.02f;
+    else
+        return false;
 
-	if (self->flags & FL_FLY)
-	{
-		if (random() < 0.3)
-			self->monsterinfo.attack_state = AS_SLIDING;
-		else
-			self->monsterinfo.attack_state = AS_STRAIGHT;
-	}
+    if (skill->value == 0)
+        chance *= 0.5f;
+    else if (skill->value >= 2)
+        chance *= 2;
 
-	return false;
+    if (random() < chance) {
+        self->monsterinfo.attack_state = AS_MISSILE;
+        self->monsterinfo.attack_finished = level.framenum + 2 * random() * BASE_FRAMERATE;
+        return true;
+    }
+
+    if (self->flags & FL_FLY) {
+        if (random() < 0.3f)
+            self->monsterinfo.attack_state = AS_SLIDING;
+        else
+            self->monsterinfo.attack_state = AS_STRAIGHT;
+    }
+
+    return false;
 }
-
 
 /*
 =============
@@ -459,10 +426,9 @@ Turn and close until within an angle to launch a melee attack
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001e604-0x0001e605 */
-void ai_run_melee(edict_t *self)
+static void ai_run_melee(edict_t *self)
 {
 }
-
 
 /*
 =============
@@ -473,10 +439,9 @@ Turn in place until within an angle to launch a missile attack
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001e608-0x0001e609 */
-void ai_run_missile(edict_t *self)
+static void ai_run_missile(edict_t *self)
 {
 }
-
 
 /*
 =============
@@ -487,10 +452,9 @@ Strafe sideways, but stay at aproximately the same range
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001e60c-0x0001e60d */
-void ai_run_slide(edict_t *self, float distance)
+static q_unused void ai_run_slide(edict_t *self, float distance)
 {
 }
-
 
 /*
 =============
@@ -502,141 +466,115 @@ used by ai_run and ai_stand
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001e610-0x0001eacd */
-qboolean ai_checkattack (edict_t *self, float dist)
+static q_unused bool ai_checkattack(edict_t *self, float dist)
 {
-	vec3_t		temp;
-	qboolean	hesDeadJim;
+    vec3_t      temp;
+    bool        hesDeadJim;
 
 // this causes monsters to run blindly to the combat point w/o firing
-	if (self->goalentity)
-	{
-		if (self->monsterinfo.aiflags & AI_COMBAT_POINT)
-			return false;
+    if (self->goalentity) {
+        if (self->monsterinfo.aiflags & AI_COMBAT_POINT)
+            return false;
 
-		if (self->monsterinfo.aiflags & AI_SOUND_TARGET)
-		{
-			if ((level.time - self->enemy->teleport_time) > 5.0)
-			{
-				if (self->goalentity == self->enemy)
-					if (self->movetarget)
-						self->goalentity = self->movetarget;
-					else
-						self->goalentity = NULL;
-				self->monsterinfo.aiflags &= ~AI_SOUND_TARGET;
-				if (self->monsterinfo.aiflags & AI_TEMP_STAND_GROUND)
-					self->monsterinfo.aiflags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
-			}
-			else
-			{
-				self->show_hostile = level.time + 1;
-				return false;
-			}
-		}
-	}
+        if (self->monsterinfo.aiflags & AI_SOUND_TARGET) {
+            if ((level.framenum - self->enemy->last_sound_framenum) > 5.0f * BASE_FRAMERATE) {
+                if (self->goalentity == self->enemy) {
+                    if (self->movetarget)
+                        self->goalentity = self->movetarget;
+                    else
+                        self->goalentity = NULL;
+                }
+                self->monsterinfo.aiflags &= ~AI_SOUND_TARGET;
+                if (self->monsterinfo.aiflags & AI_TEMP_STAND_GROUND)
+                    self->monsterinfo.aiflags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
+            } else {
+                self->show_hostile = level.framenum + 1 * BASE_FRAMERATE;
+                return false;
+            }
+        }
+    }
 
-	enemy_vis = false;
+    enemy_vis = false;
 
 // see if the enemy is dead
-	hesDeadJim = false;
-	if ((!self->enemy) || (!self->enemy->inuse))
-	{
-		hesDeadJim = true;
-	}
-	else if (self->monsterinfo.aiflags & AI_MEDIC)
-	{
-		if (self->enemy->health > 0)
-		{
-			hesDeadJim = true;
-			self->monsterinfo.aiflags &= ~AI_MEDIC;
-		}
-	}
-	else
-	{
-		if (self->monsterinfo.aiflags & AI_BRUTAL)
-		{
-			if (self->enemy->health <= -80)
-				hesDeadJim = true;
-		}
-		else
-		{
-			if (self->enemy->health <= 0)
-				hesDeadJim = true;
-		}
-	}
+    hesDeadJim = false;
+    if ((!self->enemy) || (!self->enemy->inuse)) {
+        hesDeadJim = true;
+    } else if (self->monsterinfo.aiflags & AI_MEDIC) {
+        if (self->enemy->health > 0) {
+            hesDeadJim = true;
+            self->monsterinfo.aiflags &= ~AI_MEDIC;
+        }
+    } else {
+        if (self->monsterinfo.aiflags & AI_BRUTAL) {
+            if (self->enemy->health <= -80)
+                hesDeadJim = true;
+        } else {
+            if (self->enemy->health <= 0)
+                hesDeadJim = true;
+        }
+    }
 
-	if (hesDeadJim)
-	{
-		self->enemy = NULL;
-	// FIXME: look all around for other targets
-		if (self->oldenemy && self->oldenemy->health > 0)
-		{
-			self->enemy = self->oldenemy;
-			self->oldenemy = NULL;
-			HuntTarget (self);
-		}
-		else
-		{
-			if (self->movetarget)
-			{
-				self->goalentity = self->movetarget;
-				self->monsterinfo.walk (self);
-			}
-			else
-			{
-				// we need the pausetime otherwise the stand code
-				// will just revert to walking with no target and
-				// the monsters will wonder around aimlessly trying
-				// to hunt the world entity
-				self->monsterinfo.pausetime = level.time + 100000000;
-				self->monsterinfo.stand (self);
-			}
-			return true;
-		}
-	}
+    if (hesDeadJim) {
+        self->enemy = NULL;
+        // FIXME: look all around for other targets
+        if (self->oldenemy && self->oldenemy->health > 0) {
+            self->enemy = self->oldenemy;
+            self->oldenemy = NULL;
+            HuntTarget(self);
+        } else {
+            if (self->movetarget) {
+                self->goalentity = self->movetarget;
+                self->monsterinfo.walk(self);
+            } else {
+                // we need the pause_framenum otherwise the stand code
+                // will just revert to walking with no target and
+                // the monsters will wonder around aimlessly trying
+                // to hunt the world entity
+                self->monsterinfo.pause_framenum = INT_MAX;
+                self->monsterinfo.stand(self);
+            }
+            return true;
+        }
+    }
 
-	self->show_hostile = level.time + 1;		// wake up other monsters
+    self->show_hostile = level.framenum + 1 * BASE_FRAMERATE;   // wake up other monsters
 
 // check knowledge of enemy
-	enemy_vis = visible(self, self->enemy);
-	if (enemy_vis)
-	{
-		self->monsterinfo.search_time = level.time + 5;
-		VectorCopy (self->enemy->s.origin, self->monsterinfo.last_sighting);
-	}
+    enemy_vis = visible(self, self->enemy);
+    if (enemy_vis) {
+        self->monsterinfo.search_framenum = level.framenum + 5 * BASE_FRAMERATE;
+        VectorCopy(self->enemy->s.origin, self->monsterinfo.last_sighting);
+    }
 
 // look for other coop players here
-//	if (coop && self->monsterinfo.search_time < level.time)
-//	{
-//		if (FindTarget (self))
-//			return true;
-//	}
+//  if (coop && self->monsterinfo.search_framenum < level.framenum)
+//  {
+//      if (FindTarget (self))
+//          return true;
+//  }
 
-	enemy_infront = infront(self, self->enemy);
-	enemy_range = range(self, self->enemy);
-	VectorSubtract (self->enemy->s.origin, self->s.origin, temp);
-	enemy_yaw = vectoyaw(temp);
+    enemy_range = range(self, self->enemy);
+    VectorSubtract(self->enemy->s.origin, self->s.origin, temp);
+    enemy_yaw = vectoyaw(temp);
 
+    // JDC self->ideal_yaw = enemy_yaw;
 
-	// JDC self->ideal_yaw = enemy_yaw;
+    if (self->monsterinfo.attack_state == AS_MISSILE) {
+        ai_run_missile(self);
+        return true;
+    }
+    if (self->monsterinfo.attack_state == AS_MELEE) {
+        ai_run_melee(self);
+        return true;
+    }
 
-	if (self->monsterinfo.attack_state == AS_MISSILE)
-	{
-		ai_run_missile (self);
-		return true;
-	}
-	if (self->monsterinfo.attack_state == AS_MELEE)
-	{
-		ai_run_melee (self);
-		return true;
-	}
+    // if enemy is not currently visible, we will never attack
+    if (!enemy_vis)
+        return false;
 
-	// if enemy is not currently visible, we will never attack
-	if (!enemy_vis)
-		return false;
-
-	return self->monsterinfo.checkattack (self);
+    return self->monsterinfo.checkattack(self);
 }
-
 
 /*
 =============
@@ -647,6 +585,9 @@ The monster has an enemy it is trying to kill
 */
 /* gamex86.dll: no real counterpart -- confirmed dead code */
 /* gamei386.so 0x0001ead0-0x0001ead1 */
-void ai_run (edict_t *self, float dist)
+void ai_run(edict_t *self, float dist)
 {
+
+
+
 }
