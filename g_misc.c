@@ -840,14 +840,14 @@ health (80), and dmg (150).
 void barrel_touch(edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf)
 
 {
-    float   ratio;
-    vec3_t  v;
-
     if ((!other->groundentity) || (other->groundentity == self))
         return;
 
-    ratio = (float)other->mass / (float)self->mass;
-    VectorSubtract(self->s.origin, other->s.origin, v);
+    // baseq2 ends here with M_walkmove(self, vectoyaw(v), 20 * ratio *
+    // FRAMETIME), which is what makes a barrel shift when you walk into it.
+    // RA2 ships no monster movement code -- M_walkmove is declared in
+    // g_local.h and defined nowhere -- so the call cannot be kept, and the
+    // ratio and direction it consumed are not computed.
 }
 
 /* gamex86.dll 0x2000f790-0x2000ff30 (unpadded-prologue+size) */

@@ -225,11 +225,10 @@ void Serverwide_ScoreboardMessage(edict_t *ent)
         cl_ent = g_edicts + 1 + sorted[i];
 
         if (cl->resp.teamnum > -1)
-            strncpy(teamname, ((team_t *)teams[cl->resp.teamnum].it)->name,
-                    sizeof(teamname));
+            Q_strlcpy(teamname, ((team_t *)teams[cl->resp.teamnum].it)->name,
+                      sizeof(teamname));
         else
-            sprintf(teamname, "None");
-        teamname[sizeof(teamname) - 1] = 0;
+            Q_strlcpy(teamname, "None", sizeof(teamname));
 
         Q_snprintf(line, sizeof(line), "%3i %4i %12.12s %12.12s %1i",
                    cl->resp.score, cl->ping, cl->pers.netname, teamname, cl->resp.context);

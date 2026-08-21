@@ -181,8 +181,40 @@ original count. What is gone: 117 pointer-to-int casts, 17 non-exhaustive
 switches, 8 ignored return values, all of the strict-aliasing and
 uninitialised-use reports, and — with the SDK itself — 12 function-pointer
 casts, two sequence-point violations, two out-of-bounds array subscripts and a
-format overflow. What remains is pre-existing RA2 code that the port does not
-touch: the `if (it = FindItem(...))` idiom and a handful of dead locals.
+format overflow.
+
+**The Makefile builds with `-Wall` now** — on the native and both MinGW flag
+sets — and the tree is clean under it on gcc and clang, in all six
+configurations. Clearing it took the last of what that paragraph used to call
+pre-existing: the seven `if (it = FindItem(...))` assignments in `arena.c` are
+parenthesised, `maploop.c`'s two `sprintf(buf, "")` calls are the `buf[0] = 0`
+they meant, and the two `strncpy`-then-terminate pairs in `arena.c`/`p_hud.c`
+are `Q_strlcpy`, which is what the rest of the tree uses and what stops
+`-Wstringop-truncation` firing on the MinGW builds.
+
+`barrel_touch`'s two dead locals are gone, with a note in their place. baseq2's
+version ends with `M_walkmove(self, vectoyaw(v), 20 * ratio * FRAMETIME)`, which
+is what makes a barrel shift when you walk into it; RA2 ships no monster
+movement code — `M_walkmove` is declared in `g_local.h` and defined nowhere, and
+the library links with `-Wl,--no-undefined` — so the call cannot be kept, and
+the two values it consumed are not computed.
+
+`-Wextra` is still not gated on: it reports unused parameters and
+signed/unsigned comparisons throughout code this branch does not change.
+
+Checked and clean
+-----------------
+
+The timer-unit class that Q2PRO's Ground Zero pack and the OSP Tourney port both
+carried does not exist here, and this is where that is recorded so the next
+person does not have to re-derive it. `SV_RunThink` compares `int nextthink`
+against `level.framenum`; there is no `nextthink = level.time` site anywhere;
+and no `_framenum` field is fed from, or compared against, seconds. The three
+`level.framenum + 0.5f / FRAMETIME` sites are a different spelling of
+`0.5f * BASE_FRAMERATE`, not a lost scale factor. Allocators pair within each
+file — `g_main.c`'s `strdup`/`free` is `EndDMLevel`'s and is Q2PRO's own — and
+the menu handles are `TAG_LEVEL`, so the engine reclaims them at level change
+and `PutClientInServer`'s memset leaves no dangling pointer behind.
 
 Address annotations
 -------------------

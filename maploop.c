@@ -491,7 +491,7 @@ char *new_val_block(void)
     char    *buf;
 
     buf = gi.TagMalloc(0x400, TAG_LEVEL);
-    sprintf(buf, "");
+    buf[0] = 0;
 
     return buf;
 }
@@ -649,7 +649,7 @@ void list_keys(edict_t *ent)
     count = num_definition_blocks;
     items = definition_blocks;
     argc = gi.argc();
-    sprintf(path, "");
+    path[0] = 0;
 
     for (i = 1; i < argc; i++) {
         key = find_key(gi.argv(i), 2, items, count);

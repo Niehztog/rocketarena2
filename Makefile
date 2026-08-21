@@ -23,7 +23,7 @@ CC=gcc
 # shared/ holds the engine headers the game links against (shared.h, game.h,
 # list.h, m_flash.h, platform.h) plus their two .c files.
 INCLUDES=-I. -Ishared
-BASE_CFLAGS=-DHAVE_CONFIG_H $(INCLUDES) -Dstricmp=strcasecmp $(M32)
+BASE_CFLAGS=-DHAVE_CONFIG_H $(INCLUDES) -Dstricmp=strcasecmp -Wall $(M32)
 RELEASE_CFLAGS=$(BASE_CFLAGS) -O2
 DEBUG_CFLAGS=$(BASE_CFLAGS) -g -O0
 LDFLAGS=-ldl -lm $(M32)
@@ -39,7 +39,7 @@ SHLIBLDFLAGS=-shared -Wl,--no-undefined
 # net_compat.h switches gslog.c/gstats.c to under _WIN32.
 CC_WIN32?=i686-w64-mingw32-gcc
 CC_WIN64?=x86_64-w64-mingw32-gcc
-WIN_BASE_CFLAGS=-DHAVE_CONFIG_H $(INCLUDES) -D__USE_MINGW_ANSI_STDIO=1
+WIN_BASE_CFLAGS=-DHAVE_CONFIG_H $(INCLUDES) -D__USE_MINGW_ANSI_STDIO=1 -Wall
 WIN_RELEASE_CFLAGS=$(WIN_BASE_CFLAGS) -O2
 WIN_DEBUG_CFLAGS=$(WIN_BASE_CFLAGS) -g -O0
 WIN_LDFLAGS=-lm -lws2_32 -static-libgcc
