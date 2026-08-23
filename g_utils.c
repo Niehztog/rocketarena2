@@ -180,7 +180,13 @@ void G_UseTargets(edict_t *ent, edict_t *activator)
 // print the message
 //
     if ((ent->message) && !(activator->svflags & SVF_MONSTER)) {
-        menu_centerprint(activator, ent->message);
+        // baseq2 sends this with gi.centerprintf, which the engine drops for a
+        // non-client.  menu_centerprint goes through the client's menu instead,
+        // so the same check has to happen here: trigger_always and
+        // target_crosslevel_target activate themselves, and a barrel killed by
+        // the world reports the world as its attacker.
+        if (activator->client)
+            menu_centerprint(activator, ent->message);
         if (ent->noise_index)
             gi.sound(activator, CHAN_AUTO, ent->noise_index, 1, ATTN_NORM, 0);
         else

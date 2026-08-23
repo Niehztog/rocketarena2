@@ -1020,6 +1020,11 @@ void SP_worldspawn(edict_t *ent)
 
     PrecacheItem(FindItem("Blaster"));
 
+    // The grapple is always owned and never spawns in the world, so SpawnItem
+    // never precaches it and its whole asset list would otherwise be registered
+    // on first use, one configstring at a time, mid-round.
+    PrecacheItem(FindItem("Grapple"));
+
     gi.soundindex("player/lava1.wav");
     gi.soundindex("player/lava2.wav");
 

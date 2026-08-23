@@ -1208,8 +1208,8 @@ const gitem_t itemlist[] = {
             "weapons/grapple/grhang.wav",
             "weapons/grapple/grreset.wav",
             "weapons/grapple/grhit.wav",
-            // RA2 plays this one from CTFGrapplePull() but never precached it
             "weapons/grapple/grhurt.wav",
+            "models/weapons/grapple/hook/tris.md2",
             NULL
         },
     },
