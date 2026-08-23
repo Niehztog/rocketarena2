@@ -358,18 +358,25 @@ edict_t *SelectRandomArenaSpawnPoint(char *classn, int arenanum, int side)
 
     //gi.dprintf("%d spots, %d selected\n",count,selection);
 
+    // an idarena alternates its spawn points between the two sides: side 2
+    // takes an even index, side 1 the odd one after it.  With a single spot
+    // in the arena there is no odd index to round up to, so take the one
+    // there is -- clamping to 1 walks the search below off the end of the
+    // spot list and dereferences the NULL that G_Find returns.
     if (side) {
         selection &= ~1;
         if (side == 1) {
             selection++;
             if (selection >= count)
-                selection = 1;
+                selection = (count > 1) ? 1 : 0;
         }
     }
 
     spot = NULL;
     do {
         spot = G_Find(spot, FOFS(classname), classn);
+        if (!spot)
+            return NULL;
         if (spot->arena != arenanum && idmap == false)
             selection++;
     } while (selection--);
@@ -377,9 +384,80 @@ edict_t *SelectRandomArenaSpawnPoint(char *classn, int arenanum, int side)
     return spot;
 }
 
+/*
+================
+is_arena_fighter
+
+Is this client someone an arriving player should be kept away from?  Only
+those actually fighting in this arena count.  An observer is alive, has
+takedamage cleared and noclips, and move_to_arena drops them onto a spawn
+point and leaves them hovering there, so counting observers means picking
+spawns by where the audience stood.  The player being placed is passed in
+as ignore so they do not push themselves away from their own old spot.
+================
+*/
+static bool is_arena_fighter(edict_t *e, int arenanum, edict_t *ignore)
+{
+    if (e == ignore)
+        return false;
+    if (!e->inuse)
+        return false;
+    if (!e->client)
+        return false;
+    if (e->health <= 0)
+        return false;
+    if (e->client->resp.fightstate != FIGHT_ALIVE)
+        return false;
+    if (e->client->resp.context != arenanum && idmap == false)
+        return false;
+
+    return true;
+}
+
+/*
+================
+fighters_range_from_spot
+
+Returns the distance to the nearest player fighting in this arena.  With
+nobody in the arena to measure against it returns 0 rather than a huge
+sentinel: every spot then scores below SelectFarthestArenaSpawnPoint's
+floor and the caller falls through to a random spot, which is what keeps
+observers arriving during warmup from all stacking onto the same one.
+================
+*/
+static float fighters_range_from_spot(edict_t *spot, int arenanum, edict_t *ignore)
+{
+    edict_t *player;
+    float   bestplayerdistance;
+    float   playerdistance;
+    vec3_t  v;
+    int     n;
+    bool    found;
+
+    found = false;
+    bestplayerdistance = 0;
+
+    for (n = 0; n < game.maxclients; n++) {
+        player = &g_edicts[n + 1];
+
+        if (!is_arena_fighter(player, arenanum, ignore))
+            continue;
+
+        VectorSubtract(spot->s.origin, player->s.origin, v);
+        playerdistance = VectorLength(v);
+
+        if (!found || playerdistance < bestplayerdistance) {
+            bestplayerdistance = playerdistance;
+            found = true;
+        }
+    }
+
+    return bestplayerdistance;
+}
+
 /* gamex86.dll 0x20001b90-0x20001c20 (aligned) */
 /* gamei386.so 0x0004880c-0x00048907 */
-edict_t *SelectFarthestArenaSpawnPoint(char *classn, int arenanum)
+edict_t *SelectFarthestArenaSpawnPoint(char *classn, int arenanum, edict_t *ignore)
 {
     edict_t     *bestspot;
     float       bestdistance, bestplayerdistance;
@@ -391,7 +469,7 @@ edict_t *SelectFarthestArenaSpawnPoint(char *classn, int arenanum)
     while ((spot = G_Find(spot, FOFS(classname), classn)) != NULL) {
         //gi.bprintf (PRINT_HIGH,"arena %d spot %d\n", arenanum, spot->arena);
         if (spot->arena != arenanum && idmap == false) continue;
-        bestplayerdistance = PlayersRangeFromSpot(spot);
+        bestplayerdistance = fighters_range_from_spot(spot, arenanum, ignore);
 
         if (bestplayerdistance > bestdistance) {
             bestspot = spot;
@@ -682,9 +760,9 @@ void move_to_arena(edict_t *ent, int arenanum, int mode)
     if (mode) {
 
         if (!arenas[arenanum].active)
-            dest = SelectFarthestArenaSpawnPoint("misc_teleporter_dest", arenanum);
+            dest = SelectFarthestArenaSpawnPoint("misc_teleporter_dest", arenanum, ent);
         else
-            dest = SelectFarthestArenaSpawnPoint("info_player_deathmatch", arenanum);
+            dest = SelectFarthestArenaSpawnPoint("info_player_deathmatch", arenanum, ent);
 
         if (arenanum) {
             if (ent->client->resp.context == 0) {
@@ -707,7 +785,7 @@ void move_to_arena(edict_t *ent, int arenanum, int mode)
             dest = SelectRandomArenaSpawnPoint("info_player_deathmatch", arenanum,
                                                (TEAM(&teams[ent->client->resp.teamnum])->side == arenas[arenanum].sidepick) ? 1 : 2);
         else
-            dest = SelectFarthestArenaSpawnPoint("info_player_deathmatch", arenanum);
+            dest = SelectFarthestArenaSpawnPoint("info_player_deathmatch", arenanum, ent);
     }
 
     if (!dest) {
@@ -1866,7 +1944,7 @@ void arena_init(edict_t *wsent)
         arenas[i].proposetime = 0;
         arenas[i].round = 0;
 
-        if (!SelectFarthestArenaSpawnPoint("misc_teleporter_dest", i)) {
+        if (!SelectFarthestArenaSpawnPoint("misc_teleporter_dest", i, NULL)) {
             gi.dprintf("Setting arena %d to idarena mode\n", i);
             arenas[i].active = true;
         }
