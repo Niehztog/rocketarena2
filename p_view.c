@@ -234,12 +234,19 @@ static void SV_CalcViewOffset(edict_t *ent)
         angles[PITCH] += ratio * ent->client->fall_value;
 
         // add angles based on velocity
+        //
+        // Except on the trackcam, where velocity is not an observer running
+        // but the machinery that flies the camera to its goal: track_think
+        // aims it at the goal every usercmd and gi.Pmove covers the distance.
+        // run_pitch and run_roll do not know that, and leaned the horizon
+        // further the faster the mouse turned.
+        if (!ent->client->resp.track_target || ent->client->resp.fightstate) {
+            delta = DotProduct(ent->velocity, forward);
+            angles[PITCH] += delta * run_pitch->value;
 
-        delta = DotProduct(ent->velocity, forward);
-        angles[PITCH] += delta * run_pitch->value;
-
-        delta = DotProduct(ent->velocity, right);
-        angles[ROLL] += delta * run_roll->value;
+            delta = DotProduct(ent->velocity, right);
+            angles[ROLL] += delta * run_roll->value;
+        }
 
         // add angles based on bob
 
