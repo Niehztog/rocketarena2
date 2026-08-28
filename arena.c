@@ -396,7 +396,7 @@ spawns by where the audience stood.  The player being placed is passed in
 as ignore so they do not push themselves away from their own old spot.
 ================
 */
-static bool is_arena_fighter(edict_t *e, int arenanum, edict_t *ignore)
+static bool is_live_body(edict_t *e, edict_t *ignore)
 {
     if (e == ignore)
         return false;
@@ -405,6 +405,14 @@ static bool is_arena_fighter(edict_t *e, int arenanum, edict_t *ignore)
     if (!e->client)
         return false;
     if (e->health <= 0)
+        return false;
+
+    return true;
+}
+
+static bool is_arena_fighter(edict_t *e, int arenanum, edict_t *ignore)
+{
+    if (!is_live_body(e, ignore))
         return false;
     if (e->client->resp.fightstate != FIGHT_ALIVE)
         return false;
@@ -416,43 +424,76 @@ static bool is_arena_fighter(edict_t *e, int arenanum, edict_t *ignore)
 
 /*
 ================
-fighters_range_from_spot
+range_from_spot
 
-Returns the distance to the nearest player fighting in this arena.  With
-nobody in the arena to measure against it returns 0 rather than a huge
-sentinel: every spot then scores below SelectFarthestArenaSpawnPoint's
-floor and the caller falls through to a random spot, which is what keeps
-observers arriving during warmup from all stacking onto the same one.
+Distance from spot to the nearest client that counts: with fighters_only, the
+ones fighting in this arena, otherwise every live body on the server.  Returns
+false when it counted nobody at all, which is the caller's cue that this
+measure has nothing to say about this spot.
 ================
 */
-static float fighters_range_from_spot(edict_t *spot, int arenanum, edict_t *ignore)
+static bool range_from_spot(edict_t *spot, int arenanum, edict_t *ignore,
+                            bool fighters_only, float *range)
 {
     edict_t *player;
-    float   bestplayerdistance;
     float   playerdistance;
     vec3_t  v;
     int     n;
     bool    found;
 
     found = false;
-    bestplayerdistance = 0;
 
     for (n = 0; n < game.maxclients; n++) {
         player = &g_edicts[n + 1];
 
-        if (!is_arena_fighter(player, arenanum, ignore))
+        if (fighters_only) {
+            if (!is_arena_fighter(player, arenanum, ignore))
+                continue;
+        } else if (!is_live_body(player, ignore))
             continue;
 
         VectorSubtract(spot->s.origin, player->s.origin, v);
         playerdistance = VectorLength(v);
 
-        if (!found || playerdistance < bestplayerdistance) {
-            bestplayerdistance = playerdistance;
+        if (!found || playerdistance < *range) {
+            *range = playerdistance;
             found = true;
         }
     }
 
-    return bestplayerdistance;
+    return found;
+}
+
+/*
+================
+fighters_range_from_spot
+
+Returns the distance to the nearest player fighting in this arena, and where
+nobody is fighting here, to the nearest live body anywhere.
+
+That fallback is not optional.  Measuring against nothing and returning 0
+scores every spot below SelectFarthestArenaSpawnPoint's floor, so the caller
+falls through to SelectRandomArenaSpawnPoint -- and random spots collide.  Two
+arrivals on one spot is not cosmetic: an observer in NORMAL mode is SOLID_BBOX
+on MOVETYPE_WALK, and neither KillBox nor check_telefrag will touch a
+FIGHT_SPECTATING client, so once two of them are inside each other nothing in
+the mod ever separates them again.  The staging area is exactly that case --
+everyone there is FIGHT_SPECTATING, so the fighter pass counts nobody, every
+time.
+================
+*/
+static float fighters_range_from_spot(edict_t *spot, int arenanum, edict_t *ignore)
+{
+    float   range;
+
+    range = 0;
+
+    if (range_from_spot(spot, arenanum, ignore, true, &range))
+        return range;
+
+    range_from_spot(spot, arenanum, ignore, false, &range);
+
+    return range;
 }
 
 /* gamex86.dll 0x20001b90-0x20001c20 (aligned) */
