@@ -265,12 +265,52 @@ MenuPrev(edict_t *ent)
     DisplayMenu(ent);
 }
 
+/*
+================
+free_menu
+
+Releases one menu: its title, its items' text and values, the items, the item
+nodes, the menuinfo_t the items hang off, and the node that carries the menu
+in a queue.  The caller unlinks that node first.  This is UseMenu's teardown,
+which had been the only one, lifted out so a second caller can reach it.
+
+AddMenuItem makes three allocations per item -- the node, the menuitem_t, and
+its text -- and the teardown released two of them: the menuitem_t itself was
+never freed, so closing any menu, by any route, leaked one block per row.
+================
+*/
+static void free_menu(qmenu_t *menu)
+{
+    qmenu_t     *node;
+    menuitem_t  *item;
+
+    node = (qmenu_t *)menu->it;
+    gi.TagFree(node->it);
+
+    while (node->next) {
+        node = node->next;
+
+        item = (menuitem_t *)node->it;
+        gi.TagFree(item->text);
+        if (item->value)
+            gi.TagFree(item->value);
+        gi.TagFree(item);
+        if (node->prev)
+            gi.TagFree(node->prev);
+    }
+
+    if (node)
+        gi.TagFree(node);
+
+    gi.TagFree(menu);
+}
+
 /* gamex86.dll 0x2001f910-0x2001fa60 (call-propagated-reverse) */
 /* gamei386.so 0x00051984-0x00051ad3 */
 void
 UseMenu(edict_t *ent, int arg)
 {
-    qmenu_t     *menu, *item, *node;
+    qmenu_t     *menu, *item;
     int         result;
 
     if (ent->client->menuusetime + 5 > level.framenum)
@@ -292,24 +332,7 @@ UseMenu(edict_t *ent, int arg)
     }
 
     remove_from_queue(menu, &ent->client->menuqueue);
-
-    node = (qmenu_t *)menu->it;
-    gi.TagFree(node->it);
-
-    while (node->next) {
-        node = node->next;
-
-        gi.TagFree(((menuitem_t *)node->it)->text);
-        if (((menuitem_t *)node->it)->value)
-            gi.TagFree(((menuitem_t *)node->it)->value);
-        if (node->prev)
-            gi.TagFree(node->prev);
-    }
-
-    if (node)
-        gi.TagFree(node);
-
-    gi.TagFree(menu);
+    free_menu(menu);
 
     menu = &ent->client->menuqueue;
     while (menu->next)
@@ -353,5 +376,39 @@ clear_menus(edict_t *ent)
     ent->client->menuqueue.next = NULL;
 
     DisplayMenu(ent);
+}
+
+/*
+================
+close_menus
+
+Like clear_menus, but frees what it drops instead of just forgetting it.
+
+clear_menus can afford to forget: it runs from MoveClientToIntermission, and
+the level -- with the TAG_LEVEL allocations behind every menu -- is over.
+PutClientInServer is the other place the queue head goes away, and that one
+runs on every respawn, so what it drops is dropped for the rest of the map.
+================
+*/
+void
+close_menus(edict_t *ent)
+{
+    qmenu_t     *menu;
+    bool        showing;
+
+    // a queued menu is not necessarily a drawn one -- show_observer_menu
+    // finishes with show = 0 -- and only a drawn one needs painting over
+    showing = ent->client->showmenu;
+
+    while ((menu = remove_from_queue(NULL, &ent->client->menuqueue)) != NULL)
+        free_menu(menu);
+
+    ent->client->showmenu = false;
+    ent->client->curmenulink = NULL;
+    ent->client->selected = NULL;
+
+    // the client is still drawing the menu it was sent; put the status bar back
+    if (showing)
+        DisplayMenu(ent);
 }
 

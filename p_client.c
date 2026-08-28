@@ -1083,7 +1083,11 @@ static void PutClientInServer(edict_t *ent)
 
     ClientUserinfoChanged(ent, userinfo);
 
-    // clear everything but the persistant data
+    // clear everything but the persistant data.  The menu queue head, and the
+    // two pointers into it, are in the part about to be zeroed, so tear the
+    // menus down first -- otherwise their allocations are orphaned, still
+    // pointing back at a head that no longer knows about them.
+    close_menus(ent);
     saved = client->pers;
     memset(client, 0, sizeof(*client));
     client->pers = saved;

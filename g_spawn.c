@@ -666,6 +666,20 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 
     gi.FreeTags(TAG_LEVEL);
 
+    // Every menu hangs off TAG_LEVEL, but the queue head that carries it and
+    // the two pointers into it are in game.clients, which is TAG_GAME and
+    // survives this.  MoveClientToIntermission clears them on the way out of a
+    // level, so the ordinary map change arrives here with nothing to clear --
+    // but a console `map` never runs an intermission, and after one of those
+    // every client would be pointing at nodes that no longer exist.
+    for (i = 0; i < game.maxclients; i++) {
+        game.clients[i].showmenu = false;
+        game.clients[i].menuqueue.next = NULL;
+        game.clients[i].menuqueue.prev = NULL;
+        game.clients[i].curmenulink = NULL;
+        game.clients[i].selected = NULL;
+    }
+
     G_FreePrecaches();
 
     memset(&level, 0, sizeof(level));

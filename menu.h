@@ -44,5 +44,6 @@ void        MenuPrev(edict_t *ent);
 void        UseMenu(edict_t *ent, int arg);
 bool    MenuThink(edict_t *ent);
 void        clear_menus(edict_t *ent);
+void        close_menus(edict_t *ent);
 
 #endif // _MENU_H
