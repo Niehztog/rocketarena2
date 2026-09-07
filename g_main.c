@@ -56,7 +56,6 @@ cvar_t  *bob_roll;
 cvar_t  *sv_cheats;
 
 cvar_t  *logfile;
-cvar_t  *netlog;
 
 cvar_t  *flood_msgs;
 cvar_t  *flood_persecond;
@@ -85,9 +84,6 @@ static void ShutdownGame(void)
 
     gi.FreeTags(TAG_LEVEL);
     gi.FreeTags(TAG_GAME);
-#ifdef _WIN32
-    GSNetShutdown();
-#endif
 }
 
 /*
@@ -101,7 +97,6 @@ is loaded.
 */
 static void InitGame(void)
 {
-    cvar_t  *publicserver;      // RA2 called this local `public`
     int     features = G_FEATURES;
     int     i;
 
@@ -138,11 +133,6 @@ static void InitGame(void)
     hostport = gi.cvar("port", "27910", CVAR_SERVERINFO | CVAR_NOSET);
 
     logfile = gi.cvar("logfile", "0", CVAR_SERVERINFO);
-
-    publicserver = gi.cvar("public", "1", 0);
-    netlog = gi.cvar("netlog", "", CVAR_SERVERINFO);
-    if (publicserver->value == 0)
-        gi.cvar_set("netlog", "");
 
     GSLogStartup();
     RA2_Stats_Init();
@@ -215,11 +205,6 @@ static void InitGame(void)
     }
 
     globals.num_edicts = game.maxclients + 1;
-
-#ifdef _WIN32
-    if (!GSNetStartup())
-        gi.cvar_set("netlog", "");
-#endif
 }
 
 /*

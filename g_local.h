@@ -543,7 +543,6 @@ extern  cvar_t  *flood_waitdelay;
 extern  cvar_t  *sv_maplist;
 
 extern  cvar_t  *logfile;
-extern  cvar_t  *netlog;
 
 extern const char   dm_statusbar[];
 extern const char   single_statusbar[];

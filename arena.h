@@ -295,8 +295,4 @@ void        GSLogNewmap(void);
 void        GSLogEnter(edict_t *ent);
 void        GSLogExit(edict_t *ent);
 void        GSLogDeath(edict_t *self, edict_t *inflictor, edict_t *attacker);
-#ifdef _WIN32
-bool        GSNetStartup(void);
-void        GSNetShutdown(void);
-#endif
 

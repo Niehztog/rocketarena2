@@ -34,15 +34,14 @@ SHLIBCFLAGS=-fPIC
 SHLIBLDFLAGS=-shared -Wl,--no-undefined
 
 # MinGW cross-compilers.  stricmp is native to the Windows CRT so the
-# strcasecmp remap vanilla Linux needs is dropped, nothing dlopen's on
-# Windows so -ldl goes too, and -lws2_32 covers the Winsock calls
-# net_compat.h switches gslog.c/gstats.c to under _WIN32.
+# strcasecmp remap vanilla Linux needs is dropped, and nothing dlopen's on
+# Windows so -ldl goes too.  Nothing here opens a socket, so no Winsock.
 CC_WIN32?=i686-w64-mingw32-gcc
 CC_WIN64?=x86_64-w64-mingw32-gcc
 WIN_BASE_CFLAGS=-DHAVE_CONFIG_H $(INCLUDES) -D__USE_MINGW_ANSI_STDIO=1 -Wall
 WIN_RELEASE_CFLAGS=$(WIN_BASE_CFLAGS) -O2
 WIN_DEBUG_CFLAGS=$(WIN_BASE_CFLAGS) -g -O0
-WIN_LDFLAGS=-lm -lws2_32 -static-libgcc
+WIN_LDFLAGS=-lm -static-libgcc
 WIN_SHLIBCFLAGS=
 WIN_SHLIBLDFLAGS=-shared
 

@@ -7,17 +7,27 @@ to date, in two steps.
 of it** — 188 of them, from the 3.20 import to current master. That brings in
 the modern game API, frame-number timers, the rewritten savegame system,
 protocol extensions, and twenty years of accumulated crash, overflow and
-out-of-bounds fixes. RA2's own code comes through intact: all 43 cvars, all 39
-client commands, all 111 spawn classnames and the grapple.
+out-of-bounds fixes. RA2's own code comes through intact: 41 of its 43 cvars,
+all 39 client commands, all 111 spawn classnames and the grapple.
 
-**The GameSpy stats SDK is gone.** Six third-party files uploaded per-round
-statistics to `gamestats.gamespy.com`, offline for years — and still paid for
-a DNS lookup and a connect attempt at the start of every round. The numbers it
-collected are now written locally instead, one JSON object per round, by a
-small module that links nothing beyond libc.
+**Both of RA2's remote logging features are gone.** The GameSpy stats SDK was
+six third-party files that uploaded per-round statistics to
+`gamestats.gamespy.com`, offline for years — and still paid for a DNS lookup
+and a connect attempt at the start of every round. The numbers it collected are
+now written locally instead, one JSON object per round, by a small module that
+links nothing beyond libc.
+
+RA2's own `netlog` streamed each kill line by UDP to a collector that has been
+gone just as long, so it went too — that is the missing pair of cvars, `netlog`
+itself and the `public` registration that existed only to gate it. With them go
+the four `exit(1)` calls that could terminate a running server from inside the
+game library, at the first frag rather than at startup. `logfile 2` still
+writes `stdlog.log` locally. Nothing in the tree opens a socket now, on any
+target.
 
 * [doc/q2pro-port.md](doc/q2pro-port.md) — how the replay was done, what was
-  carried across by hand, what replaced GameSpy, and what was checked.
+  carried across by hand, what replaced GameSpy, why `netlog` went with it, and
+  what was checked.
 
 Build it the same way as the reconstruction: `make` for native, `make windows`
 for the MinGW cross builds. All six configurations build clean.

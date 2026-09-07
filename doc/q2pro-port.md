@@ -145,14 +145,63 @@ One object per line, appended, never rewritten: safe against a server dying
 mid-match, greppable, and readable by anything that can parse JSON. Player and
 team names come straight off the network, so everything outside printable
 ASCII is `\u`-escaped — a stray quote in a player name can't corrupt the file.
-No new libraries are linked in; the game still depends on nothing but libc,
-libm, and Winsock for `netlog`.
+No new libraries are linked in; the game depends on nothing but libc and libm
+on every target.
 
-`gslog.c` is untouched and still does what it did. It is not GameSpy code
-despite the `GS` prefix — the two systems are unrelated and different
-vintages. Its Winsock startup used to live in the SDK's `NetShutdown()`; since
-`netlog` is now the only socket user left, `GSNetStartup`/`GSNetShutdown` live
-in `gslog.c` itself.
+`netlog`
+--------
+
+`gslog.c` is not GameSpy code despite the `GS` prefix — the two systems are
+unrelated and of different vintages. But it carried RA2's other remote logging
+feature, and that is gone too.
+
+With `logfile 2` and `netlog` set, `GSdodeathlog` sent each kill line to the
+host named in the cvar as a single UDP datagram — `readsrv.txt` documents it as
+`set netlog ripper.planetquake.com:21998`, and says what was on the other end:
+*"Right now all I am doing with the netlog data is displaying the top 5
+fraggers of the day on the top of the Rocket Arena page."* That collector has
+been gone for as long as GameSpy's.
+
+Unlike the SDK it was cheap while dead — the destination is a cvar rather than
+a hardcoded host, both gates default off, and the protocol is one plain-text
+datagram, so it would still work if anyone stood up a listener. It was removed
+anyway, for what it cost to keep:
+
+* Four `exit(1)` calls — in `net_open_socket`, `net_close_socket`,
+  `net_connect_socket` and `net_send` — terminated the host process from inside
+  the game library, and did it at the first frag rather than at startup, so a
+  bad value survived boot. RA2's own shipped `server.cfg` sets `logfile 2` and
+  `netlog` under the comment *"comment these two lines out if you are running
+  on a LAN, or if quake2 crashes after the first frag."*
+* `net_name_to_address` assigned `inet_addr`'s result and never stored it into
+  `sin_addr`, which was only written on the `gethostbyname` path. A dotted-quad
+  target resolved to 0.0.0.0 — in the original that reached localhost, and
+  after the guard added for the port-range fix it sent nothing at all. Every
+  example in RA2's own documentation is a hostname, which is why it was never
+  noticed. No compiler warns, because the value *is* read.
+* `netlog` is `CVAR_SERVERINFO`, so the collector's host and port were
+  published to every client that asked for serverinfo.
+* `global_fds` was set and cleared and never read by anything — dead in the
+  real binary too, left over from the SDK's select loop.
+
+`GSSendLine`, `net_name_to_address`, `net_send`, `net_open_socket`,
+`net_close_socket`, `net_connect_socket`, `GSNetStartup`/`GSNetShutdown` and
+`net_compat.h` are all deleted, along with the `netlog` cvar and the `public 0`
+interlock that blanked it. That interlock was already vestigial: in the real
+v2.25 a non-empty `netlog` was *also* the on-switch for the GameSpy stats
+connection — `arena_init` and `arena_think` both call
+`if (netlog->string[0] && !IsStatsConnected()) InitStatsConnection(port)` —
+which is what `readsrv.txt`'s *"You MUST set public 1 for your netlog stats to
+be accepted"* refers to. `ra2stats.c` is gated on `statsfile` instead. Dropping
+the game-side `gi.cvar("public", ...)` registration changes nothing, because
+Q2PRO registers `public` itself in `SV_Init`, before any game library loads.
+
+StdLog is untouched: `logfile 2` still writes `stdlog.log` with a line per
+kill, suicide, connect, disconnect and map change. Only the off-box copy is
+gone, and `ra2stats.jsonl` already records more per round than the kill stream
+ever carried. `-lws2_32` is dropped from the MinGW link, and the game now opens
+no sockets on any target — the Windows DLL imports `KERNEL32` and `msvcrt` and
+nothing else.
 
 What is checked
 ---------------
@@ -249,9 +298,9 @@ across with everything else, and nine calls that handed player-controlled text
 to a `printf`-family function as its *format* argument now pass it as a `%s`
 operand instead: `gslog.c`'s kill log reached `fprintf` with a line built from
 two player names, so a player named `%n%n%n` controlled the format string.
-Removing the GameSpy SDK also removes the only code in the tree that opened
-outbound sockets on its own — nothing here contacts the network unless `netlog`
-is set.
+Removing the GameSpy SDK and `netlog` removes every line in the tree that
+opened a socket: nothing here contacts the network, and there is no
+configuration in which it will.
 
 RA2's own game logic has been reviewed for memory-safety and correctness
 defects since the port landed, and fifteen were fixed. Three of them stopped
