@@ -79,6 +79,15 @@ were carried across by hand:
   already declared unused `mins`/`maxs` locals in that function, which suggests
   it meant to do something similar.)
 
+  This one has a consequence the first version of it missed: RA2 placed a body
+  at the spawn entity, so the entity *was* where the body stood, and every
+  distance the spawn selectors measure was taken from the entity. The clip
+  moves a body up to 64 units below it. Both selectors therefore measure from
+  `spawn_landing()` — the same trace, run once per candidate — rather than
+  from `spot->s.origin`, and `move_to_arena()` calls that same helper so the
+  question the selector asks and the answer the placement gives cannot drift
+  apart.
+
 * **Statusbar.** Q2PRO concatenates `dm_statusbar` onto `single_statusbar`.
   RA2's `dm_statusbar` is a complete bar in its own right, so it is still sent
   on its own.

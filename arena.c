@@ -337,53 +337,6 @@ void remove_from_team(edict_t *ent)
     ent->client->resp.teamnum = -1;
 }
 
-/* gamex86.dll 0x20001ae0-0x20001b90 (manual-confirmed) */
-/* gamei386.so 0x00048764-0x0004880b */
-edict_t *SelectRandomArenaSpawnPoint(char *classn, int arenanum, int side)
-{
-    edict_t     *spot;
-    int         count = 0;
-    int         selection;
-
-    spot = NULL;
-    while ((spot = G_Find(spot, FOFS(classname), classn)) != NULL) {
-        if (spot->arena != arenanum && idmap == false) continue;
-        count++;
-    }
-
-    if (!count)
-        return NULL;
-
-    selection = rand() % count;
-
-    //gi.dprintf("%d spots, %d selected\n",count,selection);
-
-    // an idarena alternates its spawn points between the two sides: side 2
-    // takes an even index, side 1 the odd one after it.  With a single spot
-    // in the arena there is no odd index to round up to, so take the one
-    // there is -- clamping to 1 walks the search below off the end of the
-    // spot list and dereferences the NULL that G_Find returns.
-    if (side) {
-        selection &= ~1;
-        if (side == 1) {
-            selection++;
-            if (selection >= count)
-                selection = (count > 1) ? 1 : 0;
-        }
-    }
-
-    spot = NULL;
-    do {
-        spot = G_Find(spot, FOFS(classname), classn);
-        if (!spot)
-            return NULL;
-        if (spot->arena != arenanum && idmap == false)
-            selection++;
-    } while (selection--);
-
-    return spot;
-}
-
 /*
 ================
 is_arena_fighter
@@ -426,13 +379,14 @@ static bool is_arena_fighter(edict_t *e, int arenanum, edict_t *ignore)
 ================
 range_from_spot
 
-Distance from spot to the nearest client that counts: with fighters_only, the
+Distance from place -- where a body put on this candidate actually STANDS, see
+spawn_landing -- to the nearest client that counts: with fighters_only, the
 ones fighting in this arena, otherwise every live body on the server.  Returns
 false when it counted nobody at all, which is the caller's cue that this
 measure has nothing to say about this spot.
 ================
 */
-static bool range_from_spot(edict_t *spot, int arenanum, edict_t *ignore,
+static bool range_from_spot(const vec3_t place, int arenanum, edict_t *ignore,
                             bool fighters_only, float *range)
 {
     edict_t *player;
@@ -452,7 +406,7 @@ static bool range_from_spot(edict_t *spot, int arenanum, edict_t *ignore,
         } else if (!is_live_body(player, ignore))
             continue;
 
-        VectorSubtract(spot->s.origin, player->s.origin, v);
+        VectorSubtract(place, player->s.origin, v);
         playerdistance = VectorLength(v);
 
         if (!found || playerdistance < *range) {
@@ -473,27 +427,277 @@ nobody is fighting here, to the nearest live body anywhere.
 
 That fallback is not optional.  Measuring against nothing and returning 0
 scores every spot below SelectFarthestArenaSpawnPoint's floor, so the caller
-falls through to SelectRandomArenaSpawnPoint -- and random spots collide.  Two
-arrivals on one spot is not cosmetic: an observer in NORMAL mode is SOLID_BBOX
-on MOVETYPE_WALK, and neither KillBox nor check_telefrag will touch a
-FIGHT_SPECTATING client, so once two of them are inside each other nothing in
-the mod ever separates them again.  The staging area is exactly that case --
-everyone there is FIGHT_SPECTATING, so the fighter pass counts nobody, every
-time.
+falls through to SelectRandomArenaSpawnPoint and stops ranking spots at all.
+The staging area is exactly that case -- everyone there is FIGHT_SPECTATING,
+so the fighter pass counts nobody, every time.
+
+Two arrivals on one spot is not cosmetic: an observer in NORMAL mode is
+SOLID_BBOX on MOVETYPE_WALK, and neither KillBox nor check_telefrag will touch
+a FIGHT_SPECTATING client, so once two of them are inside each other nothing
+in the mod ever separates them again.  spawn_spot_clear is now the thing that
+keeps them out of each other, and this measure is what still spreads them over
+the spots rather than filling them in walk order.
 ================
 */
-static float fighters_range_from_spot(edict_t *spot, int arenanum, edict_t *ignore)
+static float fighters_range_from_spot(const vec3_t place, int arenanum,
+                                      edict_t *ignore)
 {
     float   range;
 
     range = 0;
 
-    if (range_from_spot(spot, arenanum, ignore, true, &range))
+    if (range_from_spot(place, arenanum, ignore, true, &range))
         return range;
 
-    range_from_spot(spot, arenanum, ignore, false, &range);
+    range_from_spot(place, arenanum, ignore, false, &range);
 
     return range;
+}
+
+// Not a new number: it is SelectFarthestArenaSpawnPoint's own floor of 50,
+// which is the only spacing guarantee RA2 ever had.
+#define ARENA_SPAWN_CLEARANCE 50.0f
+
+/*
+================
+spawn_landing
+
+*** A SPAWN ENTITY IS NOT WHERE A BODY PUT ON IT STANDS, AND EVERY QUESTION
+THIS FILE ASKS ABOUT A CANDIDATE IS A QUESTION ABOUT WHERE IT STANDS. ***
+
+move_to_arena clips a placement to the floor -- it traces the player box from
+16 above the spawn entity down to 64 below it -- so the drop from the entity
+to the body can be most of that 64, and a mapper has no reason to keep it
+small.  A pad measured from its ENTITY therefore reports itself clear while a
+fighter stands on it, and the next arrival on that side is sent to the same
+pad, every round.
+
+So the landing point is computed once per candidate and everything downstream
+is measured from it.  The trace is the placement's own -- same extent, same
+mask, same ignore entity -- which is what makes the answer the same answer,
+and the ignore entity is the second half of it, because a body ALREADY in the
+column is what tr.ent reports.  Callers that need that keep the trace rather
+than only the point.
+
+ONE CASE ANSWERED BY ASSUMPTION RATHER THAN BY MEASUREMENT: where the trace
+STARTS solid it can report nothing about the column, and the landing point is
+then the placement's own entity+10 guess, a point in the air.  That is sound
+only because every fighter placement in a round happens in ONE frame --
+SendTeamToArena is called from fill_arena and from the next-round loop and
+nothing else places a fighter -- so such a pad's occupant has not fallen yet
+when the next candidate is measured.  A placement path that ran a frame later
+would need the trace's whole extent as an envelope.
+
+PROVENANCE, because it explains how a correct measure became a wrong one.
+RA2 places a body at dest->s.origin with [2] += 10 and no trace at all -- its
+own mins/maxs are declared in that function and never used, which is the tell
+-- so the entity WAS where the body stood, and SelectFarthestArenaSpawnPoint's
+floor of 50 over the distance to the entity meant exactly what it said.  The
+floor clip is this port's addition (see doc/q2pro-port.md), and it moved where
+a body lands without moving the question the selectors ask.
+================
+*/
+static trace_t spawn_landing(edict_t *spot, edict_t *ent, vec3_t place)
+{
+    vec3_t      mins = {-16, -16, -24};
+    vec3_t      maxs = {16, 16, 32};
+    vec3_t      from, to;
+    trace_t     tr;
+
+    VectorCopy(spot->s.origin, from);
+    from[2] += 16;
+    VectorCopy(spot->s.origin, to);
+    to[2] -= 64;
+
+    tr = gi.trace(from, mins, maxs, to, ent, MASK_PLAYERSOLID);
+
+    if (!tr.allsolid && !tr.startsolid) {
+        VectorCopy(tr.endpos, place);
+    } else {
+        VectorCopy(spot->s.origin, place);
+        place[2] += 10;
+    }
+
+    return tr;
+}
+
+/*
+================
+spawn_spot_clear
+
+A live, collidable body already standing on this arena's pad is not a
+placement target.
+
+place is written for the caller: the landing point costs a trace, and both the
+clearance here and the caller's fighter distance are measured from it.
+
+TWO TESTS, AND THE COLUMN ONE IS THE LOAD-BEARING HALF.  A radius around the
+landing point cannot see a body directly underneath it -- the landing trace
+STOPS on that body, so the point it reports is one box-height above it and
+reads as 56 clear units, which is the whole defect over again.  What the trace
+hit is the exact answer to "would this put me in somebody", so it is asked
+first, and the radius stays for the body standing BESIDE the pad, which no
+trace down the column can see.
+
+This is deliberately separate from the fighter-only score: observers do not
+affect which clear pad ranks farthest from a fight, but they do reserve the
+pad they physically occupy.  An id map has one arena, so its untagged bodies
+all belong to the requested arena.
+================
+*/
+static bool spawn_spot_clear(edict_t *spot, int arenanum, edict_t *ignore,
+                             vec3_t place)
+{
+    edict_t *player;
+    vec3_t  v;
+    int     n;
+    trace_t tr;
+
+    tr = spawn_landing(spot, ignore, place);
+
+    if (tr.ent && tr.ent->client && is_live_body(tr.ent, ignore) &&
+        tr.ent->solid != SOLID_NOT &&
+        (tr.ent->client->resp.context == arenanum || idmap != false))
+        return false;
+
+    for (n = 0; n < game.maxclients; n++) {
+        player = &g_edicts[n + 1];
+
+        if (!is_live_body(player, ignore))
+            continue;
+        if (player->solid == SOLID_NOT)
+            continue;
+        if (player->client->resp.context != arenanum && idmap == false)
+            continue;
+
+        VectorSubtract(place, player->s.origin, v);
+        if (VectorLength(v) <= ARENA_SPAWN_CLEARANCE)
+            return false;
+    }
+
+    return true;
+}
+
+/*
+================
+arena_spawn_spot
+
+The n-th (0-based) spawn point of this arena, or NULL if there is no n-th.
+
+It replaces a do/while that walked the GLOBAL entity list and incremented its
+own index every time it stepped over a spot belonging to another arena.  Same
+answer, without an index the walk cannot satisfy running off the end of the
+list -- which is what the clamp in the caller used to be guarding against.
+================
+*/
+static edict_t *arena_spawn_spot(char *classn, int arenanum, int n)
+{
+    edict_t *spot = NULL;
+
+    while ((spot = G_Find(spot, FOFS(classname), classn)) != NULL) {
+        if (spot->arena != arenanum && idmap == false)
+            continue;
+        if (!n--)
+            return spot;
+    }
+
+    return NULL;
+}
+
+// How many of classn belong to this arena.  Lifted out of
+// SelectRandomArenaSpawnPoint, which opened with exactly this walk.
+static int arena_spawn_count(char *classn, int arenanum)
+{
+    edict_t *spot = NULL;
+    int     count = 0;
+
+    while ((spot = G_Find(spot, FOFS(classname), classn)) != NULL) {
+        if (spot->arena != arenanum && idmap == false)
+            continue;
+        count++;
+    }
+
+    return count;
+}
+
+/*
+================
+SelectRandomArenaSpawnPoint
+
+*** A PICKUP ARENA PUTS ITS TWO SIDES ON ALTERNATE SPAWN POINTS AND PICKS
+AMONG THEM AT RANDOM, WHICH IS A BIRTHDAY PROBLEM. ***
+
+ra2map9 arena 2 has twelve spawn points, so a side draws from six; three
+arrivals on that side collide 44% of the time.  RA2 tests nothing at all here
+-- it walks to the parity-adjusted index and returns it -- and its whole
+answer to a collision is KillBox, which during a countdown cannot telefrag,
+because an arena fighter is takedamage DAMAGE_NO until ASTATE_FIGHTING.  So
+two players who draw the same point stay standing inside each other: "both
+enemy bots spawned at exactly the same spawn point, they did not telefrag or
+push away each other, their bodies overlapped like siamese twins".
+
+The fix is not to collide.  Fighter distance still chooses among the clear
+points, so nothing changes about which pad is preferred when they are all
+free; spawn_spot_clear reserves a same-arena solid body's pad without letting
+that body influence the ranking.  Where no clear point has fighter clearance,
+the first clear point is still better than a collision.  Only when every point
+on the side IS taken is the first candidate returned anyway, because that is
+RA2's stated fallback in the other selector -- "if there is a player just
+spawned on each and every start spot we have no choice to turn one into a
+telefrag meltdown".
+================
+*/
+/* gamex86.dll 0x20001ae0-0x20001b90 (manual-confirmed) */
+/* gamei386.so 0x00048764-0x0004880b */
+edict_t *SelectRandomArenaSpawnPoint(char *classn, int arenanum, int side,
+                                     edict_t *ignore)
+{
+    edict_t     *spot, *first = NULL, *clear = NULL;
+    vec3_t      place;
+    int         count;
+    int         selection, step, i;
+
+    count = arena_spawn_count(classn, arenanum);
+
+    if (!count)
+        return NULL;
+
+    selection = rand() % count;
+
+    //gi.dprintf("%d spots, %d selected\n",count,selection);
+
+    // an idarena alternates its spawn points between the two sides: side 2
+    // takes an even index, side 1 the odd one after it.  With a single spot
+    // in the arena there is no odd index to round up to, and the modulo in
+    // the walk below is what takes the one there is.
+    step = 1;
+    if (side) {
+        selection &= ~1;
+        if (side == 1) {
+            selection++;
+            if (selection >= count)
+                selection = 1;
+        }
+        step = 2;
+    }
+
+    // One point is one lap for a side that has the arena to itself; two laps
+    // of step cover every candidate the parity allows either way.
+    for (i = 0; i < count; i++) {
+        spot = arena_spawn_spot(classn, arenanum, (selection + i * step) % count);
+        if (!spot)
+            continue;
+        if (!first)
+            first = spot;
+        if (!spawn_spot_clear(spot, arenanum, ignore, place))
+            continue;
+        if (!clear)
+            clear = spot;
+        if (fighters_range_from_spot(place, arenanum, ignore) > ARENA_SPAWN_CLEARANCE)
+            return spot;
+    }
+
+    return clear ? clear : first;
 }
 
 /* gamex86.dll 0x20001b90-0x20001c20 (aligned) */
@@ -503,6 +707,7 @@ edict_t *SelectFarthestArenaSpawnPoint(char *classn, int arenanum, edict_t *igno
     edict_t     *bestspot;
     float       bestdistance, bestplayerdistance;
     edict_t     *spot;
+    vec3_t      place;
 
     spot = NULL;
     bestspot = NULL;
@@ -510,7 +715,8 @@ edict_t *SelectFarthestArenaSpawnPoint(char *classn, int arenanum, edict_t *igno
     while ((spot = G_Find(spot, FOFS(classname), classn)) != NULL) {
         //gi.bprintf (PRINT_HIGH,"arena %d spot %d\n", arenanum, spot->arena);
         if (spot->arena != arenanum && idmap == false) continue;
-        bestplayerdistance = fighters_range_from_spot(spot, arenanum, ignore);
+        if (!spawn_spot_clear(spot, arenanum, ignore, place)) continue;
+        bestplayerdistance = fighters_range_from_spot(place, arenanum, ignore);
 
         if (bestplayerdistance > bestdistance) {
             bestspot = spot;
@@ -524,7 +730,7 @@ edict_t *SelectFarthestArenaSpawnPoint(char *classn, int arenanum, edict_t *igno
 
     // if there is a player just spawned on each and every start spot
     // we have no choice to turn one into a telefrag meltdown
-    return SelectRandomArenaSpawnPoint(classn, arenanum, 0);
+    return SelectRandomArenaSpawnPoint(classn, arenanum, 0, ignore);
 }
 
 /* gamex86.dll 0x20001c20-0x20001c80 (aligned) */
@@ -790,7 +996,6 @@ void move_to_arena(edict_t *ent, int arenanum, int mode)
     int         i;
     vec3_t      mins = {-16, -16, -24};
     vec3_t      maxs = {16, 16, 32};
-    vec3_t      temp, temp2;
     trace_t     tr;
 
     if (ent->client->resp.isbot) {
@@ -824,7 +1029,8 @@ void move_to_arena(edict_t *ent, int arenanum, int mode)
 
         if (arenas[arenanum].idarena)
             dest = SelectRandomArenaSpawnPoint("info_player_deathmatch", arenanum,
-                                               (TEAM(&teams[ent->client->resp.teamnum])->side == arenas[arenanum].sidepick) ? 1 : 2);
+                                               (TEAM(&teams[ent->client->resp.teamnum])->side == arenas[arenanum].sidepick) ? 1 : 2,
+                                               ent);
         else
             dest = SelectFarthestArenaSpawnPoint("info_player_deathmatch", arenanum, ent);
     }
@@ -836,21 +1042,44 @@ void move_to_arena(edict_t *ent, int arenanum, int mode)
 
     gi.unlinkentity(ent);
 
+    // *** A BODY ENTERING THE WORLD NEEDS A BODY. ***
+    //
+    // ent->mins/maxs hold whatever the client's last Pmove left there, and an
+    // arena observer's Pmove leaves nothing usable: the pair is written in
+    // PM_CheckDuck, which the PM_SPECTATOR path returns before reaching, so
+    // pm.mins/maxs come back as the zeros ClientThink's own memset put there
+    // and ClientThink copies them into the edict anyway (p_client.c).  Every
+    // fighter SendTeamToArena places has just been an observer in an active
+    // arena -- FREEFLYING, hence MOVETYPE_NOCLIP, hence PM_SPECTATOR -- so the
+    // box was EMPTY for the whole of the placement.  A competition arena's
+    // EYECAM lands on PM_GIB instead and gets the 16-unit gib box, which is
+    // wrong by less but wrong the same way.  That cost two things:
+    //
+    //   * KillBox below traces ent->mins/maxs -- a POINT at the origin, which
+    //     misses a body the arriving fighter is standing inside, so neither
+    //     the push nor the telefrag ever fired and spawn_recheck was left at
+    //     the zero KillBox clears it to;
+    //   * a body ALREADY on the pad is clipped through the same pair, so it
+    //     was a point-sized obstacle: the floor trace stopped the arriving box
+    //     short of standing on top of it, which is INSIDE it once the first
+    //     PM_NORMAL frame restores both 56-unit boxes.
+    //
+    // PutClientInServer sets the same pair before its own floor trace for
+    // exactly this reason; the round-start path has no PutClientInServer in
+    // front of it, and the SetObserverMode below runs after KillBox, so it
+    // cannot be the box's home either.  The next Pmove overwrites both,
+    // standing or ducked, so this only has to hold for the placement.
+    VectorCopy(mins, ent->mins);
+    VectorCopy(maxs, ent->maxs);
+
     // try to properly clip to the floor / spawn.  Q2PRO added this to
     // PutClientInServer(); in Rocket Arena the arena spot, not the spawn
-    // point, is where the player actually lands, so it belongs here.
-    VectorCopy(dest->s.origin, temp);
-    VectorCopy(dest->s.origin, temp2);
-    temp[2] -= 64;
-    temp2[2] += 16;
-    tr = gi.trace(temp2, mins, maxs, temp, ent, MASK_PLAYERSOLID);
-    if (!tr.allsolid && !tr.startsolid) {
-        VectorCopy(tr.endpos, ent->s.origin);
+    // point, is where the player actually lands, so it belongs here -- and it
+    // is spawn_landing's trace, because the selectors have to be able to ask
+    // the same question about a candidate that this answers about the choice.
+    tr = spawn_landing(dest, ent, ent->s.origin);
+    if (!tr.allsolid && !tr.startsolid)
         ent->groundentity = tr.ent;
-    } else {
-        VectorCopy(dest->s.origin, ent->s.origin);
-        ent->s.origin[2] += 10;
-    }
     VectorCopy(ent->s.origin, ent->s.old_origin);
 
     // clear the velocity and hold them in place briefly
@@ -875,6 +1104,19 @@ void move_to_arena(edict_t *ent, int arenanum, int mode)
     // telefrag avoidance at destination
     if (!KillBox(ent)) {
     }
+
+    // LANDING ON SOMEBODY IS NOT AN OVERLAP YET, WHICH IS WHY IT HAS TO BE
+    // WATCHED.  When every point on this side is taken the selector returns
+    // one of them anyway -- RA2's stated fallback, "no choice to turn one into
+    // a telefrag meltdown" -- and the landing trace then stops the arriving
+    // body ON the occupant: two boxes that touch, which KillBox reads as clear
+    // because touching is not overlapping, and which one Pmove later can be
+    // two boxes that overlap.  check_telefrag() is the thing that would
+    // separate them, and it only examines a client whose spawn_recheck is set,
+    // so the pair is handed to it here -- after KillBox, which clears the
+    // field on entry.
+    if (mode == 0 && tr.ent && tr.ent->client)
+        ent->client->resp.spawn_recheck = level.framenum + 0.5f / FRAMETIME;
 
     if (mode) {
         if (arenas[arenanum].active && ent->client->resp.omode == NORMAL)

@@ -466,8 +466,21 @@ bool KillBox(edict_t *ent)
             AngleVectors(angle, forward, NULL, NULL);
             VectorScale(forward, 600, forward);
 
+            // *** OPPOSITE DIRECTIONS, WHICH IS THE WHOLE POINT. ***  RA2
+            // adds the SAME vector to both bodies: 600 units per second each,
+            // along one random yaw, so the pair drifts as a pair and the
+            // distance between them never changes.  Two players who drew the
+            // same spawn point are therefore still standing inside each other
+            // after the "push apart" -- "they did not telefrag or push away
+            // each other, their bodies overlapped like siamese twins".
+            //
+            // The telefrag underneath cannot save it either: an arena fighter
+            // is takedamage DAMAGE_NO until ASTATE_FIGHTING, and
+            // !tr.ent->takedamage is the condition for taking this branch
+            // instead of that one, so for the whole countdown this IS the
+            // entire separation mechanism.
             VectorAdd(tr.ent->velocity, forward, tr.ent->velocity);
-            VectorAdd(ent->velocity, forward, ent->velocity);
+            VectorSubtract(ent->velocity, forward, ent->velocity);
 
             tr.ent->client->resp.spawn_recheck = level.framenum + 0.5f / FRAMETIME;
             ent->client->resp.spawn_recheck = level.framenum + 0.5f / FRAMETIME;

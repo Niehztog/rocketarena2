@@ -222,7 +222,8 @@ void        give_ammo(edict_t *ent);
 team_t      *add_to_team(edict_t *ent, char *teamname);
 void        remove_from_team(edict_t *ent);
 
-edict_t     *SelectRandomArenaSpawnPoint(char *classn, int arenanum, int side);
+edict_t     *SelectRandomArenaSpawnPoint(char *classn, int arenanum, int side,
+                                         edict_t *ignore);
 edict_t     *SelectFarthestArenaSpawnPoint(char *classn, int arenanum, edict_t *ignore);
 
 void        track_SetStats(edict_t *ent);
