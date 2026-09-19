@@ -905,6 +905,16 @@ void G_RunEntity(edict_t *ent)
         SV_Physics_Toss(ent);
         break;
     default:
-        gi.error("SV_Physics: bad movetype %i", ent->movetype);
+        // Name the edict.  This abort takes the game library down with the
+        // engine still up, so the console log is all there is afterwards --
+        // and the movetype alone does not say which edict was carrying it.
+        // maxclients and body_que are here because the index by itself does
+        // not say which side of the client range the edict falls on, which is
+        // the first question asked of it.
+        gi.error("SV_Physics: bad movetype %i (edict %d, classname %s, "
+                 "maxclients %d, body_que %d)",
+                 ent->movetype, (int)(ent - g_edicts),
+                 ent->classname ? ent->classname : "(null)",
+                 game.maxclients, level.body_que);
     }
 }

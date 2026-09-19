@@ -915,7 +915,19 @@ static void CopyToBodyQue(edict_t *ent)
     body->clipmask = ent->clipmask;
     body->owner = ent->owner;
     body->groundentity = ent->groundentity;
-    ent->movetype = MOVETYPE_TOSS;
+
+    // The corpse's physics, said on the corpse.  RA2 replaced id's
+    // `body->movetype = ent->movetype` with a write to the PLAYER, which is
+    // dead in both directions -- player_die() has already stamped
+    // MOVETYPE_TOSS, and respawn()'s PutClientInServer(), the only thing that
+    // runs after this, replaces it with MOVETYPE_WALK -- while the body's own
+    // movetype was never assigned at all: it survived from InitBodyQue(), and
+    // a slot whose last tenant was gibbed comes back from ThrowClientHead()
+    // still holding MOVETYPE_BOUNCE.  Saying it here also keeps this function
+    // safe to copy into a tree that places dead clients, where the player's
+    // movetype at this point can be MOVETYPE_WALK and G_RunEntity() has no
+    // case for it.
+    body->movetype = MOVETYPE_TOSS;
 
     body->die = body_die;
     body->takedamage = DAMAGE_YES;

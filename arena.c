@@ -1239,6 +1239,40 @@ void setteamskin(edict_t *ent, char *userinfo, int skinnum)
     }
 }
 
+/*
+================
+resolve_pending_death
+
+A PLACEMENT IS NOT A RESURRECTION.  player_die() holds the respawn open for a
+second -- that second is the death animation -- and ClientBeginServerFrame()
+takes it by itself the moment it expires, with no input from the client
+(p_client.c).  Every placement ends in SetObserverMode() writing `movetype`
+straight at the edict and no arm of it consults `deadflag`, so a client placed
+inside that second is walking and still dead; one second later the respawn
+fires, PutClientInServer() clears `deadflag` and re-places the client into
+resp.context as an observer, and the placement is undone.
+
+That is not merely a teleport.  The team stays in activeteams while
+fight_done() counts only members with takedamage == DAMAGE_AIM and deadflag ==
+DEAD_NO, so the arena is left holding a team with nobody alive in it -- a wipe.
+The round ends on the frame it started and the other team is credited.
+
+So finish the previous life before starting the next one: make the call the
+timer was going to make anyway.  The corpse is still left where the client
+died, because respawn() copies it to the body queue before PutClientInServer()
+moves the client anywhere.
+
+It cannot recurse.  respawn() reaches move_to_arena() through
+PutClientInServer()'s tail, and `deadflag` is cleared well before that tail, so
+the second entry finds nothing to resolve.
+================
+*/
+static void resolve_pending_death(edict_t *ent)
+{
+    if (ent->deadflag)
+        respawn(ent);
+}
+
 /* gamex86.dll 0x20002cc0-0x20002ed0 (call-propagated-reverse) */
 /* gamei386.so 0x00049d18-0x0004a058 */
 void SendTeamToArena(qmenu_t *team, int arenanum, bool observer, bool announce)
@@ -1268,6 +1302,15 @@ void SendTeamToArena(qmenu_t *team, int arenanum, bool observer, bool announce)
     while (mnode->next) {
         mnode = mnode->next;
         ent = (edict_t *)mnode->it;
+
+        // Ahead of every one of this loop's own writes, and not only because
+        // the placement below would be undone: respawn() runs
+        // PutClientInServer(), whose ClientUserinfoChanged() would undo the
+        // skin and whose reinit_player() would undo the FIGHT_ALIVE.  This is
+        // the funnel every team placement passes through -- fills, joins,
+        // next-round re-places, and the return to the lounge -- so the
+        // invariant is enforced once, here, rather than at each caller.
+        resolve_pending_death(ent);
 
         if (TEAM(team)->skin != -1)
             setteamskin(ent, ent->client->pers.userinfo, TEAM(team)->skin);
