@@ -321,7 +321,29 @@ the block as `int[42]`, putting four writes outside `arena_t`; and four
 translation unit, 21 bytes out of bounds apiece on every map load. None of the
 three was visible to the compiler.
 
-That review was not exhaustive, and the tree has still not been run against a
-live server, so treat this as materially safer than the reconstruction rather
-than as audited. Known-unchanged: the vanilla files keep their original
-behaviour, and `shared_shared.c` is vendored verbatim and not pruned.
+A NULL `attacker` no longer reaches an unguarded read, and this one is worth
+naming because it is inherited rather than introduced. Nothing in id's code ever
+assigns `activator` on a `func_door`, so `door_blocked()` reverses through
+`door_go_up(ent, ent->activator)` carrying none, and a `func_clock` that is not
+START_OFF never has one either. `G_UseTargets` hands what it was given to every
+target it fires, and a `target_explosion` among them uses it as the attacker of
+its radius damage. baseq2 survives that by coincidence: its single read of
+`attacker` sits behind a `DAMAGE_RADIUS` test that `T_RadiusDamage` always
+passes. RA2 added a read in front of that one, twelve lines into `T_Damage` and
+behind no condition at all, so *any* damage event carrying no attacker took the
+server down. `T_Damage` now normalises once at the boundary --
+`if (!attacker) attacker = world` -- rather than guarding each read: the reads
+grow with every feature added to that function and the boundary does not, and
+`world->client` is NULL, so every `attacker->client` test downstream still
+answers what "no attacker" meant. The two reads the same NULL reaches *above*
+`T_Damage`, `G_UseTargets`'s `activator->svflags` and `trigger_key_use`'s
+`activator->client`, are guarded where they read it. Reported against six donors
+at once by the sibling Colosseum tree, which hit it in production.
+
+That review was not exhaustive, so treat this as materially safer than the
+reconstruction rather than as audited. Two things it said when it was written
+are no longer true: the tree *is* run against a live `q2proded` now, by the
+play-test harness, and the vanilla files no longer all keep their original
+behaviour -- `g_combat.c`, `g_utils.c` and `g_trigger.c` carry the NULL-attacker
+fix above, and `g_utils.c` the `menu_centerprint` guard before it.
+Known-unchanged: `shared_shared.c` is vendored verbatim and not pruned.

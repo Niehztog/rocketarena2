@@ -210,7 +210,9 @@ void trigger_key_use(edict_t *self, edict_t *other, edict_t *activator)
 
     if (!self->item)
         return;
-    if (!activator->client)
+    // G_UseTargets fires its targets with whatever activator it was given, and a
+    // blocked func_door gives it none.  No activator holds no key.
+    if (!activator || !activator->client)
         return;
 
     index = ITEM_INDEX(self->item);

@@ -381,6 +381,20 @@ void T_Damage(edict_t *targ, edict_t *inflictor, edict_t *attacker, const vec3_t
     if (!targ->takedamage)
         return;
 
+    // A NULL attacker is not a caller error.  Nothing ever assigns activator on
+    // a func_door, door_blocked() reverses through door_go_up(ent, ent->activator),
+    // and a target_explosion among that door's targets passes it straight on as
+    // the attacker; a func_clock that is not START_OFF is a second producer.
+    // baseq2 survives that only by coincidence -- its one read of attacker sits
+    // behind a DAMAGE_RADIUS test that T_RadiusDamage always passes -- and the
+    // read below it is RA2's own, behind no condition at all.  Normalise once
+    // here rather than guarding each read: the reads grow with every feature
+    // added to T_Damage, this boundary does not, and world->client is NULL, so
+    // each attacker->client test downstream still answers what "no attacker"
+    // meant.
+    if (!attacker)
+        attacker = world;
+
     if (attacker->client && (attacker != targ))
         targ->enemy = attacker;
 

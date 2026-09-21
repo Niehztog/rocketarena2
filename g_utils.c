@@ -179,7 +179,15 @@ void G_UseTargets(edict_t *ent, edict_t *activator)
 //
 // print the message
 //
-    if ((ent->message) && !(activator->svflags & SVF_MONSTER)) {
+    // The activator can be NULL -- the dprintf above is id's own acknowledgement
+    // of it -- and it arrives from a blocked func_door or from a func_clock that
+    // is not START_OFF, neither of which is ever given one.  What still carries a
+    // message by then is the target they fire rather than the producer itself:
+    // target_explosion_explode() calls G_UseTargets(self, self->activator) with
+    // its own message intact, while door_use() has already cleared the door's.
+    // The guard covers the whole block, since the two gi.sound calls would hand
+    // the engine a NULL edict as well.
+    if ((ent->message) && activator && !(activator->svflags & SVF_MONSTER)) {
         // baseq2 sends this with gi.centerprintf, which the engine drops for a
         // non-client.  menu_centerprint goes through the client's menu instead,
         // so the same check has to happen here: trigger_always and
