@@ -1479,7 +1479,7 @@ qboolean ClientConnect (edict_t *ent, char *userinfo)
 
 	value = Info_ValueForKey (userinfo, "ip");
 	if (*value) {
-		int	port;
+		int	port = 0;
 
 		for ( ; *value && *value != ':'; value++)
 			;

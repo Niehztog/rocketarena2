@@ -78,8 +78,9 @@ int		allow_voting_fallingdamage;
 int		lock_arena;
 int		competition_mode;
 int		damage_scoring;
+qboolean	allow_grapple;
 
-static	blockstack_t	stack[32];
+blockstack_t	stack[32];
 
 /* gamex86.dll 0x2001ccb0-0x2001cd60 (shape-matched(ratio=1.00)) */
 /* gamei386.so 0x0004d668-0x0004d6d6 */
@@ -474,7 +475,7 @@ char *next_token (char *str)
 
 	if (!ra_isalnum (*token))
 	{
-		*out++ = c = *token++;
+		c = *out++ = *token++;
 
 		if (*token == '/' && c == '/')
 			*out++ = *token++;
@@ -730,7 +731,7 @@ void load_config (int num_arenas)
 {
 	FILE			*fp;
 	char			path[80];
-	definition_t	*key, *block;
+	definition_t	*key, *block, *ablock;
 	int				i;
 
 	gamedir = gi.cvar ("game", ".", CVAR_LATCH);
@@ -764,7 +765,10 @@ void load_config (int num_arenas)
 		map_block = block;
 
 		for (i = 0; i < num_arenas; i++)
-			arena_blocks[i] = find_key (va ("%d", i), 2, block->value2, block->count2);
+		{
+			ablock = find_key (va ("%d", i), 2, block->value2, block->count2);
+			arena_blocks[i] = ablock;
+		}
 	}
 	else
 	{

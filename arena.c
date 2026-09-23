@@ -3,7 +3,6 @@
 #include "gbucket.h"
 
 extern int	votetries_setting;
-qboolean	allow_grapple;
 qboolean	broken = false;
 
 arena_t		arenas[MAX_ARENAS];
@@ -29,11 +28,6 @@ qboolean	teamskins_precachem[MAX_ARENA_SKINS];
 qboolean	teamskins_precachef[MAX_ARENA_SKINS];
 qboolean	teamskins_precachecw[MAX_ARENA_SKINS];
 qboolean	teamskins_precachecb[MAX_ARENA_SKINS];
-
-char		*omode_descriptions[4] =
-{
-	"Normal", "Free Flying", "Trackcam", "In Eyes"
-};
 
 extern char	*dm_statusbar;
 
@@ -886,6 +880,11 @@ void move_to_arena (edict_t *ent, int arenanum, int mode)
 		stuffcmd (ent, "play misc/pc_up.wav\n");
 	}
 }
+
+char		*omode_descriptions[4] =
+{
+	"Normal", "Free Flying", "Trackcam", "In Eyes"
+};
 
 /* gamex86.dll 0x20002820-0x200028a0 (padded) */
 /* gamei386.so 0x0004986c-0x000498db */
@@ -2007,7 +2006,11 @@ void arena_think (int arenanum)
 		winner = fight_done (arenanum);
 
 		if (winner == -1)
+		{
 			sprintf (arena->msg, "It was a tie!");
+			if (arena->statsptr)
+				SendGameSnapShot (arena->statsptr, NULL, 0);
+		}
 		else
 		{
 			if (arena->statsptr)
@@ -2028,12 +2031,13 @@ void arena_think (int arenanum)
 				}
 			}
 			else
+			{
 				Com_sprintf (arena->msg, sizeof (arena->msg), "%s has won the round!",
 					((team_t *)teams[winner].it)->name);
+				if (arena->statsptr)
+					SendGameSnapShot (arena->statsptr, NULL, 0);
+			}
 		}
-
-		if (arena->statsptr)
-			SendGameSnapShot (arena->statsptr, NULL, 0);
 
 		if (winner == -1)
 		{

@@ -445,6 +445,32 @@ Drop an inventory item
 /* gamei386.so 0x0002336c-0x0002336d */
 void Cmd_Drop_f (edict_t *ent)
 {
+	int			index;
+	gitem_t		*it;
+	char		*s;
+
+	return;
+
+	s = gi.args();
+	it = FindItem (s);
+	if (!it)
+	{
+		gi.cprintf (ent, PRINT_HIGH, "unknown item: %s\n", s);
+		return;
+	}
+	if (!it->drop)
+	{
+		gi.cprintf (ent, PRINT_HIGH, "Item is not dropable.\n");
+		return;
+	}
+	index = ITEM_INDEX(it);
+	if (!ent->client->pers.inventory[index])
+	{
+		gi.cprintf (ent, PRINT_HIGH, "Out of item: %s\n", s);
+		return;
+	}
+
+	it->drop (ent, it);
 }
 
 
@@ -617,10 +643,27 @@ Cmd_InvDrop_f
 /* gamei386.so 0x0002374c-0x00023768 */
 void Cmd_InvDrop_f (edict_t *ent)
 {
+	gitem_t		*it;
+
 	if (!ent->client->showmenu)
 		return;
 
 	UseMenu (ent, 0);
+	return;
+
+	if (ent->client->pers.selected_item == -1)
+	{
+		gi.cprintf (ent, PRINT_HIGH, "No item to drop.\n");
+		return;
+	}
+
+	it = &itemlist[ent->client->pers.selected_item];
+	if (!it->drop)
+	{
+		gi.cprintf (ent, PRINT_HIGH, "Item is not dropable.\n");
+		return;
+	}
+	it->drop (ent, it);
 }
 
 /*

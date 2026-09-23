@@ -10,15 +10,6 @@
 #define STATS_HOST		"gamestats.gamespy.com"
 #define STATS_PORT		29920
 
-char	gcd_gamename[256] = "";
-char	gcd_secret_key[256] = "";
-
-static char	enc1[16] = "\0ameSpy3D";
-static char	enc2[16] = "\0ndustries";
-static char	enc3[16] = "\0rojectAphex";
-static char	statsfile[16] = "\0stats.dat";
-static char	finalstr[10] = "\0final\\";
-
 #define DISK_MAGIC			0x70F33A5F
 
 typedef struct
@@ -36,12 +27,15 @@ typedef struct
 	unsigned long	starttime;
 } statsgame_t;
 
-static int			sock = -1;
-static int			connid;
-static statsgame_t	*g_statsgame;
-
-int			ServerOpInt (void *gamep, char *key, bucketop_t op, int value, int owner);
-int			PlayerOpInt (void *gamep, char *key, bucketop_t op, int value, int player);
+static int	ServerOpInt (void *gamep, char *key, bucketop_t op, int value, int owner);
+static double	ServerOpFloat (void *gamep, char *key, bucketop_t op, double value, int owner);
+static char	*ServerOpString (void *gamep, char *key, bucketop_t op, char *value, int owner);
+static int	TeamOpInt (void *gamep, char *key, bucketop_t op, int value, int team);
+static double	TeamOpFloat (void *gamep, char *key, bucketop_t op, double value, int team);
+static char	*TeamOpString (void *gamep, char *key, bucketop_t op, char *value, int team);
+static int	PlayerOpInt (void *gamep, char *key, bucketop_t op, int value, int player);
+static double	PlayerOpFloat (void *gamep, char *key, bucketop_t op, double value, int player);
+static char	*PlayerOpString (void *gamep, char *key, bucketop_t op, char *value, int player);
 static char	*CreateBucketSnapShot (bucketset_t *set);
 static void	InternalInit (void);
 static int	SendChallengeResponse (char *greeting, int port);
@@ -55,42 +49,47 @@ static char	*value_for_key (char *s, char *key);
 static int	get_sockaddrin (char *host, int port, struct sockaddr_in *addr,
 	void *out);
 
-static int PtrCmp (const void *a, const void *b)
-{
-	return *(void **)a != *(void **)b;
-}
+char	gcd_gamename[256] = "";
+char	gcd_secret_key[256] = "";
 
+static statsgame_t	*g_statsgame;
+static int			connid;
 static int			sesskey;
+static int			sock = -1;
+
+static char	enc1[16] = "\0ameSpy3D";
+static char	enc2[16] = "\0ndustries";
+static char	enc3[16] = "\0rojectAphex";
+static char	statsfile[16] = "\0stats.dat";
+static char	finalstr[10] = "\0final\\";
 
 static char			*enc = enc1;
 
 static qboolean		internal_init = false;
 
-#ifdef _WIN32
-
-/* gamex86.dll 0x2001b930-0x2001b984 (manual-confirmed) */
-/* gamei386.so: no symbol -- not compiled into the Unix build */
-int NetShutdown (int mode)
+bucketop_t	bucketfuncs[NUMBUCKETOPS] =
 {
-	WSADATA	wsaData;
+	BucketSet,
+	BucketAdd,
+	BucketSub,
+	BucketMult,
+	BucketDiv,
+	BucketConcat,
+	BucketAvg
+};
 
-	if (mode == 1)
-	{
-		if (WSAStartup (MAKEWORD (1, 1), &wsaData) != 0)
-		{
-			gi.dprintf ("WS Error: %d\n", WSAGetLastError ());
-			return 0;
-		}
-	}
-	else if (mode == 0)
-	{
-		WSACleanup ();
-	}
-
-	return 1;
-}
-
-#endif
+bucketopfn_t	bopfuncs[NUMBUCKETOPFNS] =
+{
+	(bucketopfn_t)ServerOpInt,
+	(bucketopfn_t)ServerOpFloat,
+	(bucketopfn_t)ServerOpString,
+	(bucketopfn_t)TeamOpInt,
+	(bucketopfn_t)TeamOpFloat,
+	(bucketopfn_t)TeamOpString,
+	(bucketopfn_t)PlayerOpInt,
+	(bucketopfn_t)PlayerOpFloat,
+	(bucketopfn_t)PlayerOpString
+};
 
 /* gamex86.dll 0x2001b990-0x2001ba28 (manual-confirmed) */
 /* gamei386.so 0x00056550-0x00056605 */
@@ -300,12 +299,10 @@ int SendGameSnapShot (void *gamep, char *gamedata, int done)
 	char		*payload;
 	int			len;
 
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-			return 5;
-	}
+	if (gamep == NULL)
+		return 5;
 
 	if (((statsgame_t *)gamep)->mode)
 		dump = CreateBucketSnapShot (((statsgame_t *)gamep)->serverbucket);
@@ -363,12 +360,10 @@ void NewPlayer (void *gamep, int index, char *name)
 {
 	int			slot = -1;
 
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-			return;
-	}
+	if (gamep == NULL)
+		return;
 
 	while (index >= ArrayLength (((statsgame_t *)gamep)->players))
 		ArrayAppend (((statsgame_t *)gamep)->players, &slot);
@@ -387,12 +382,10 @@ void NewPlayer (void *gamep, int index, char *name)
 /* gamei386.so 0x00056c40-0x00056c82 */
 void RemovePlayer (void *gamep, int index)
 {
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-			return;
-	}
+	if (gamep == NULL)
+		return;
 
 	bopfuncs[BOP_PLAYER_INT] (gamep, "dtime", bucketfuncs[BUCKET_SET],
 		(current_time () - ((statsgame_t *)gamep)->starttime) / 1000, index);
@@ -404,12 +397,10 @@ void NewTeam (void *gamep, int index, char *name)
 {
 	int			slot = -1;
 
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-			return;
-	}
+	if (gamep == NULL)
+		return;
 
 	while (index >= ArrayLength (((statsgame_t *)gamep)->teams))
 		ArrayAppend (((statsgame_t *)gamep)->teams, &slot);
@@ -428,12 +419,10 @@ void NewTeam (void *gamep, int index, char *name)
 /* gamei386.so 0x00056d34-0x00056d76 */
 void RemoveTeam (void *gamep, int teamnum)
 {
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-			return;
-	}
+	if (gamep == NULL)
+		return;
 
 	bopfuncs[BOP_TEAM_INT] (gamep, "dtime", bucketfuncs[BUCKET_SET],
 		(current_time () - ((statsgame_t *)gamep)->starttime) / 1000, teamnum);
@@ -677,8 +666,8 @@ static void create_challenge (int seed, char *outbuf)
 /* gamei386.so 0x00057348-0x00057406 */
 static char *value_for_key (char *s, char *key)
 {
-	static char	value[2][256];
 	static int	valueindex;
+	static char	value[2][256];
 	char		search[256] = "\\";
 	char		*p;
 	char		*o;
@@ -737,12 +726,10 @@ static int get_sockaddrin (char *host, int port, struct sockaddr_in *addr, void 
 /* gamei386.so 0x000574c8-0x000574f1 */
 int GetTeamIndex (void *gamep, int index)
 {
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-			return index;
-	}
+	if (gamep == NULL)
+		return index;
 
 	return *(int *)ArrayNth (((statsgame_t *)gamep)->teams, index);
 }
@@ -751,88 +738,77 @@ int GetTeamIndex (void *gamep, int index)
 /* gamei386.so 0x000574f4-0x0005751d */
 int GetPlayerIndex (void *gamep, int index)
 {
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-			return index;
-	}
+	if (gamep == NULL)
+		return index;
 
 	return *(int *)ArrayNth (((statsgame_t *)gamep)->players, index);
 }
 
 /* gamex86.dll 0x2001c830-0x2001c880 (manual-confirmed) */
 /* gamei386.so 0x00057520-0x0005756d */
-int ServerOpInt (void *gamep, char *key, bucketop_t op, int value, int owner)
+static int ServerOpInt (void *gamep, char *key, bucketop_t op, int value, int owner)
 {
 	void		*b;
 
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-		{
-			b = &value;
-			goto done;
-		}
+	if (!gamep)
+		b = &value;
+	else
+	{
+		b = op (((statsgame_t *)gamep)->serverbucket, key, &value);
+		if (!b)
+			b = BucketNew (((statsgame_t *)gamep)->serverbucket, key, bt_int, &value);
 	}
 
-	b = op (((statsgame_t *)gamep)->serverbucket, key, &value);
-	if (!b)
-		b = BucketNew (((statsgame_t *)gamep)->serverbucket, key, bt_int, &value);
-done:
 	return *(int *)b;
 }
 
 /* gamex86.dll 0x2001c880-0x2001c8d0 (manual-confirmed) */
 /* gamei386.so 0x00057570-0x000575bd */
-double ServerOpFloat (void *gamep, char *key, bucketop_t op, double value, int owner)
+static double ServerOpFloat (void *gamep, char *key, bucketop_t op, double value, int owner)
 {
 	void		*b;
 
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-		{
-			b = &value;
-			goto done;
-		}
+	if (!gamep)
+		b = &value;
+	else
+	{
+		b = op (((statsgame_t *)gamep)->serverbucket, key, &value);
+		if (!b)
+			b = BucketNew (((statsgame_t *)gamep)->serverbucket, key, bt_float, &value);
 	}
 
-	b = op (((statsgame_t *)gamep)->serverbucket, key, &value);
-	if (!b)
-		b = BucketNew (((statsgame_t *)gamep)->serverbucket, key, bt_float, &value);
-done:
 	return *(double *)b;
 }
 
 /* gamex86.dll 0x2001c8d0-0x2001c920 (manual-confirmed) */
 /* gamei386.so 0x000575c0-0x0005760b */
-char *ServerOpString (void *gamep, char *key, bucketop_t op, char *value, int owner)
+static char *ServerOpString (void *gamep, char *key, bucketop_t op, char *value, int owner)
 {
 	char		*b;
 
-	if (!gamep)
-	{
+	if (gamep == NULL)
 		gamep = g_statsgame;
-		if (!gamep)
-		{
-			b = value;
-			goto done;
-		}
+	if (!gamep)
+		b = value;
+	else
+	{
+		b = op (((statsgame_t *)gamep)->serverbucket, key, value);
+		if (!b)
+			b = BucketNew (((statsgame_t *)gamep)->serverbucket, key, bt_string, value);
 	}
 
-	b = op (((statsgame_t *)gamep)->serverbucket, key, value);
-	if (!b)
-		b = BucketNew (((statsgame_t *)gamep)->serverbucket, key, bt_string, value);
-done:
 	return b;
 }
 
 /* gamex86.dll 0x2001c920-0x2001c970 (manual-confirmed) */
 /* gamei386.so 0x0005760c-0x000576a9 */
-int TeamOpInt (void *gamep, char *key, bucketop_t op, int value, int team)
+static int TeamOpInt (void *gamep, char *key, bucketop_t op, int value, int team)
 {
 	char	composite[64];
 
@@ -843,7 +819,7 @@ int TeamOpInt (void *gamep, char *key, bucketop_t op, int value, int team)
 
 /* gamex86.dll 0x2001c970-0x2001c9c0 (manual-confirmed) */
 /* gamei386.so 0x000576ac-0x0005774d */
-double TeamOpFloat (void *gamep, char *key, bucketop_t op, double value, int team)
+static double TeamOpFloat (void *gamep, char *key, bucketop_t op, double value, int team)
 {
 	char	composite[64];
 
@@ -854,7 +830,7 @@ double TeamOpFloat (void *gamep, char *key, bucketop_t op, double value, int tea
 
 /* gamex86.dll 0x2001c9c0-0x2001ca10 (manual-confirmed) */
 /* gamei386.so 0x00057750-0x000577e3 */
-char *TeamOpString (void *gamep, char *key, bucketop_t op, char *value, int team)
+static char *TeamOpString (void *gamep, char *key, bucketop_t op, char *value, int team)
 {
 	char	composite[64];
 
@@ -865,7 +841,7 @@ char *TeamOpString (void *gamep, char *key, bucketop_t op, char *value, int team
 
 /* gamex86.dll 0x2001ca10-0x2001ca60 (manual-confirmed) */
 /* gamei386.so 0x000577e4-0x00057881 */
-int PlayerOpInt (void *gamep, char *key, bucketop_t op, int value, int player)
+static int PlayerOpInt (void *gamep, char *key, bucketop_t op, int value, int player)
 {
 	char	composite[64];
 
@@ -876,7 +852,7 @@ int PlayerOpInt (void *gamep, char *key, bucketop_t op, int value, int player)
 
 /* gamex86.dll 0x2001ca60-0x2001cab0 (manual-confirmed) */
 /* gamei386.so 0x00057884-0x00057925 */
-double PlayerOpFloat (void *gamep, char *key, bucketop_t op, double value, int player)
+static double PlayerOpFloat (void *gamep, char *key, bucketop_t op, double value, int player)
 {
 	char	composite[64];
 
@@ -887,7 +863,7 @@ double PlayerOpFloat (void *gamep, char *key, bucketop_t op, double value, int p
 
 /* gamex86.dll 0x2001cab0-0x2001caf8 (manual-confirmed) */
 /* gamei386.so 0x00057928-0x000579bb */
-char *PlayerOpString (void *gamep, char *key, bucketop_t op, char *value, int player)
+static char *PlayerOpString (void *gamep, char *key, bucketop_t op, char *value, int player)
 {
 	char	composite[64];
 
@@ -895,19 +871,6 @@ char *PlayerOpString (void *gamep, char *key, bucketop_t op, char *value, int pl
 
 	return ServerOpString (gamep, composite, op, value, player);
 }
-
-bucketopfn_t	bopfuncs[NUMBUCKETOPFNS] =
-{
-	(bucketopfn_t)ServerOpInt,
-	(bucketopfn_t)ServerOpFloat,
-	(bucketopfn_t)ServerOpString,
-	(bucketopfn_t)TeamOpInt,
-	(bucketopfn_t)TeamOpFloat,
-	(bucketopfn_t)TeamOpString,
-	(bucketopfn_t)PlayerOpInt,
-	(bucketopfn_t)PlayerOpFloat,
-	(bucketopfn_t)PlayerOpString
-};
 
 /* gamex86.dll 0x2001cb00-0x2001cb0e (manual-confirmed) */
 /* gamei386.so 0x000579bc-0x000579ca */

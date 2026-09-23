@@ -33,12 +33,12 @@ static void ArrayFreeElem (array_t *array, int n)
 		array->freefn (ArrayNth (array, n));
 }
 
-/* gamex86.dll 0x200059d0-0x20005a02 (manual-confirmed) */
-/* gamei386.so: no symbol -- inlined into its callers */
-static void ArrayNthCopy (array_t *array, void *elem, int n)
-{
-	memcpy (ArrayNth (array, n), elem, array->elemsize);
-}
+
+
+
+
+
+
 
 /* gamex86.dll 0x200059a0-0x200059d0 (manual-confirmed) */
 /* gamei386.so: no symbol -- inlined into its callers */
@@ -49,12 +49,12 @@ static void ArrayGrow (array_t *array)
 	assert (array->list);
 }
 
-
-
-
-
-
-
+/* gamex86.dll 0x200059d0-0x20005a02 (manual-confirmed) */
+/* gamei386.so: no symbol -- inlined into its callers */
+static void ArrayNthCopy (array_t *array, void *elem, int n)
+{
+	memcpy (ArrayNth (array, n), elem, array->elemsize);
+}
 
 
 /* gamex86.dll 0x20005830-0x20005880 (manual-confirmed) */

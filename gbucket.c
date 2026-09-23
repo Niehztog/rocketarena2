@@ -55,6 +55,8 @@
 
 
 
+
+
 #include <ctype.h>
 
 #include "g_local.h"
@@ -65,8 +67,6 @@
 
 bucketset_t *g_buckets;
 
-static void *bint (int value);
-static void *bfloat (double value);
 static void DumpMap (void *entry, void *userdata);
 static void *DoSet (bucket_t *b, void *value);
 static char *DoEscape (char *s);
@@ -240,7 +240,7 @@ void *BucketAvg (bucketset_t *set, char *key, void *value)
 }
 /* gamex86.dll 0x2001ae50-0x2001ae5f (manual-confirmed(name via gamei386.so)) */
 /* gamei386.so 0x000562dc-0x000562eb */
-static void *bint (int value)
+void *bint (int value)
 {
 	static int	j;
 	j = value;
@@ -248,7 +248,7 @@ static void *bint (int value)
 }
 /* gamex86.dll 0x2001ae60-0x2001ae79 (manual-confirmed(name via gamei386.so)) */
 /* gamei386.so 0x000562ec-0x00056305 */
-static void *bfloat (double value)
+void *bfloat (double value)
 {
 	static double	g;
 	g = value;
@@ -309,10 +309,7 @@ static void *DoSet (bucket_t *b, void *value)
 	{
 		if (b->value.sval)
 			free (b->value.sval);
-		if (value)
-			b->value.sval = DoEscape (_strdup ((char *)value));
-		else
-			b->value.sval = NULL;
+		b->value.sval = (value == NULL ? NULL : DoEscape (_strdup ((char *)value)));
 	}
 	return DoGet (b);
 }
@@ -397,14 +394,3 @@ static void BucketFree (void *entry)
 	if (b->type == bt_string && b->value.sval)
 		free (b->value.sval);
 }
-
-bucketop_t	bucketfuncs[NUMBUCKETOPS] =
-{
-	BucketSet,
-	BucketAdd,
-	BucketSub,
-	BucketMult,
-	BucketDiv,
-	BucketConcat,
-	BucketAvg
-};

@@ -90,4 +90,7 @@ void		*BucketDiv (bucketset_t *set, char *key, void *value);
 void		*BucketConcat (bucketset_t *set, char *key, void *value);
 void		*BucketAvg (bucketset_t *set, char *key, void *value);
 
+void		*bint (int value);
+void		*bfloat (double value);
+
 #endif // _GBUCKET_H

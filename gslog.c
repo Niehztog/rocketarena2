@@ -317,3 +317,29 @@ void GSLogExit (edict_t *ent)
 
 	GSCloseLog ();
 }
+
+#ifdef _WIN32
+
+/* gamex86.dll 0x2001b930-0x2001b984 (manual-confirmed) */
+/* gamei386.so: no symbol -- not compiled into the Unix build */
+int NetShutdown (int mode)
+{
+	WSADATA	wsaData;
+
+	if (mode == 1)
+	{
+		if (WSAStartup (MAKEWORD (1, 1), &wsaData) != 0)
+		{
+			gi.dprintf ("WS Error: %d\n", WSAGetLastError ());
+			return 0;
+		}
+	}
+	else if (mode == 0)
+	{
+		WSACleanup ();
+	}
+
+	return 1;
+}
+
+#endif
