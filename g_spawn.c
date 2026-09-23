@@ -133,12 +133,18 @@ void SP_func_illusionary (edict_t *ent);
 void arena_init (edict_t *wsent);
 void GSLogNewmap (void);
 
-extern char	*teamskins[];
-extern int	teamskins_precachem[];
-extern int	teamskins_precachef[];
-extern int	teamskins_precachecw[];
-extern int	teamskins_precachecb[];
 
+/*
+===============
+SP_none
+===============
+*/
+/* gamex86.dll 0x200100b0-0x200100c0 (manual-confirmed) */
+/* gamei386.so 0x00036700-0x0003670e */
+void SP_none (edict_t *ent)
+{
+	G_FreeEdict (ent);
+}
 
 spawn_t	spawns[] = {
 	{"item_health", SP_none},
@@ -266,18 +272,6 @@ spawn_t	spawns[] = {
 
 	{NULL, NULL}
 };
-
-/*
-===============
-SP_none
-===============
-*/
-/* gamex86.dll 0x200100b0-0x200100c0 (manual-confirmed) */
-/* gamei386.so 0x00036700-0x0003670e */
-void SP_none (edict_t *ent)
-{
-	G_FreeEdict (ent);
-}
 
 /*
 ===============

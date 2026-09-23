@@ -1,5 +1,4 @@
 #include "g_local.h"
-#include "arena.h"
 
 char	*get_next_map (char *current);
 
@@ -823,11 +822,9 @@ Cmd_arenaadmin_f (edict_t *ent, unsigned mode)
 		if ((float) code != admincode->value)
 			return;
 
-		if (!arenanum)
-		{
 	case 1:
+		if (!arenanum)
 			arenanum = ent->client->resp.context;
-		}
 
 		if (arenanum < 1 || arenanum > num_arenas)
 			return;

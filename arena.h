@@ -333,3 +333,8 @@ char		*GenerateAuth (char *cdkey, char *challenge, char *outbuf);
 
 extern char	gcd_gamename[256];
 extern char	gcd_secret_key[256];
+
+static team_t *TeamFromNode (qmenu_t *node)
+{
+	return (team_t *)((qmenu_t *)node->it)->it;
+}

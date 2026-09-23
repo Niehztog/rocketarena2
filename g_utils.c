@@ -1,7 +1,6 @@
 // g_utils.c -- misc utility functions for game module
 
 #include "g_local.h"
-#include "arena.h"
 
 
 /* gamex86.dll 0x20018100-0x20018160 (shape-matched(ratio=1.00)) */

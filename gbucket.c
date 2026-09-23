@@ -342,7 +342,11 @@ static bucket_t *DoFind (bucketset_t *set, char *key)
 static int DoLower (char c)
 {
 	if (isascii (c))
+#ifdef _WIN32
 		return tolower (c);
+#else
+		return (char)tolower (c);
+#endif
 
 	return c;
 }

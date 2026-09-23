@@ -1,5 +1,4 @@
 #include "g_local.h"
-#include "arena.h"
 
 
 qboolean	Pickup_Weapon (edict_t *ent, edict_t *other);

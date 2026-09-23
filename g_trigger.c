@@ -1,5 +1,4 @@
 #include "g_local.h"
-#include "arena.h"
 
 
 /* gamex86.dll 0x20016780-0x200167e0 (bracketed-cross-object) */

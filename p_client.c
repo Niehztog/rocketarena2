@@ -1,6 +1,5 @@
 #include "g_local.h"
 #include "m_player.h"
-#include "arena.h"
 #include "gbucket.h"
 
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
@@ -280,7 +279,7 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 		if (arenas[attacker->client->resp.context].statsptr)
 			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "grenadekills", bucketfuncs[BUCKET_ADD], 1,
 				attacker - g_edicts + 1);
-		goto kill_done;
+		statsdone = 1;
 	}
 	else if (inflictor->s.modelindex == gi.modelindex ("models/objects/rocket/tris.md2"))
 	{
@@ -291,7 +290,7 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 		if (arenas[attacker->client->resp.context].statsptr)
 			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "rocketkills", bucketfuncs[BUCKET_ADD], 1,
 				attacker - g_edicts + 1);
-		goto kill_done;
+		statsdone = 1;
 	}
 	else if (inflictor->s.modelindex == gi.modelindex ("models/objects/laser/tris.md2"))
 	{
@@ -323,7 +322,7 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 		if (arenas[attacker->client->resp.context].statsptr)
 			bopfuncs[BOP_PLAYER_INT] (arenas[attacker->client->resp.context].statsptr, "railkills", bucketfuncs[BUCKET_ADD], 1,
 				attacker - g_edicts + 1);
-		goto kill_done;
+		statsdone = 1;
 	}
 	else if (attacker->client->pers.weapon == FindItem ("Grapple"))
 	{
@@ -341,7 +340,6 @@ void ClientObituary (edict_t *self, edict_t *inflictor, edict_t *attacker)
 				attacker - g_edicts + 1);
 	}
 
-kill_done:
 	if (OnSameTeam (attacker, self))
 	{
 		if (!arenas[attacker->client->resp.context].scorebydamage)
@@ -1471,6 +1469,7 @@ loadgames will.
 qboolean ClientConnect (edict_t *ent, char *userinfo)
 {
 	char	*value;
+	int		port = 0;
 
 	if (ent->client->resp.entered) {
 		gi.dprintf ("%s: reconnect without disconnect\n", ent->client->pers.netname);
@@ -1478,18 +1477,14 @@ qboolean ClientConnect (edict_t *ent, char *userinfo)
 	}
 
 	value = Info_ValueForKey (userinfo, "ip");
+	for ( ; *value && *value != ':'; value++)
+		;
 	if (*value) {
-		int	port = 0;
-
-		for ( ; *value && *value != ':'; value++)
-			;
-		if (*value) {
-			value++;
-			port = atoi (value);
-			ent->client->zbotscore = port;
-			if (port == 27902) {
-				gi.dprintf ("\n%s\nConnected with ZBOT\n", userinfo);
-			}
+		value++;
+		port = atoi (value);
+		ent->client->zbotscore = port;
+		if (port == 27902) {
+			gi.dprintf ("\n%s\nConnected with ZBOT\n", userinfo);
 		}
 	}
 

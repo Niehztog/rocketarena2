@@ -1,6 +1,5 @@
 
 #include "g_local.h"
-#include "arena.h"
 
 #define Function(f) {#f, f}
 

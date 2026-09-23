@@ -1,6 +1,5 @@
 
 #include "g_local.h"
-#include "arena.h"
 
 char	*get_next_map (char *current);		// maploop.c
 

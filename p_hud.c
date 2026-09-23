@@ -1,5 +1,4 @@
 #include "g_local.h"
-#include "arena.h"
 
 void	Serverwide_ScoreboardMessage (edict_t *ent);
 void	Arena_ScoreboardMessage (edict_t *ent);
@@ -311,8 +310,10 @@ void Arena_ScoreboardMessage (edict_t *ent)
 		while (node->next)
 		{
 			node = node->next;
-			score += ((edict_t *)node->it)->client->resp.score;
-			ping += ((edict_t *)node->it)->client->ping;
+			cl_ent = node->it;
+			cl = cl_ent->client;
+			score += cl->resp.score;
+			ping += cl->ping;
 			k++;
 		}
 

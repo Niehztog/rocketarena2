@@ -1,5 +1,4 @@
 #include "g_local.h"
-#include "arena.h"
 #include "gbucket.h"
 
 extern int	votetries_setting;
@@ -140,11 +139,6 @@ int count_players_queue (qmenu_t *head)
 	}
 
 	return count;
-}
-
-static team_t *TeamFromNode (qmenu_t *node)
-{
-	return (team_t *)((qmenu_t *)node->it)->it;
 }
 
 /* gamex86.dll 0x200010f0-0x20001147 (manual-confirmed) */
@@ -1595,7 +1589,7 @@ void CTFSetIDView (edict_t *ent)
 /* gamei386.so 0x0004b008-0x0004b4fa */
 void UpdateStatusBars (int arenanum)
 {
-	qmenu_t	*tnode, *tslot, *mnode;
+	qmenu_t	*tnode, *mnode;
 	edict_t	*e;
 	int		numteams;
 	int		ti, i, y, n;
@@ -1615,14 +1609,15 @@ void UpdateStatusBars (int arenanum)
 		numteams++;
 		tnode = tnode->next;
 
-		tslot = (qmenu_t *)tnode->it;
-		teamname[numteams] = ((team_t *)tslot->it)->name;
+		mnode = (qmenu_t *)tnode->it;
+		teamname[numteams] = ((team_t *)mnode->it)->name;
 		membercount[numteams] = -1;
 
-		for (mnode = tslot->next; mnode; mnode = mnode->next)
+		while (mnode->next)
 		{
 			if (membercount[numteams] >= MAX_STATUS_MEMBERS - 1)
 				break;
+			mnode = mnode->next;
 
 			e = (edict_t *)mnode->it;
 			if (e->takedamage != DAMAGE_AIM)

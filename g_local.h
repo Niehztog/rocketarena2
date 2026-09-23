@@ -505,6 +505,8 @@ extern	cvar_t	*spectator_password;
 extern	cvar_t	*needpass;
 extern	cvar_t	*g_select_empty;
 extern	cvar_t	*dedicated;
+extern	cvar_t	*hostname;
+extern	cvar_t	*hostport;
 
 extern	cvar_t	*filterban;
 
@@ -523,19 +525,17 @@ extern	cvar_t	*bob_roll;
 
 extern	cvar_t	*sv_cheats;
 extern	cvar_t	*maxclients;
-extern	cvar_t	*maxspectators;
 
-extern	cvar_t	*hostname;
-extern	cvar_t	*hostport;
+extern	cvar_t	*logfile;
+extern	cvar_t	*netlog;
+
+extern	cvar_t	*maxspectators;
 
 extern	cvar_t	*flood_msgs;
 extern	cvar_t	*flood_persecond;
 extern	cvar_t	*flood_waitdelay;
 
 extern	cvar_t	*sv_maplist;
-
-extern	cvar_t	*logfile;
-extern	cvar_t	*netlog;
 
 extern	char	*dm_statusbar;
 extern	char	*single_statusbar;
@@ -1152,3 +1152,5 @@ struct edict_s
 
 	char		_edict_unidentified1[12];
 };
+
+#include "arena.h"

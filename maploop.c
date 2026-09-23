@@ -2,7 +2,6 @@
 #include <sys/stat.h>
 
 #include "g_local.h"
-#include "arena.h"
 
 #define	MAX_DEFS	256
 

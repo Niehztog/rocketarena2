@@ -2,7 +2,6 @@
 
 #include "g_local.h"
 #include "m_player.h"
-#include "arena.h"
 
 
 static qboolean	is_quad;

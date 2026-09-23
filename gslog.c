@@ -251,20 +251,21 @@ void GSLogDeath (edict_t *self, edict_t *inflictor, edict_t *attacker)
 					self->client->pers.netname, self->client->pers.weapon->pickup_name,
 					(int)level.time, self->client->ping);
 				GSdodeathlog (line);
-				GSCloseLog ();
-				return;
 			}
-
+			else
+			{
+				Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t\t-1\t%d\t%d\n",
+					self->client->pers.netname, (int)level.time, self->client->ping);
+				GSdodeathlog (line);
+			}
+		}
+		else
+		{
 			Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t\t-1\t%d\t%d\n",
 				self->client->pers.netname, (int)level.time, self->client->ping);
 			GSdodeathlog (line);
-			GSCloseLog ();
-			return;
 		}
 
-		Com_sprintf (line, sizeof(line), "%s\t\tSuicide\t\t-1\t%d\t%d\n",
-			self->client->pers.netname, (int)level.time, self->client->ping);
-		GSdodeathlog (line);
 		GSCloseLog ();
 		return;
 	}

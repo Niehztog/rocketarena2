@@ -1,11 +1,25 @@
-#include "g_local.h"
-#include "arena.h"
+#include "q_shared.h"
 #include "gbucket.h"
 #include "hashtable.h"
 #include "darray.h"
 #include "md5.h"
 #include "net_compat.h"
 #include "nonport.h"
+
+void	*NewGame (int mode);
+void	NewPlayer (void *gamep, int index, char *name);
+void	NewTeam (void *gamep, int index, char *name);
+void	RemovePlayer (void *gamep, int index);
+void	RemoveTeam (void *gamep, int teamnum);
+int		GetPlayerIndex (void *gamep, int index);
+int		GetTeamIndex (void *gamep, int index);
+int		SendGameSnapShot (void *game, char *gamedata, int done);
+void	FreeGame (void *game);
+int		InitStatsConnection (int port);
+void	CloseStatsConnection (void);
+qboolean	IsStatsConnected (void);
+char	*GetChallenge (void *game);
+char	*GenerateAuth (char *cdkey, char *challenge, char *outbuf);
 
 #define STATS_HOST		"gamestats.gamespy.com"
 #define STATS_PORT		29920
@@ -444,8 +458,8 @@ static void InternalInit (void)
 /* gamei386.so 0x00056da8-0x00056f0a */
 static int SendChallengeResponse (char *greeting, int port)
 {
-	static char	challengestr[10] = "\0hallenge";
-	static char	sesskeystr[8] = "\0esskey";
+	static char	challengestr[] = {'\0','h','a','l','l','e','n','g','e','\0'};
+	static char	sesskeystr[] = {'\0','e','s','s','k','e','y','\0'};
 
 	char	request[128];
 	char	auth[36];
