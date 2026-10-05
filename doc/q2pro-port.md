@@ -212,6 +212,43 @@ ever carried. `-lws2_32` is dropped from the MinGW link, and the game now opens
 no sockets on any target — the Windows DLL imports `KERNEL32` and `msvcrt` and
 nothing else.
 
+From packetflinger's fork
+-------------------------
+
+packetflinger's fork of this repository (`github.com/packetflinger/rocketarena2`,
+branch `in-eyes-chase`) branched before the Q2PRO port and builds against the
+vanilla game API, and the port reformatted every file, so nothing in it
+cherry-picks: what is taken from it is re-implemented here, and where the API or
+this tree differs, so is it. Its bug fixes were already on this branch or in
+files it deleted (the GameSpy SDK, `netlog`).
+
+**In-eyes observer camera.** RA2's own "In Eyes" mode, `eyecam_think()`, parks
+the observer at eye height 20 units in front of the target's face, from the
+observer's own `ClientThink`. `eyecam_SetView()` now runs at the end of
+`ClientEndServerFrame()`, once the target's view for the frame is final --
+`ClientEndServerFrames()` runs in-eyes observers in a second pass -- and copies
+the target's eye position, view angles, kicks, view weapon and screen blend.
+`G_FEATURES` gains `GMF_CLIENTNUM` and `gclient_t` gains `clientNum`, directly
+after `ping`, where the server reads it. Pointed at the target, it hides the
+target's own model from the camera: Q2PRO blanks it for an old-protocol client,
+and a Q2PRO client is sent the number and hides it itself. With the bit
+advertised the server reads `clientNum` for every client on every frame, so
+`ClientEndServerFrame()` resets it to the client's own number first. Competition
+arenas force observers into this mode, so it is what their audience sees.
+
+Against the fork: its fallback for a server without `GMF_CLIENTNUM`, pushing the
+camera out in front of the face, is not carried, because every server that loads
+the new game API honours the bit; the pmove origin goes through `COORD2SHORT`;
+and `damage_blend` is copied with `blend`, because the new API has both.
+
+Play-tested against `q2proded` with headless clients, A/B against the commit
+before it: the camera's eye sits 0.0 units from the target's (21.6 before); its
+view weapon follows the target's weapon switch; the target's entity reaches it
+with modelindex 0 while the other fighter's, and both fighters' views of each
+other, keep 255; and retargeting and leaving move and release the hiding. The
+Q2PRO-protocol half -- the client hiding the model itself from the number it is
+sent -- was not, because the harness's client speaks protocol 34.
+
 What is checked
 ---------------
 

@@ -228,6 +228,8 @@ edict_t     *SelectFarthestArenaSpawnPoint(char *classn, int arenanum, edict_t *
 
 void        track_SetStats(edict_t *ent);
 void        eyecam_think(edict_t *ent, usercmd_t *ucmd);
+bool        eyecam_active(edict_t *ent);
+void        eyecam_SetView(edict_t *ent);
 void        track_think(edict_t *ent, usercmd_t *ucmd);
 void        track_change(edict_t *ent, int dir);
 void        track_next(edict_t *ent);

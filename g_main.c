@@ -296,7 +296,15 @@ static void ClientEndServerFrames(void)
     // and damage has been added
     for (i = 0; i < game.maxclients; i++) {
         ent = g_edicts + 1 + i;
-        if (!ent->inuse || !ent->client)
+        if (!ent->inuse || !ent->client || eyecam_active(ent))
+            continue;
+        ClientEndServerFrame(ent);
+    }
+
+    // an in-eyes observer copies its target's finished view, so it goes last
+    for (i = 0; i < game.maxclients; i++) {
+        ent = g_edicts + 1 + i;
+        if (!ent->inuse || !ent->client || !eyecam_active(ent))
             continue;
         ClientEndServerFrame(ent);
     }

@@ -798,6 +798,101 @@ void eyecam_think(edict_t *ent, usercmd_t *ucmd)
     track_SetStats(ent);
 }
 
+/*
+================
+eyecam_active
+
+Is this client an observer looking through a live fighter's eyes?
+================
+*/
+bool eyecam_active(edict_t *ent)
+{
+    edict_t *target;
+
+    if (ent->client->resp.fightstate != FIGHT_SPECTATING ||
+        ent->client->resp.omode != EYECAM)
+        return false;
+
+    target = ent->client->resp.track_target;
+    return target && target->inuse && target->client &&
+           target->client->resp.fightstate == FIGHT_ALIVE;
+}
+
+/*
+================
+eyecam_SetView
+
+The in-eyes camera, after OpenTDM's, as packetflinger ported it to RA2.
+eyecam_think() above parks the observer 20 units in front of the target's
+face, from the observer's own ClientThink; this runs at the end of
+ClientEndServerFrame instead, once the target's view for the frame is final
+(ClientEndServerFrames runs in-eyes observers last), and copies it: eye
+position, angles, kicks, gun and screen blend.
+
+The camera sits exactly in the target's eyes, which works only because
+clientNum names the target: the target's own model is then hidden from this
+client -- the server blanks it for an old-protocol client, and a Q2PRO client,
+which is sent the number, hides it itself.  Every server that can load a
+library built against the new game API honours GMF_CLIENTNUM, so the fork's
+fallback for one that does not, pushing the camera out in front of the face,
+is not carried.
+================
+*/
+void eyecam_SetView(edict_t *ent)
+{
+    gclient_t   *client = ent->client;
+    gclient_t   *tclient;
+    edict_t     *target;
+    int         i;
+
+    if (!eyecam_active(ent)) {
+        // leaving in-eyes: give the observer its own gun back
+        if (client->eyecam_view) {
+            client->eyecam_view = false;
+            VectorClear(client->ps.kick_angles);
+            VectorClear(client->ps.gunangles);
+            VectorClear(client->ps.gunoffset);
+            client->ps.gunframe = 0;
+            if (client->pers.weapon) {
+                client->weaponstate = WEAPON_ACTIVATING;
+                client->ps.gunindex = gi.modelindex(client->pers.weapon->view_model);
+            } else {
+                client->ps.gunindex = 0;
+            }
+        }
+        return;
+    }
+
+    target = client->resp.track_target;
+    tclient = target->client;
+    client->eyecam_view = true;
+    client->clientNum = target - g_edicts - 1;
+
+    // the client adds viewoffset to the origin, so the origin is the target's
+    VectorCopy(target->s.origin, ent->s.origin);
+    VectorClear(ent->velocity);
+    gi.linkentity(ent);
+
+    for (i = 0; i < 3; i++) {
+        client->ps.pmove.origin[i] = COORD2SHORT(ent->s.origin[i]);
+        client->ps.pmove.velocity[i] = 0;
+    }
+    client->ps.pmove.pm_flags |= PMF_NO_PREDICTION;
+
+    VectorCopy(tclient->ps.viewoffset, client->ps.viewoffset);
+    VectorCopy(tclient->ps.viewangles, client->ps.viewangles);
+    VectorCopy(tclient->ps.kick_angles, client->ps.kick_angles);
+
+    client->ps.gunindex = tclient->ps.gunindex;
+    client->ps.gunframe = tclient->ps.gunframe;
+    VectorCopy(tclient->ps.gunangles, client->ps.gunangles);
+    VectorCopy(tclient->ps.gunoffset, client->ps.gunoffset);
+
+    Vector4Copy(tclient->ps.blend, client->ps.blend);
+    Vector4Copy(tclient->ps.damage_blend, client->ps.damage_blend);
+    client->ps.rdflags = tclient->ps.rdflags;
+}
+
 /* gamex86.dll 0x20001e10-0x200020c4 (manual-confirmed) */
 /* gamei386.so 0x00048c74-0x00048fbb */
 void track_think(edict_t *ent, usercmd_t *ucmd)

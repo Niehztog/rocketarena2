@@ -25,9 +25,13 @@ game library, at the first frag rather than at startup. `logfile 2` still
 writes `stdlog.log` locally. Nothing in the tree opens a socket now, on any
 target.
 
+**From packetflinger's fork**, re-implemented for the Q2PRO API: an "In Eyes"
+observer camera that really looks through the target's eyes, view weapon and
+all.
+
 * [doc/q2pro-port.md](doc/q2pro-port.md) — how the replay was done, what was
-  carried across by hand, what replaced GameSpy, why `netlog` went with it, and
-  what was checked.
+  carried across by hand, what replaced GameSpy, why `netlog` went with it, what
+  came from packetflinger's fork, and what was checked.
 
 Build it the same way as the reconstruction: `make` for native, `make windows`
 for the MinGW cross builds. All six configurations build clean.

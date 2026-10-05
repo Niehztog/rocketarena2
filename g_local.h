@@ -12,8 +12,10 @@
 #include "shared/game.h"
 #include "menu.h"
 
-// features this game supports
-#define G_FEATURES  (GMF_PROPERINUSE|GMF_WANT_ALL_DISCONNECTS|GMF_ENHANCED_SAVEGAMES)
+// features this game supports.  GMF_CLIENTNUM is for the in-eyes observer
+// camera: it makes the server read gclient_t::clientNum every frame, for every
+// client, and hide the entity it names from that client's view.
+#define G_FEATURES  (GMF_CLIENTNUM|GMF_PROPERINUSE|GMF_WANT_ALL_DISCONNECTS|GMF_ENHANCED_SAVEGAMES)
 
 // the "gameversion" client command will print this plus compile date
 #define GAMEVERSION "v2.25"
@@ -920,6 +922,11 @@ struct gclient_s {
     player_state_t  ps;             // communicated by server to clients
     int             ping;
 
+    // POV entity number - 1, read by the server at exactly this offset
+    // because G_FEATURES has GMF_CLIENTNUM.  ClientEndServerFrame resets it
+    // to our own number every frame; eyecam_SetView points it at a target.
+    int             clientNum;
+
     // private to game
     client_persistant_t pers;
     client_respawn_t    resp;
@@ -1017,6 +1024,8 @@ struct gclient_s {
 
     edict_t     *chase_target;      // player we are chasing
     bool        update_chase;       // need to update chase info?
+
+    bool        eyecam_view;        // ps mirrors an in-eyes target's view
 };
 
 struct edict_s {

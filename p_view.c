@@ -893,6 +893,9 @@ void ClientEndServerFrame(edict_t *ent)
     current_player = ent;
     current_client = ent->client;
 
+    // our own POV, unless eyecam_SetView() below looks through another's
+    current_client->clientNum = ent - g_edicts - 1;
+
     //
     // If the origin or velocity have changed since ClientThink(),
     // update the pmove values.  This will happen when the client
@@ -990,6 +993,8 @@ void ClientEndServerFrame(edict_t *ent)
         SV_CalcBlend(ent);
         G_SetStats(ent);
     }
+
+    eyecam_SetView(ent);
 
     G_CheckChaseStats(ent);
 
