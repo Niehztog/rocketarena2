@@ -31,6 +31,9 @@
 // second powerup timer goes above RA2's own block, still inside MAX_STATS_OLD
 #define STAT_TIMER2_ICON        26
 #define STAT_TIMER2             27
+// the round clock: CS_ROUNDTIME while an arena with a roundtimelimit has a
+// fight on, otherwise 0
+#define STAT_ROUNDTIME          28
 #define STAT_QUEUE1             21
 #define STAT_QUEUE2             22
 #define STAT_SHOWQUEUE          23

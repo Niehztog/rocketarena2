@@ -20,6 +20,10 @@
 
 #define STAT_CTF_ID_VIEW        20
 
+// RA2's per-client configstrings live in the item block, past the last item:
+// +0 arena status, +1 round info, +2/+3 the pickup queue labels, and this.
+#define CS_ROUNDTIME            (game.csr.items + game.num_items + 4)
+
 #define MAX_STATUS_TEAMS        2
 #define MAX_STATUS_MEMBERS      4
 
@@ -185,6 +189,12 @@ typedef struct arena_s {
     team_t      *pickupteam[2];
 
     struct ra2_round_s  *stats;     // NULL when statsfile is off
+
+    int         roundtimelimit;         // seconds a fight may last, 0 = no limit
+    int         roundstart_framenum;    // level.framenum the fight began
+    int         roundtime_sent;         // last whole second sent to the arena
+    bool        timed_out;              // the clock ended this fight
+    int         timeout_winner;         // teamnum it awarded, -1 for a tie
 } arena_t;
 
 extern  int         votetries_setting;

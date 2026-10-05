@@ -134,6 +134,7 @@ ra2_round_t *RA2_Stats_Begin(int arenanum)
     r->fallingdamage = a->fallingdamage;
     r->compmode = a->competition;
     r->damagescoring = a->scorebydamage;
+    r->roundtimelimit = a->roundtimelimit;
 
     return r;
 }
@@ -164,12 +165,13 @@ void RA2_Stats_Write(ra2_round_t *r)
     fprintf(f, ",\"map\":");
     json_string(f, r->mapname);
     fprintf(f, ",\"duration\":%.1f", (level.framenum - r->start_framenum) * FRAMETIME);
+    fprintf(f, ",\"timeout\":%s", r->timedout ? "true" : "false");
 
     fprintf(f, ",\"settings\":{\"armor\":%d,\"health\":%d,\"armorprotect\":%d"
             ",\"healthprotect\":%d,\"fallingdamage\":%d,\"compmode\":%d"
-            ",\"damagescoring\":%d}",
+            ",\"damagescoring\":%d,\"roundtimelimit\":%d}",
             r->armor, r->health, r->armorprotect, r->healthprotect,
-            r->fallingdamage, r->compmode, r->damagescoring);
+            r->fallingdamage, r->compmode, r->damagescoring, r->roundtimelimit);
 
     fprintf(f, ",\"teams\":[");
     for (i = 0, first = true; i < RA2_STATS_MAX_TEAMS; i++) {
@@ -225,9 +227,25 @@ void RA2_Stats_NextRound(ra2_round_t *r)
         return;
 
     r->round++;
+    r->timedout = false;
 
     // a vote may have changed the arena since the last round started
     RA2_Stats_ArenaInfo(r, r->arena);
+}
+
+/*
+=================
+RA2_Stats_TimedOut
+
+The round clock, rather than a wiped team, is ending this round.  Written
+with the round record so that a win on health and armour can be told from
+a win on frags.
+=================
+*/
+void RA2_Stats_TimedOut(ra2_round_t *r)
+{
+    if (r)
+        r->timedout = true;
 }
 
 /*
@@ -316,6 +334,7 @@ void RA2_Stats_ArenaInfo(ra2_round_t *r, int arenanum)
     r->fallingdamage = a->fallingdamage;
     r->compmode = a->competition;
     r->damagescoring = a->scorebydamage;
+    r->roundtimelimit = a->roundtimelimit;
 
     Q_strlcpy(r->mapname, level.mapname, sizeof(r->mapname));
 }

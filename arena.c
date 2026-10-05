@@ -1704,6 +1704,59 @@ void show_countdown(int countdown, int arenanum)
     }
 }
 
+/*
+================
+round_time_left
+
+Whole seconds left on an arena's round clock, rounded up, so that it reads
+0:00 only once the time has actually run out.
+================
+*/
+static int round_time_left(const arena_t *arena)
+{
+    int     frames;
+
+    frames = arena->roundtimelimit * BASE_FRAMERATE -
+             (level.framenum - arena->roundstart_framenum);
+    if (frames <= 0)
+        return 0;
+
+    return (frames + BASE_FRAMERATE - 1) / BASE_FRAMERATE;
+}
+
+/*
+================
+show_roundtime
+
+Sends the round clock to everyone in the arena when the second it shows
+changes, or at once if force is set.  It is a per-client configstring, like
+the arena status and round lines above it, and STAT_ROUNDTIME points at it.
+================
+*/
+static void show_roundtime(int arenanum, bool force)
+{
+    arena_t *arena = &arenas[arenanum];
+    edict_t *e;
+    char    *s;
+    int     i, secs;
+
+    if (!arena->roundtimelimit)
+        return;
+
+    secs = round_time_left(arena);
+    if (!force && secs == arena->roundtime_sent)
+        return;
+    arena->roundtime_sent = secs;
+
+    s = va("%2d:%02d", secs / 60, secs % 60);
+
+    for (i = 0; i < game.maxclients; i++) {
+        e = &g_edicts[i + 1];
+        if (e->inuse && e->client && e->client->resp.context == arenanum)
+            send_configstring(e, CS_ROUNDTIME, s);
+    }
+}
+
 /* gamex86.dll 0x20003780-0x200037a0 (bracketed) */
 /* gamei386.so 0x0004aa64-0x0004aa75 */
 int show_rank(qmenu_t *node)
@@ -1821,6 +1874,88 @@ int fight_done(int arenanum)
     }
 
     return winner;
+}
+
+/*
+================
+health_winner
+
+Decides a fight the round clock ended: the team whose living players hold the
+most health plus armour between them wins.  -1 for a tie.  Counts the same
+players fight_done() does, so it must run before set_damage() switches them
+off.
+================
+*/
+static int health_winner(int arenanum)
+{
+    qmenu_t     *tnode, *mnode;
+    edict_t     *e;
+    int         winner, best, total, armor;
+    bool        tie;
+
+    winner = -1;
+    best = 0;
+    tie = false;
+
+    tnode = &arenas[arenanum].activeteams;
+
+    while (tnode->next) {
+        tnode = tnode->next;
+
+        mnode = (qmenu_t *)tnode->it;
+        total = 0;
+
+        while (mnode->next) {
+            mnode = mnode->next;
+            e = (edict_t *)mnode->it;
+
+            if (e->takedamage != DAMAGE_AIM || e->deadflag != DEAD_NO)
+                continue;
+
+            total += e->health;
+            armor = ArmorIndex(e);
+            if (armor)
+                total += e->client->pers.inventory[armor];
+        }
+
+        if (total <= 0)
+            continue;
+
+        if (total > best) {
+            best = total;
+            winner = ((team_t *)((qmenu_t *)tnode->it)->it)->teamnum;
+            tie = false;
+        } else if (total == best) {
+            tie = true;
+        }
+    }
+
+    return tie ? -1 : winner;
+}
+
+/*
+================
+team_is_active
+
+Is this team still one of the arena's active teams?  health_winner()'s answer
+is kept through the results pause, and a team that empties in that pause is
+freed by check_teams() and its slot handed to the next team created -- where
+fight_done(), asked at the end of the pause, only ever names a team that is
+there.
+================
+*/
+static bool team_is_active(int arenanum, int teamnum)
+{
+    qmenu_t *tnode;
+
+    tnode = &arenas[arenanum].activeteams;
+    while (tnode->next) {
+        tnode = tnode->next;
+        if (TEAM((qmenu_t *)tnode->it)->teamnum == teamnum)
+            return true;
+    }
+
+    return false;
 }
 
 /* gamex86.dll: no real counterpart -- confirmed dead code */
@@ -1965,7 +2100,8 @@ void UpdateStatusBars(int arenanum)
         }
     }
 
-    strcpy(p, "if 20 xv 0 yb -58 stat_string 20 endif ");
+    strcpy(p, "if 20 xv 0 yb -58 stat_string 20 endif "
+           "if 28 xr -42 yt 28 stat_string 28 endif ");
 
     for (n = 0; n < game.maxclients; n++) {
         e = &g_edicts[n + 1];
@@ -2188,6 +2324,9 @@ void arena_think(int arenanum)
 
             arena->state = ASTATE_FIGHTING;
             set_damage(arenanum, DAMAGE_AIM);
+            arena->roundstart_framenum = level.framenum;
+            arena->timed_out = false;
+            show_roundtime(arenanum, true);
             return;
         }
 
@@ -2240,7 +2379,17 @@ void arena_think(int arenanum)
         arena->proposetime = level.time + 30;
         return;
     } else if (arena->state == ASTATE_NEXTROUND) {
-        winner = fight_done(arenanum);
+        // a fight the clock ended was decided when it ended, and fight_done()
+        // can no longer tell: set_damage() has taken everyone out of its count.
+        // A winner that has left since is a tie, as it is after a wipe.
+        if (arena->timed_out) {
+            winner = arena->timeout_winner;
+            arena->timed_out = false;
+            if (winner != -1 && !team_is_active(arenanum, winner))
+                winner = -1;
+        } else {
+            winner = fight_done(arenanum);
+        }
 
         if (winner == -1) {
             sprintf(arena->msg, "It was a tie!");
@@ -2308,6 +2457,43 @@ void arena_think(int arenanum)
     }
 }
 
+/*
+================
+arena_roundclock
+
+The round time limit.  This runs for every arena on every frame, where
+arena_think() runs for any one arena only every num_arenas * 2 frames -- 1.4
+seconds on a seven-arena map, which a clock that counts in seconds cannot be
+quantised to, and neither can the moment it runs out.
+
+When it does run out on a fight that is still going, the round is decided on
+health plus armour, the fighting stops so the result cannot change during the
+results pause, and the arena goes to ASTATE_RESULTS exactly as it does when a
+team is wiped.  A fight that has already been decided is left to arena_think().
+================
+*/
+static void arena_roundclock(int arenanum)
+{
+    arena_t *arena = &arenas[arenanum];
+
+    if (arena->state != ASTATE_FIGHTING || !arena->roundtimelimit)
+        return;
+
+    show_roundtime(arenanum, false);
+
+    if (round_time_left(arena) > 0 || fight_done(arenanum) > -2)
+        return;
+
+    arena->timeout_winner = health_winner(arenanum);
+    arena->timed_out = true;
+    set_damage(arenanum, DAMAGE_NO);
+    show_stringc("Time's up!", arenanum);
+    RA2_Stats_TimedOut(arena->stats);
+    gi.dprintf("%d: time's up, %d\n", arenanum, arena->timeout_winner);
+
+    arena->state = ASTATE_RESULTS;
+}
+
 /* gamex86.dll 0x20004a70-0x20004ac0 (shape-matched(ratio=0.87)) */
 /* gamei386.so 0x0004c4e8-0x0004c532 */
 void multi_arena_think(void)
@@ -2316,6 +2502,9 @@ void multi_arena_think(void)
 
     if (level.intermission_framenum)
         return;
+
+    for (i = 1; i <= num_arenas; i++)
+        arena_roundclock(i);
 
     i = level.framenum % (num_arenas * 2);
     if (i % 2)

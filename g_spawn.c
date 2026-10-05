@@ -867,7 +867,7 @@ const char dm_statusbar[] =
     "    stat_string 18"
     " endif"
 
-    " if 23     xr  -34     yt  32  num 2   21  xr  -34     yt  62  num 2   22  xr  -64     yt  40  stat_string 24  xr  -64     yt  70  stat_string 25"
+    " if 23     xr  -34     yt  42  num 2   21  xr  -34     yt  72  num 2   22  xr  -64     yt  50  stat_string 24  xr  -64     yt  80  stat_string 25"
     " endif yb  -32 xv  50 pic 0 yb -24 xv  0 hnum"
 
 // ammo
@@ -893,6 +893,11 @@ const char dm_statusbar[] =
 // help / weapon icon
     " if 11     xv  148     pic 11"
     " endif xr  -50 yt 2 num 3 14"
+
+// round clock, under the frags -- the pickup queue above is moved down to
+// make room for it
+    " if 28 xr -42 yt 28 stat_string 28"
+    " endif"
 
     " if 20 xv 0 yb -58 stat_string 20"
     " endif "

@@ -713,6 +713,7 @@ void G_SetStats(edict_t *ent)
     int         power_armor_type;
     int         image, i, icon;
     char        skinicon[256];
+    const arena_t   *arena;
 
     //
     // skin icon
@@ -886,6 +887,17 @@ void G_SetStats(edict_t *ent)
     } else {
         ent->client->ps.stats[STAT_SHOWQUEUE] = 0;
     }
+
+    //
+    // round clock, held at its last reading until the next fight starts
+    //
+    arena = ent->client->resp.context ? &arenas[ent->client->resp.context] : NULL;
+    if (arena && arena->roundtimelimit &&
+        (arena->state == ASTATE_FIGHTING || arena->state == ASTATE_RESULTS ||
+         arena->state == ASTATE_NEXTROUND))
+        ent->client->ps.stats[STAT_ROUNDTIME] = CS_ROUNDTIME;
+    else
+        ent->client->ps.stats[STAT_ROUNDTIME] = 0;
 
     CTFSetIDView(ent);
 }

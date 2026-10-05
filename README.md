@@ -27,7 +27,8 @@ target.
 
 **From packetflinger's fork**, re-implemented for the Q2PRO API: an "In Eyes"
 observer camera that really looks through the target's eyes, view weapon and
-all.
+all, and an optional per-arena round time limit (`roundtimelimit:` in
+`arena.cfg`) that decides a stalled fight on health and armour.
 
 * [doc/q2pro-port.md](doc/q2pro-port.md) — how the replay was done, what was
   carried across by hand, what replaced GameSpy, why `netlog` went with it, what

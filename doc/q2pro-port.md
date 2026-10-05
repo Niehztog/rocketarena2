@@ -94,8 +94,10 @@ were carried across by hand:
 
 * **Stat slots.** RA2's private `q_shared.h` reused baseq2's `STAT_CHASE` and
   `STAT_SPECTATOR` slots. That header is gone, so the slot definitions moved to
-  `g_local.h`. Q2PRO's second powerup timer needs two free slots; RA2's layout
-  has 19 and 20 unused, so they land there.
+  `g_local.h`. Q2PRO's second powerup timer needs two free slots. RA2's own
+  block runs from 16 to 25 -- 19 and 20 are `arena.h`'s line position and ID
+  view -- so the timer goes above it, at 26 and 27, still inside the 32 slots an
+  old-protocol client receives. The round clock (below) is 28.
 
 * **Internal linkage.** Q2PRO gave several baseq2 functions `static` once
   nothing outside their file called them. RA2 still calls
@@ -248,6 +250,44 @@ with modelindex 0 while the other fighter's, and both fighters' views of each
 other, keep 255; and retargeting and leaving move and release the hiding. The
 Q2PRO-protocol half -- the client hiding the model itself from the number it is
 sent -- was not, because the harness's client speaks protocol 34.
+
+**Round time limit.** A new `arena.cfg` key, `roundtimelimit: <seconds>`, read
+at the global, map and arena levels like every other setting; 0, the default, is
+no limit. A fight still going when it runs out is decided on the living players'
+health plus armour -- the larger total wins, equal is a tie, which RA2 replays
+like any other -- with "Time's up!" centerprinted and damage switched off, so the
+result cannot change during the results pause. A clock counts down under the
+frags; the pickup queue display moved down 10 pixels to make room for it.
+
+Against the fork:
+
+* **Stat slot 28, not 26.** 26 is Q2PRO's second powerup timer here, and
+  `G_SetStats()` writes it for every client on every frame.
+* **The configstring goes through `game.csr`.** The fork's
+  `game.num_items + 0x424` is `CS_ITEMS + num_items + 4` in the vanilla layout
+  only; with protocol extensions on, the item block moves to 12606 and that index
+  lands among the model strings. `CS_ROUNDTIME` is
+  `game.csr.items + game.num_items + 4`, next to RA2's other per-client strings.
+* **The clock runs every frame.** `multi_arena_think()` reaches any one arena
+  only every `num_arenas * 2` frames, and the fork ticked the clock from there.
+  A build of this tree doing the same skipped 9 of 26 seconds on the eight-arena
+  `ra2map9` and called time 0.6 s late; `arena_roundclock()` runs for every
+  arena on every frame, and ends the fight there too.
+* **A winner who leaves makes it a tie.** The fork kept the timeout's winner
+  through the results pause and then indexed `teams[]` with it, but a team that
+  empties in that pause is freed by `check_teams()`: a NULL dereference at the
+  next round, or a win credited to whichever team took the slot. The winner is
+  checked against the arena's active teams first, and a vanished one gives the
+  tie RA2 already gives when a wipe's survivors leave.
+* **The round log says so.** `ra2stats.jsonl` records carry `"timeout"` and the
+  arena's `roundtimelimit`, so a win on health can be told from a win on frags.
+
+Play-tested the same way: the clock sends all 26 updates of a 25-second limit,
+calls time at 25.0 s, awards the round to the larger total, does no damage after
+the whistle, restarts at the limit and logs `"timeout":true`, while an arena with
+no limit on the same server shows no clock and keeps fighting. The
+protocol-extensions layout of `CS_ROUNDTIME` was not, because Q2PRO refuses a
+client that is not Q2PRO protocol while protocol extensions are on.
 
 What is checked
 ---------------
